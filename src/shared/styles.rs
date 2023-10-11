@@ -1,8 +1,8 @@
 use makepad_widgets::*;
 
 live_design! {
-    REGULAR_TEXT = {
+    INTRO_TEXT = {
         font_size: (12),
-        font: {path: dep("crate://makepad-widgets/resources/GoNotoKurrent-Regular.ttf")}
+        font: {path: dep("crate://self/resources/YesevaOne-Regular.ttf")}
     }
 }
