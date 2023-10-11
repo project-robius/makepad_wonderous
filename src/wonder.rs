@@ -155,17 +155,23 @@ live_design! {
     }
 }
 
+enum WonderState {
+    Intro,
+    Content,
+}
+
 #[derive(Live)]
 pub struct Wonder {
     #[deref]
     view: View,
 
+    #[rust(WonderState::Intro)]
+    state: WonderState,
+
     #[rust]
     dragging: bool,
     #[rust]
     last_abs: DVec2,
-    #[rust]
-    offset_from_drag: f64,
     #[rust]
     init_drag_time: f64,
 }
@@ -184,56 +190,14 @@ impl Widget for Wonder {
         dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
         self.view.handle_widget_event_with(cx, event, dispatch_action);
-        match event.hits_with_capture_overload(cx, self.view.area(), true) {
-            Hit::FingerDown(fe) => {
-                self.last_abs = fe.abs;
-                self.init_drag_time = fe.time;
-                self.offset_from_drag = 0.0;
+
+        match self.state {
+            WonderState::Intro => {
+                self.handle_intro_event(cx, event);
             }
-            Hit::FingerMove(fe) => {
-                let time_elapsed = fe.time - self.init_drag_time;
-                if time_elapsed > 0.15 {
-                    let delta = (self.last_abs.y - fe.abs.y) * 0.6;
-
-                    let left_image = self.view(id!(left_great_wall));
-                    left_image.apply_over(cx, live!{
-                        margin: {top: (-delta), left: (-delta / 2.)},
-                        width: (1386. * 0.35 + delta),
-                        height: (1764. * 0.35 + delta * (1764. / 1386.))
-                    });
-                    left_image.redraw(cx);
-
-                    let right_image = self.view(id!(right_great_wall));
-                    right_image.apply_over(cx, live!{
-                        margin: {top: (-delta), left: (-delta / 2.)},
-                        width: (1386. * 0.45 + delta),
-                        height: (1764. * 0.45 + delta * (1764. / 1386.))
-                    });
-                    right_image.redraw(cx);
-
-                    self.dragging = true;
-                }
+            WonderState::Content => {
+                //self.handle_content_event(cx, event);
             }
-            Hit::FingerUp(fe) => {
-                self.dragging = false;
-
-                let left_image = self.view(id!(left_great_wall));
-                left_image.apply_over(cx, live!{
-                    margin: {top: 0, left: 0},
-                    width: (1386. * 0.35),
-                    height: (1764. * 0.35)
-                });
-                left_image.redraw(cx);
-
-                let right_image = self.view(id!(right_great_wall));
-                right_image.apply_over(cx, live!{
-                    margin: {top: 0, left: 0},
-                    width: (1386. * 0.45),
-                    height: (1764. * 0.45)
-                });
-                right_image.redraw(cx);
-            }
-            _ => {}
         }
     }
 
@@ -252,5 +216,71 @@ impl Widget for Wonder {
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
         let _ = self.view.draw_walk_widget(cx, walk);
         WidgetDraw::done()
+    }
+}
+
+impl Wonder {
+    fn handle_intro_event(&mut self, cx: &mut Cx, event: &Event) {
+        match event.hits_with_capture_overload(cx, self.view.area(), true) {
+            Hit::FingerDown(fe) => {
+                self.last_abs = fe.abs;
+                self.init_drag_time = fe.time;
+            }
+            Hit::FingerMove(fe) => {
+                let time_elapsed = fe.time - self.init_drag_time;
+                if time_elapsed > 0.15 {
+                    self.dragging = true;
+                    let delta = (self.last_abs.y - fe.abs.y) * 0.6;
+
+                    if delta > 60. {
+                        self.state = WonderState::Content;
+                        self.view(id!(intro)).set_visible(false);
+                        self.view(id!(header)).set_visible(true);
+
+                        self.reset_intro_dragging(cx);
+                    } else if delta > 0. {
+                        let left_image = self.view(id!(left_great_wall));
+                        left_image.apply_over(cx, live!{
+                            margin: {top: (-delta), left: (-delta / 2.)},
+                            width: (1386. * 0.35 + delta),
+                            height: (1764. * 0.35 + delta * (1764. / 1386.))
+                        });
+                        left_image.redraw(cx);
+
+                        let right_image = self.view(id!(right_great_wall));
+                        right_image.apply_over(cx, live!{
+                            margin: {top: (-delta), left: (-delta / 2.)},
+                            width: (1386. * 0.45 + delta),
+                            height: (1764. * 0.45 + delta * (1764. / 1386.))
+                        });
+                        right_image.redraw(cx);
+                    }
+                }
+            }
+            Hit::FingerUp(fe) => {
+                self.reset_intro_dragging(cx);
+            }
+            _ => {}
+        }
+    }
+
+    fn reset_intro_dragging(&mut self, cx: &mut Cx) {
+        self.dragging = false;
+
+        let left_image = self.view(id!(left_great_wall));
+        left_image.apply_over(cx, live!{
+            margin: {top: 0, left: 0},
+            width: (1386. * 0.35),
+            height: (1764. * 0.35)
+        });
+        left_image.redraw(cx);
+
+        let right_image = self.view(id!(right_great_wall));
+        right_image.apply_over(cx, live!{
+            margin: {top: 0, left: 0},
+            width: (1386. * 0.45),
+            height: (1764. * 0.45)
+        });
+        right_image.redraw(cx);
     }
 }
