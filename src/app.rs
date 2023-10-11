@@ -5,14 +5,15 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     import crate::shared::styles::*;
+    import crate::intro::*;
 
     App = {{App}} {
         ui: <Window> {
-            window: {position: vec2(0, 0), inner_size: vec2(400, 800)},
+            window: {position: vec2(0, 0), inner_size: vec2(375, 813)},
             pass: {clear_color: #2A}
 
             body = {
-                <Label> { text: "Hello World" } 
+                <Intro> {}
             }
         }
     }
@@ -30,6 +31,7 @@ impl LiveHook for App {
     fn before_live_design(cx: &mut Cx) {
         makepad_widgets::live_design(cx);
         crate::shared::styles::live_design(cx);
+        crate::intro::live_design(cx);
     }
 }
 
