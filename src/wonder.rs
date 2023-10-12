@@ -6,6 +6,7 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     import crate::shared::styles::*;
+    import makepad_draw::shader::std::*;
 
     IMG_SUN = dep("crate://self/resources/sun.png")
     IMG_CLOUD = dep("crate://self/resources/cloud-white.png")
@@ -14,19 +15,39 @@ live_design! {
     IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/foreground_right_great_wall.png")
     IMG_BACKGROUND_ROLLER = dep("crate://self/resources/roller-1-black.png")
 
+    FadeView = <CachedView> {
+        dpi_factor: 2.0,
+
+        draw_bg: {
+            instance opacity: 1.0
+
+            fn pixel(self) -> vec4 {
+                let color = sample2d_rt(self.image, self.pos);
+                return Pal::premul(vec4(color.xyz, color.w * self.opacity))
+            }
+        }
+    }
+
     Wonder = {{Wonder}} {
         flow: Overlay,
 
-        intro = <View> {
-            //visible: false,
+        show_bg: true,
+        draw_bg: {
+            color: #5d2a2c
+        }
 
+        intro = <FadeView> {
             flow: Overlay,
             width: Fill,
             height: Fill,
 
-            show_bg: true
-            draw_bg: {
-                color: #8b9e77
+            <View> {
+                width: Fill,
+                height: Fill,
+                show_bg: true,
+                draw_bg: {
+                    color: #8b9e77
+                }
             }
 
             <Image> {
@@ -111,11 +132,13 @@ live_design! {
             }
         }
 
-        header = <View> {
+        header = <FadeView> {
             visible: false,
             flow: Overlay,
             width: Fill,
             height: Fill,
+
+            draw_bg: { instance opacity: 0.0 }
 
             <View> {
                 show_bg: true,
@@ -138,9 +161,9 @@ live_design! {
                     }
                 }
             }
-            <Image> {
+            sun = <Image> {
                 source: (IMG_SUN),
-                abs_pos: vec2(100, 0),
+                abs_pos: vec2(100, 60),
                 width: (200 * 0.6),
                 height: (202 * 0.6),
             }
@@ -150,6 +173,61 @@ live_design! {
 
                 width: (1476 * 0.185),
                 height: (1371 * 0.185),
+            }
+        }
+
+        animator: {
+            intro = {
+                default: show,
+                hide = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.2}}
+                    apply: {
+                        intro = { draw_bg: { instance opacity: 0.0 }}
+                        header = { draw_bg: { instance opacity: 1.0 }}
+                    }
+                }
+                show = {
+                    from: {all: Forward {duration: 0.2}}
+                    apply: {
+                        intro = { draw_bg: { instance opacity: 1.0 }}
+                        header = { draw_bg: { instance opacity: 0.0 }}
+                    }
+                }
+            },
+            sun = {
+                default: hide,
+                show = {
+                    ease: OutExp
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {
+                        header = { sun = { abs_pos: vec2(100, 0) }}
+                    }
+                }
+                hide = {
+                    ease: OutExp
+                    from: {all: Forward {duration: 0.5}}
+                    apply: {
+                        header = { sun = { abs_pos: vec2(100, 60) }}
+                    }
+                }
+            },
+            title = {
+                default: intro,
+                content = {
+                    ease: InExp
+                    from: {all: Forward {duration: 0.3}}
+                    apply: {
+                        title = { align: { x: 0.5, y: 0.45 } }
+                    }
+                }
+                intro = {
+                    ease: InExp
+                    from: {all: Forward {duration: 0.3}}
+                    apply: {
+                        title = { align: { x: 0.5, y: 0.85 } }
+                    }
+                }
             }
         }
     }
@@ -174,6 +252,8 @@ pub struct Wonder {
     last_abs: DVec2,
     #[rust]
     init_drag_time: f64,
+
+    #[animator] animator: Animator,
 }
 
 impl LiveHook for Wonder {
@@ -189,6 +269,10 @@ impl Widget for Wonder {
         event: &Event,
         dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
+        if self.animator_handle_event(cx, event).must_redraw() {
+            self.redraw(cx);
+        }
+
         self.view.handle_widget_event_with(cx, event, dispatch_action);
 
         match self.state {
@@ -234,10 +318,12 @@ impl Wonder {
 
                     if delta > 60. {
                         self.state = WonderState::Content;
-                        self.view(id!(intro)).set_visible(false);
                         self.view(id!(header)).set_visible(true);
 
                         self.reset_intro_dragging(cx);
+                        self.animator_play(cx, id!(intro.hide));
+                        self.animator_play(cx, id!(sun.show));
+                        self.animator_play(cx, id!(title.content));
                     } else if delta > 0. {
                         let left_image = self.view(id!(left_great_wall));
                         left_image.apply_over(cx, live!{
