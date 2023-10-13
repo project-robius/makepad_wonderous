@@ -14,6 +14,7 @@ live_design! {
     IMG_FG_LEFT_GREAT_WALL = dep("crate://self/resources/foreground_left_great_wall.png")
     IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/foreground_right_great_wall.png")
     IMG_BACKGROUND_ROLLER = dep("crate://self/resources/roller-1-black.png")
+    IMG_COMPASS = dep("crate://self/resources/compass-icon.png")
 
     FadeView = <CachedView> {
         dpi_factor: 2.0,
@@ -25,6 +26,15 @@ live_design! {
                 let color = sample2d_rt(self.image, self.pos);
                 return Pal::premul(vec4(color.xyz, color.w * self.opacity))
             }
+        }
+    }
+
+    Line = <View> {
+        width: Fill,
+        height: 1,
+        show_bg: true,
+        draw_bg: {
+            color: #8b9e77
         }
     }
 
@@ -118,17 +128,90 @@ live_design! {
  
             <Label> {
                 draw_text:{
-                    text_style: <INTRO_TEXT>{font_size: 14},
+                    text_style: <INTRO_TITLE>{font_size: 14},
                     color: #fff
                 }
                 text: "the"
             }
             <Label> {
                 draw_text:{
-                    text_style: <INTRO_TEXT>{font_size: 40},
+                    text_style: <INTRO_TITLE>{font_size: 40},
                     color: #fff
                 }
                 text: "Great Wall"
+            }
+        }
+
+        subtitle_group = <FadeView> {
+            visible: false,
+            flow: Down,
+            width: Fill,
+            height: Fit,
+
+            abs_pos: vec2(0, 340.0),
+            spacing: 100.0
+
+            subtitle = <View> {
+                width: Fill,
+                height: Fit,
+
+                align: { x: 0.5, y: 0.5 }
+                spacing: 35.0
+                margin: {left: 35.0, right: 35.0}
+
+                <Line> {}
+                <Label> {
+                    draw_text:{
+                        text_style: <INTRO_SUBTITLE>{font_size: 9},
+                        color: #fff
+                    }
+                    text: "LONGEST STRUCTURE ON EARTH"
+                }
+                <Line> {}
+            }
+
+            subtitle_bottom = <View> {
+                flow: Down,
+                width: Fill,
+                height: Fit,
+
+                spacing: 20.0
+
+                <View> {
+                    width: Fill,
+                    height: Fit,
+
+                    align: { x: 0.5, y: 0.5 }
+
+                    <Label> {
+                        draw_text:{
+                            text_style: <INTRO_SUBTITLE>{font_size: 10},
+                            color: #fff
+                        }
+                        text: "CHINA"
+                    }
+                }
+
+                footer = <View> {
+                    width: Fill,
+                    height: Fit,
+
+                    align: { x: 0.5, y: 0.5 }
+                    spacing: 35.0
+                    margin: {left: 35.0, right: 35.0}
+
+                    <Line> {}
+                    compass = <RotatedImage> {
+                        width: 30,
+                        height: 30,
+                        source: (IMG_COMPASS),
+
+                        draw_bg: {
+                            instance rotation: -0.5
+                        }
+                    }
+                    <Line> {}
+                }
             }
         }
 
@@ -136,7 +219,7 @@ live_design! {
             visible: false,
             flow: Overlay,
             width: Fill,
-            height: Fill,
+            height: 280, // Issue: height: Fit, doesn't work as expected
 
             draw_bg: { instance opacity: 0.0 }
 
@@ -147,7 +230,7 @@ live_design! {
                 }
 
                 width: Fill,
-                height: 250,
+                height: 230,
 
                 <Image> {
                     source: (IMG_BACKGROUND_ROLLER),
@@ -218,7 +301,7 @@ live_design! {
                     ease: InExp
                     from: {all: Forward {duration: 0.3}}
                     apply: {
-                        title = { align: { x: 0.5, y: 0.45 } }
+                        title = { align: { x: 0.5, y: 0.5 } }
                     }
                 }
                 intro = {
@@ -226,6 +309,60 @@ live_design! {
                     from: {all: Forward {duration: 0.3}}
                     apply: {
                         title = { align: { x: 0.5, y: 0.85 } }
+                    }
+                }
+            }
+            subtitle = {
+                default: intro,
+                content = {
+                    from: {all: Forward {duration: 1.0}}
+                    apply: {
+                        subtitle_group = {
+                            subtitle = {
+                                spacing: 15.0
+                                margin: {left: 15.0, right: 15.0}
+                            }
+                            subtitle_bottom = { footer = {
+                                spacing: 15.0
+                                margin: {left: 15.0, right: 15.0}
+                            }}
+                        }
+                    }
+                }
+                intro = {
+                    from: {all: Forward {duration: 1.0}}
+                    apply: {
+                        subtitle_group = {
+                            subtitle = {
+                                spacing: 35.0
+                                margin: {left: 35.0, right: 35.0}
+                            }
+                            subtitle_bottom = { footer = {
+                                spacing: 80.0
+                                margin: {left: 80.0, right: 80.0}
+                            }}
+                        }
+                    }
+                }
+            }
+            compass = {
+                default: hide,
+                show = {
+                    ease: OutBack
+                    from: {all: Forward {duration: 2.0}}
+                    apply: {
+                        subtitle_group = { subtitle_bottom = { footer =
+                            { compass = { draw_bg: { instance rotation: 0 }}}
+                        }}
+                    }
+                }
+                hide = {
+                    ease: OutBack
+                    from: {all: Forward {duration: 2.0}}
+                    apply: {
+                        subtitle_group = { subtitle_bottom = { footer =
+                            { compass = { draw_bg: { instance rotation: -3.0 }}}
+                        }}
                     }
                 }
             }
@@ -259,6 +396,12 @@ pub struct Wonder {
 impl LiveHook for Wonder {
     fn before_live_design(cx: &mut Cx) {
         register_widget!(cx, Wonder);
+    }
+
+    fn after_apply(&mut self, _cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
+        if from.is_from_doc() {
+            self.state = WonderState::Intro;
+        }
     }
 }
 
@@ -319,11 +462,14 @@ impl Wonder {
                     if delta > 60. {
                         self.state = WonderState::Content;
                         self.view(id!(header)).set_visible(true);
+                        self.view(id!(subtitle_group)).set_visible(true);
 
                         self.reset_intro_dragging(cx);
                         self.animator_play(cx, id!(intro.hide));
                         self.animator_play(cx, id!(sun.show));
                         self.animator_play(cx, id!(title.content));
+                        self.animator_play(cx, id!(subtitle.content));
+                        self.animator_play(cx, id!(compass.show));
                     } else if delta > 0. {
                         let left_image = self.view(id!(left_great_wall));
                         left_image.apply_over(cx, live!{
