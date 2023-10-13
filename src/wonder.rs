@@ -46,6 +46,79 @@ live_design! {
             color: #5d2a2c
         }
 
+        subtitle_group = <FadeView> {
+            visible: false,
+            flow: Down,
+            width: Fill,
+            height: Fit,
+
+            abs_pos: vec2(0, 340.0),
+            spacing: 100.0
+
+            subtitle = <View> {
+                width: Fill,
+                height: Fit,
+
+                align: { x: 0.5, y: 0.5 }
+                spacing: 35.0
+                margin: {left: 35.0, right: 35.0}
+
+                <Line> {}
+                <Label> {
+                    draw_text:{
+                        text_style: <INTRO_SUBTITLE>{font_size: 9},
+                        color: #fff
+                    }
+                    text: "LONGEST STRUCTURE ON EARTH"
+                }
+                <Line> {}
+            }
+
+            subtitle_bottom = <View> {
+                flow: Down,
+                width: Fill,
+                height: Fit,
+
+                spacing: 20.0
+
+                <View> {
+                    width: Fill,
+                    height: Fit,
+
+                    align: { x: 0.5, y: 0.5 }
+
+                    <Label> {
+                        draw_text:{
+                            text_style: <INTRO_SUBTITLE>{font_size: 10},
+                            color: #fff
+                        }
+                        text: "CHINA"
+                    }
+                }
+
+                footer = <View> {
+                    width: Fill,
+                    height: Fit,
+
+                    align: { x: 0.5, y: 0.5 }
+                    spacing: 35.0
+                    margin: {left: 35.0, right: 35.0}
+
+                    <Line> {}
+                    compass = <RotatedImage> {
+                        width: 30,
+                        height: 30,
+                        source: (IMG_COMPASS),
+
+                        draw_bg: {
+                            instance rotation: -0.5
+                        }
+                    }
+                    <Line> {}
+                }
+            }
+        }
+
         intro = <FadeView> {
             flow: Overlay,
             width: Fill,
@@ -142,79 +215,6 @@ live_design! {
             }
         }
 
-        subtitle_group = <FadeView> {
-            visible: false,
-            flow: Down,
-            width: Fill,
-            height: Fit,
-
-            abs_pos: vec2(0, 340.0),
-            spacing: 100.0
-
-            subtitle = <View> {
-                width: Fill,
-                height: Fit,
-
-                align: { x: 0.5, y: 0.5 }
-                spacing: 35.0
-                margin: {left: 35.0, right: 35.0}
-
-                <Line> {}
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 9},
-                        color: #fff
-                    }
-                    text: "LONGEST STRUCTURE ON EARTH"
-                }
-                <Line> {}
-            }
-
-            subtitle_bottom = <View> {
-                flow: Down,
-                width: Fill,
-                height: Fit,
-
-                spacing: 20.0
-
-                <View> {
-                    width: Fill,
-                    height: Fit,
-
-                    align: { x: 0.5, y: 0.5 }
-
-                    <Label> {
-                        draw_text:{
-                            text_style: <INTRO_SUBTITLE>{font_size: 10},
-                            color: #fff
-                        }
-                        text: "CHINA"
-                    }
-                }
-
-                footer = <View> {
-                    width: Fill,
-                    height: Fit,
-
-                    align: { x: 0.5, y: 0.5 }
-                    spacing: 35.0
-                    margin: {left: 35.0, right: 35.0}
-
-                    <Line> {}
-                    compass = <RotatedImage> {
-                        width: 30,
-                        height: 30,
-                        source: (IMG_COMPASS),
-
-                        draw_bg: {
-                            instance rotation: -0.5
-                        }
-                    }
-                    <Line> {}
-                }
-            }
-        }
-
         header = <FadeView> {
             visible: false,
             flow: Overlay,
@@ -271,6 +271,7 @@ live_design! {
                     }
                 }
                 show = {
+                    redraw: true,
                     from: {all: Forward {duration: 0.2}}
                     apply: {
                         intro = { draw_bg: { instance opacity: 1.0 }}
@@ -312,9 +313,24 @@ live_design! {
                     }
                 }
             }
-            subtitle = {
-                default: intro,
-                content = {
+            subtitle_on_content = {
+                default: will_show,
+                will_show = {
+                    from: {all: Snap}
+                    apply: {
+                        subtitle_group = {
+                            subtitle = {
+                                spacing: 35.0
+                                margin: {left: 35.0, right: 35.0}
+                            }
+                            subtitle_bottom = { footer = {
+                                spacing: 80.0
+                                margin: {left: 80.0, right: 80.0}
+                            }}
+                        }
+                    }
+                }
+                show = {
                     from: {all: Forward {duration: 1.0}}
                     apply: {
                         subtitle_group = {
@@ -329,18 +345,33 @@ live_design! {
                         }
                     }
                 }
-                intro = {
+            }
+            subtitle_on_intro = {
+                default: reset,
+                reset = {
+                    from: {all: Snap}
+                    apply: {
+                        subtitle_group = {
+                            abs_pos: vec2(0, 340),
+                            draw_bg: { instance opacity: 1.0 }
+                        }
+                    }
+                }
+                will_show = {
+                    from: {all: Snap}
+                    apply: {
+                        subtitle_group = {
+                            abs_pos: vec2(0, 340),
+                            draw_bg: { instance opacity: 1.0 }
+                        }
+                    }
+                }
+                show = {
                     from: {all: Forward {duration: 1.0}}
                     apply: {
                         subtitle_group = {
-                            subtitle = {
-                                spacing: 35.0
-                                margin: {left: 35.0, right: 35.0}
-                            }
-                            subtitle_bottom = { footer = {
-                                spacing: 80.0
-                                margin: {left: 80.0, right: 80.0}
-                            }}
+                            abs_pos: vec2(0, 0),
+                            draw_bg: { instance opacity: 0.0 }
                         }
                     }
                 }
@@ -357,8 +388,7 @@ live_design! {
                     }
                 }
                 hide = {
-                    ease: OutBack
-                    from: {all: Forward {duration: 2.0}}
+                    from: {all: Snap}
                     apply: {
                         subtitle_group = { subtitle_bottom = { footer =
                             { compass = { draw_bg: { instance rotation: -3.0 }}}
@@ -390,7 +420,11 @@ pub struct Wonder {
     #[rust]
     init_drag_time: f64,
 
-    #[animator] animator: Animator,
+    #[animator]
+    animator: Animator,
+    
+    #[rust]
+    next_frame: NextFrame,
 }
 
 impl LiveHook for Wonder {
@@ -398,9 +432,10 @@ impl LiveHook for Wonder {
         register_widget!(cx, Wonder);
     }
 
-    fn after_apply(&mut self, _cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
+    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc() {
             self.state = WonderState::Intro;
+            self.next_frame = cx.new_next_frame();
         }
     }
 }
@@ -416,6 +451,8 @@ impl Widget for Wonder {
             self.redraw(cx);
         }
 
+        self.orchestrate_animations(cx, event);
+
         self.view.handle_widget_event_with(cx, event, dispatch_action);
 
         match self.state {
@@ -423,7 +460,7 @@ impl Widget for Wonder {
                 self.handle_intro_event(cx, event);
             }
             WonderState::Content => {
-                //self.handle_content_event(cx, event);
+                self.handle_content_event(cx, event);
             }
         }
     }
@@ -468,7 +505,7 @@ impl Wonder {
                         self.animator_play(cx, id!(intro.hide));
                         self.animator_play(cx, id!(sun.show));
                         self.animator_play(cx, id!(title.content));
-                        self.animator_play(cx, id!(subtitle.content));
+                        self.animator_play(cx, id!(subtitle_on_content.will_show));
                         self.animator_play(cx, id!(compass.show));
                     } else if delta > 0. {
                         let left_image = self.view(id!(left_great_wall));
@@ -496,23 +533,107 @@ impl Wonder {
         }
     }
 
+    fn handle_content_event(&mut self, cx: &mut Cx, event: &Event) {
+        match event.hits_with_capture_overload(cx, self.view.area(), true) {
+            Hit::FingerDown(fe) => {
+                self.last_abs = fe.abs;
+                self.init_drag_time = fe.time;
+            }
+            Hit::FingerMove(fe) => {
+                let time_elapsed = fe.time - self.init_drag_time;
+                if time_elapsed > 0.15 {
+                    self.dragging = true;
+                    let delta = (self.last_abs.y - fe.abs.y) * 0.6;
+
+                    if delta < -60. {
+                        self.state = WonderState::Intro;
+
+                        self.reset_intro_dragging(cx);
+                        self.animator_play(cx, id!(intro.show));
+                        self.animator_play(cx, id!(sun.hide));
+                        self.animator_play(cx, id!(title.intro));
+                        self.animator_play(cx, id!(subtitle_on_intro.will_show));
+                        self.animator_play(cx, id!(compass.hide));
+                    } else if delta < 0. {
+                        let subtitle_group = self.view(id!(subtitle_group));
+                        subtitle_group.apply_over(cx, live!{
+                            margin: {top: (-delta)},
+                        });
+                        subtitle_group.redraw(cx);
+
+                        let title = self.view(id!(title));
+                        title.apply_over(cx, live!{
+                            margin: {top: (-delta * 2.0)},
+                        });
+                        title.redraw(cx);
+                    }
+                }
+            }
+            Hit::FingerUp(fe) => {
+                self.reset_intro_dragging(cx);
+            }
+            _ => {}
+        }
+    }
+
     fn reset_intro_dragging(&mut self, cx: &mut Cx) {
         self.dragging = false;
 
-        let left_image = self.view(id!(left_great_wall));
-        left_image.apply_over(cx, live!{
-            margin: {top: 0, left: 0},
-            width: (1386. * 0.35),
-            height: (1764. * 0.35)
-        });
-        left_image.redraw(cx);
+        match self.state {
+            WonderState::Intro => {
+                let left_image = self.view(id!(left_great_wall));
+                left_image.apply_over(cx, live!{
+                    margin: {top: 0, left: 0},
+                    width: (1386. * 0.35),
+                    height: (1764. * 0.35)
+                });
+                left_image.redraw(cx);
 
-        let right_image = self.view(id!(right_great_wall));
-        right_image.apply_over(cx, live!{
-            margin: {top: 0, left: 0},
-            width: (1386. * 0.45),
-            height: (1764. * 0.45)
-        });
-        right_image.redraw(cx);
+                let right_image = self.view(id!(right_great_wall));
+                right_image.apply_over(cx, live!{
+                    margin: {top: 0, left: 0},
+                    width: (1386. * 0.45),
+                    height: (1764. * 0.45)
+                });
+                right_image.redraw(cx);
+            },
+            WonderState::Content => {
+                let subtitle_group = self.view(id!(subtitle_group));
+                subtitle_group.apply_over(cx, live!{
+                    margin: {top: 0}
+                });
+                subtitle_group.redraw(cx);
+
+                let title = self.view(id!(title));
+                title.apply_over(cx, live!{
+                    margin: {top: 0}
+                });
+                title.redraw(cx);
+            }
+        }
+    }
+
+    fn orchestrate_animations(
+        &mut self,
+        cx: &mut Cx,
+        event: &Event
+    ){
+        if let Some(ne) = self.next_frame.is_event(event) {
+            if self.animator.is_track_animating(cx, id!(subtitle_on_content)) {
+                if self.animator.animator_in_state(cx, id!(subtitle_on_content.will_show)) {
+                    // Make sure the subtitle is visible
+                    self.animator_play(cx, id!(subtitle_on_intro.reset));
+
+                    self.animator_play(cx, id!(subtitle_on_content.show));
+                }
+            }
+            if self.animator.is_track_animating(cx, id!(subtitle_on_intro)) {
+                if self.animator.animator_in_state(cx, id!(subtitle_on_intro.will_show)) {
+                    self.animator_play(cx, id!(subtitle_on_intro.show));
+                }
+            }
+
+            self.next_frame = cx.new_next_frame();
+        }
     }
 }
