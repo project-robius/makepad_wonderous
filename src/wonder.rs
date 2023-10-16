@@ -169,12 +169,18 @@ live_design! {
                     instance opacity: 0.5
                 }
             }
-            <Image> {
-                source: (IMG_GREAT_WALL),
-                abs_pos: vec2(-100, 48),
-
+            great_wall = <View> {
                 width: (1476 * 0.4),
                 height: (1371 * 0.4),
+
+                image = <Image> {
+                    abs_pos: vec2(-100, 48),
+
+                    source: (IMG_GREAT_WALL),
+                    width: (1476 * 0.4),
+                    height: (1371 * 0.4),
+                }
+
             }
             left_great_wall = <Image> {
                 source: (IMG_FG_LEFT_GREAT_WALL),
@@ -271,17 +277,66 @@ live_design! {
                     }
                 }
                 show = {
-                    redraw: true,
-                    from: {all: Forward {duration: 0.2}}
+                    from: {all: Snap}
                     apply: {
                         intro = { draw_bg: { instance opacity: 1.0 }}
                         header = { draw_bg: { instance opacity: 0.0 }}
                     }
                 }
             },
+            great_wall = {
+                default: show,
+                show = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.3}}
+                    apply: {
+                        intro = { great_wall = {
+                            image = { draw_bg: {
+                                image_scale: vec2(1.0, 1.0)
+                            }}
+                        }}
+                    }
+                }
+                will_show = {
+                    from: {all: Snap}
+                    apply: {
+                        intro = { great_wall = {
+                            image = { draw_bg: {
+                                image_scale: vec2(1.5, 1.5)
+                            }}
+                        }}
+                    }
+                }
+            },
+            great_wall_padding = {
+                default: show,
+                show = {
+                    redraw: true,
+                    ease: InQuad
+                    from: {all: Forward {duration: 0.3}}
+                    apply: {
+                        intro = {
+                            great_wall = { image = {
+                                margin: {top: 0.0, left: 0.0}
+                            }}
+                        }
+                    }
+                }
+                will_show = {
+                    from: {all: Snap}
+                    apply: {
+                        intro = {
+                            great_wall = { image = {
+                                margin: {top: -100.0, left: 60.0}
+                            }}
+                        }
+                    }
+                }
+            },
             sun = {
                 default: hide,
                 show = {
+                    redraw: true,
                     ease: OutExp
                     from: {all: Forward {duration: 0.5}}
                     apply: {
@@ -289,6 +344,7 @@ live_design! {
                     }
                 }
                 hide = {
+                    redraw: true,
                     ease: OutExp
                     from: {all: Forward {duration: 0.5}}
                     apply: {
@@ -299,6 +355,7 @@ live_design! {
             title = {
                 default: intro,
                 content = {
+                    redraw: true,
                     ease: InExp
                     from: {all: Forward {duration: 0.3}}
                     apply: {
@@ -306,6 +363,7 @@ live_design! {
                     }
                 }
                 intro = {
+                    redraw: true,
                     ease: InExp
                     from: {all: Forward {duration: 0.3}}
                     apply: {
@@ -549,7 +607,11 @@ impl Wonder {
                         self.state = WonderState::Intro;
 
                         self.reset_intro_dragging(cx);
+
                         self.animator_play(cx, id!(intro.show));
+                        self.animator_play(cx, id!(great_wall.will_show));
+                        self.animator_play(cx, id!(great_wall_padding.will_show));
+
                         self.animator_play(cx, id!(sun.hide));
                         self.animator_play(cx, id!(title.intro));
                         self.animator_play(cx, id!(subtitle_on_intro.will_show));
@@ -630,6 +692,12 @@ impl Wonder {
             if self.animator.is_track_animating(cx, id!(subtitle_on_intro)) {
                 if self.animator.animator_in_state(cx, id!(subtitle_on_intro.will_show)) {
                     self.animator_play(cx, id!(subtitle_on_intro.show));
+                }
+            }
+            if self.animator.is_track_animating(cx, id!(great_wall)) {
+                if self.animator.animator_in_state(cx, id!(great_wall.will_show)) {
+                    self.animator_play(cx, id!(great_wall.show));
+                    self.animator_play(cx, id!(great_wall_padding.show));
                 }
             }
 
