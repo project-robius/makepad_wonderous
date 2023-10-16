@@ -31,6 +31,7 @@ impl LiveHook for App {
     fn before_live_design(cx: &mut Cx) {
         makepad_widgets::live_design(cx);
         crate::shared::styles::live_design(cx);
+        crate::shared::widgets::live_design(cx);
         crate::wonder::live_design(cx);
     }
 }

@@ -6,7 +6,7 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     import crate::shared::styles::*;
-    import makepad_draw::shader::std::*;
+    import crate::shared::widgets::*;
 
     IMG_SUN = dep("crate://self/resources/sun.png")
     IMG_CLOUD = dep("crate://self/resources/cloud-white.png")
@@ -15,28 +15,6 @@ live_design! {
     IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/foreground_right_great_wall.png")
     IMG_BACKGROUND_ROLLER = dep("crate://self/resources/roller-1-black.png")
     IMG_COMPASS = dep("crate://self/resources/compass-icon.png")
-
-    FadeView = <CachedView> {
-        dpi_factor: 2.0,
-
-        draw_bg: {
-            instance opacity: 1.0
-
-            fn pixel(self) -> vec4 {
-                let color = sample2d_rt(self.image, self.pos);
-                return Pal::premul(vec4(color.xyz, color.w * self.opacity))
-            }
-        }
-    }
-
-    Line = <View> {
-        width: Fill,
-        height: 1,
-        show_bg: true,
-        draw_bg: {
-            color: #8b9e77
-        }
-    }
 
     Wonder = {{Wonder}} {
         flow: Overlay,
@@ -116,6 +94,21 @@ live_design! {
                     }
                     <Line> {}
                 }
+
+                <View> {
+                    width: Fill,
+                    height: Fit,
+
+                    align: { x: 0.5, y: 0.5 }
+                    
+                    <Label> {
+                        draw_text:{
+                            text_style: <SUBTITLE_CAPTION>{font_size: 10},
+                            color: #fff
+                        }
+                        text: "700 BCE to 1644 CE"
+                    }
+                }
             }
         }
 
@@ -143,7 +136,7 @@ live_design! {
                     instance opacity: 0.2
                 }
             }
-            <Image> {
+            great_wall_sun = <Image> {
                 source: (IMG_SUN),
                 abs_pos: vec2(30, 35),
                 width: 200,
@@ -284,27 +277,55 @@ live_design! {
                     }
                 }
             },
-            great_wall = {
+            great_wall_leaves = {
                 default: show,
                 show = {
                     redraw: true,
                     from: {all: Forward {duration: 0.3}}
                     apply: {
-                        intro = { great_wall = {
-                            image = { draw_bg: {
-                                image_scale: vec2(1.0, 1.0)
-                            }}
-                        }}
+                        intro = {
+                            left_great_wall = { draw_bg: { instance opacity: 1.0 } }
+                            right_great_wall = { draw_bg: { instance opacity: 1.0 } }
+                        }
                     }
                 }
                 will_show = {
                     from: {all: Snap}
                     apply: {
-                        intro = { great_wall = {
-                            image = { draw_bg: {
-                                image_scale: vec2(1.5, 1.5)
-                            }}
-                        }}
+                        intro = {
+                            left_great_wall = { draw_bg: { instance opacity: 0.0 } }
+                            right_great_wall = { draw_bg: { instance opacity: 0.0 } }
+                        }
+                    }
+                }
+            },
+            great_wall_scale = {
+                default: show,
+                show = {
+                    redraw: true,
+                    from: {all: Forward {duration: 0.3}}
+                    apply: {
+                        intro = {
+                            great_wall = { image = {
+                                draw_bg: { image_scale: vec2(1.0, 1.0) }
+                            }},
+                            great_wall_sun = {
+                                draw_bg: { image_scale: vec2(1.0, 1.0) }
+                            }
+                        }
+                    }
+                }
+                will_show = {
+                    from: {all: Snap}
+                    apply: {
+                        intro = {
+                            great_wall = { image = {
+                                draw_bg: { image_scale: vec2(1.5, 1.5) }
+                            }},
+                            great_wall_sun = {
+                                draw_bg: { image_scale: vec2(1.5, 1.5) }
+                            }
+                        }
                     }
                 }
             },
@@ -318,7 +339,10 @@ live_design! {
                         intro = {
                             great_wall = { image = {
                                 margin: {top: 0.0, left: 0.0}
-                            }}
+                            }},
+                            great_wall_sun = {
+                                margin: {top: 0.0}
+                            }
                         }
                     }
                 }
@@ -328,12 +352,15 @@ live_design! {
                         intro = {
                             great_wall = { image = {
                                 margin: {top: -100.0, left: 60.0}
-                            }}
+                            }},
+                            great_wall_sun = {
+                                margin: {top: -100.0}
+                            }
                         }
                     }
                 }
             },
-            sun = {
+            content_sun = {
                 default: hide,
                 show = {
                     redraw: true,
@@ -561,7 +588,7 @@ impl Wonder {
 
                         self.reset_intro_dragging(cx);
                         self.animator_play(cx, id!(intro.hide));
-                        self.animator_play(cx, id!(sun.show));
+                        self.animator_play(cx, id!(content_sun.show));
                         self.animator_play(cx, id!(title.content));
                         self.animator_play(cx, id!(subtitle_on_content.will_show));
                         self.animator_play(cx, id!(compass.show));
@@ -609,10 +636,11 @@ impl Wonder {
                         self.reset_intro_dragging(cx);
 
                         self.animator_play(cx, id!(intro.show));
-                        self.animator_play(cx, id!(great_wall.will_show));
+                        self.animator_play(cx, id!(great_wall_scale.will_show));
                         self.animator_play(cx, id!(great_wall_padding.will_show));
+                        self.animator_play(cx, id!(great_wall_leaves.will_show));
 
-                        self.animator_play(cx, id!(sun.hide));
+                        self.animator_play(cx, id!(content_sun.hide));
                         self.animator_play(cx, id!(title.intro));
                         self.animator_play(cx, id!(subtitle_on_intro.will_show));
                         self.animator_play(cx, id!(compass.hide));
@@ -694,10 +722,19 @@ impl Wonder {
                     self.animator_play(cx, id!(subtitle_on_intro.show));
                 }
             }
-            if self.animator.is_track_animating(cx, id!(great_wall)) {
-                if self.animator.animator_in_state(cx, id!(great_wall.will_show)) {
-                    self.animator_play(cx, id!(great_wall.show));
+            if self.animator.is_track_animating(cx, id!(great_wall_scale)) {
+                if self.animator.animator_in_state(cx, id!(great_wall_scale.will_show)) {
+                    self.animator_play(cx, id!(great_wall_scale.show));
+                }
+            }
+            if self.animator.is_track_animating(cx, id!(great_wall_padding)) {
+                if self.animator.animator_in_state(cx, id!(great_wall_padding.will_show)) {
                     self.animator_play(cx, id!(great_wall_padding.show));
+                }
+            }
+            if self.animator.is_track_animating(cx, id!(great_wall_leaves)) {
+                if self.animator.animator_in_state(cx, id!(great_wall_leaves.will_show)) {
+                    self.animator_play(cx, id!(great_wall_leaves.show));
                 }
             }
 

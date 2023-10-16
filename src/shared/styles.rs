@@ -10,4 +10,9 @@ live_design! {
         font_size: (10),
         font: {path: dep("crate://self/resources/TenorSans-Regular.ttf")}
     }
+
+    SUBTITLE_CAPTION = {
+        font_size: (10),
+        font: {path: dep("crate://self/resources/Raleway-Bold.ttf")}
+    }
 }
