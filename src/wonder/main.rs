@@ -1,5 +1,6 @@
 use makepad_widgets::*;
 use makepad_widgets::widget::WidgetCache;
+use crate::wonder::content::WonderContentWidgetExt;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -7,6 +8,7 @@ live_design! {
 
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
+    import crate::wonder::content::*;
 
     IMG_SUN = dep("crate://self/resources/sun.png")
     IMG_CLOUD = dep("crate://self/resources/cloud-white.png")
@@ -257,6 +259,13 @@ live_design! {
                 width: (1476 * 0.185),
                 height: (1371 * 0.185),
             }
+        }
+
+        content = <WonderContent> {
+            visible: false,
+            margin: { top: 570.0 },
+            width: Fill,
+            height: Fit,
         }
 
         animator: {
@@ -587,6 +596,11 @@ impl Wonder {
                         self.view(id!(header)).set_visible(true);
                         self.view(id!(subtitle_group)).set_visible(true);
 
+                        // TODO it is hard to access to set_visible in the "view parent" of the custom widget
+                        self.wonder_content(id!(content)).apply_over(cx, live!{
+                            visible: true
+                        });
+
                         self.reset_intro_dragging(cx);
                         self.animator_play(cx, id!(intro.hide));
                         self.animator_play(cx, id!(content_sun.show));
@@ -645,6 +659,11 @@ impl Wonder {
                         self.animator_play(cx, id!(title.intro));
                         self.animator_play(cx, id!(subtitle_on_intro.will_show));
                         self.animator_play(cx, id!(compass.hide));
+
+                        // TODO it is hard to access to set_visible in the "view parent" of the custom widget
+                        self.wonder_content(id!(content)).apply_over(cx, live!{
+                            visible: false
+                        });
                     } else if delta < 0. {
                         let subtitle_group = self.view(id!(subtitle_group));
                         subtitle_group.apply_over(cx, live!{

@@ -5,7 +5,7 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
 
     import crate::shared::styles::*;
-    import crate::wonder::*;
+    import crate::wonder::main::*;
 
     App = {{App}} {
         ui: <Window> {
@@ -32,7 +32,9 @@ impl LiveHook for App {
         makepad_widgets::live_design(cx);
         crate::shared::styles::live_design(cx);
         crate::shared::widgets::live_design(cx);
-        crate::wonder::live_design(cx);
+
+        crate::wonder::content::live_design(cx);
+        crate::wonder::main::live_design(cx);
     }
 }
 
