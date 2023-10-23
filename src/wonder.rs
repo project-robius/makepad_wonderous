@@ -194,9 +194,10 @@ live_design! {
         title = <View> {
             flow: Down,
             width: Fill,
-            height: Fill,
+            height: Fit,
 
-            align: { x: 0.5, y: 0.85 }
+            abs_pos: vec2(0, 600.0),
+            align: { x: 0.5, y: 0 }
  
             <Label> {
                 draw_text:{
@@ -386,7 +387,7 @@ live_design! {
                     ease: InExp
                     from: {all: Forward {duration: 0.3}}
                     apply: {
-                        title = { align: { x: 0.5, y: 0.5 } }
+                        title = { abs_pos: vec2(0, 370.0) }
                     }
                 }
                 intro = {
@@ -394,7 +395,7 @@ live_design! {
                     ease: InExp
                     from: {all: Forward {duration: 0.3}}
                     apply: {
-                        title = { align: { x: 0.5, y: 0.85 } }
+                        title = { abs_pos: vec2(0, 600.0) }
                     }
                 }
             }
