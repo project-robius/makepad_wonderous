@@ -6,6 +6,8 @@ live_design! {
     import makepad_widgets::theme_desktop_dark::*;
     import makepad_draw::shader::std::*;
 
+    import crate::shared::widgets::*;
+
     IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/great-wall-content-1.jpg")
 
     WonderContent = {{WonderContent}} {
@@ -38,6 +40,78 @@ live_design! {
             source: (IMG_GREAT_WALL_CONTENT_1),
             width: 375,
             height: 430,
+        }
+
+        header_img_2 = <View> {
+            visible: false
+            show_bg: true
+            draw_bg: {
+                color: #5d2a2c
+            }
+
+            width: 375,
+            height: 430,
+
+            margin: {top: -430.}
+
+            <FadeView> {
+                width: Fit
+                height: Fit
+                draw_bg: { instance opacity: 0.3 }
+
+                <Image> {
+                    source: (IMG_GREAT_WALL_CONTENT_1),
+                    width: 375,
+                    height: 430,
+
+                    draw_bg: {
+                        // (380. - 80.) / (570. * 3.) = 0.1754385965
+                        instance image_pan: vec2(0.0, 0.1754385965)
+                    }
+                }
+            } 
+        }
+
+        header_bottom = <View> {
+            flow: Overlay
+            width: Fill
+            height: 130
+
+            margin: {top: -80.0}
+            align: {x: 0.5, y: 0.0}
+
+            <View> {
+                width: Fill
+                height: 70
+
+                margin: {top: 60.0}
+
+                show_bg: true
+                draw_bg: {
+                    color: #fff
+                }
+            }
+
+            <CircleView> {
+                width: 200
+                height: 200
+
+                show_bg: true
+                draw_bg: {
+                    color: #fff
+                    radius: 80.0
+                }
+            }
+        }
+
+        <View> {
+            width: Fill
+            height: 3000
+
+            show_bg: true
+            draw_bg: {
+                color: #fff
+            }
         }
     }
 }
@@ -115,18 +189,51 @@ impl WonderContent {
             margin: {top: (margin)}
         });
 
-        let opacity = min(1.0, 0.5 + offset / 570.);
-        let scale = 0.9 + min(0.1, offset / 5700.);
-        dbg!(scale);
+        let opacity = if offset > 380. + 570. - 80. {
+            0.0
+        } else {
+            min(1.0, 0.5 + offset / 570.)
+        };
+
+        let scale = 0.9 + min(0.1, offset / (570. * 10.));
+
+        let vertical_pan = if offset > 380. + 570. - 80. {
+            // TODO Add constants to better communicate these calculations
+            (380. - 80.) / (570. * 3.)
+        } else if offset > 570. {
+            (offset - 570.) / (570. * 3.)
+        } else {
+            0.0
+        };
+
         self.image(id!(header_img)).apply_over(cx, live!{
             draw_bg: {
                 radius: 90.0,
                 image_scale: (dvec2(scale, scale)),
+                image_pan: (dvec2(0.0, vertical_pan)),
                 opacity: (opacity)
             }
         });
+
+        let header_bottom_margin = if offset > 570.0 {
+            max(-(offset - 570.0) - 80.0, -380.0)
+        } else {
+            -80.0
+        };
+
+        self.view(id!(header_bottom)).apply_over(cx, live!{
+            margin: {top: (header_bottom_margin)}
+        });
+
+        // Visibility toggle for permanent header
+        if offset > 380. + 570. - 80. {
+            self.view(id!(header_img_2)).set_visible(true);
+        } else {
+            self.view(id!(header_img_2)).set_visible(false);
+        }
     }
 }
+
 
 #[derive(Clone, PartialEq, WidgetRef)]
 pub struct WonderContentRef(WidgetRef);
