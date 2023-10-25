@@ -1,6 +1,6 @@
 use makepad_widgets::*;
 use makepad_widgets::widget::WidgetCache;
-use crate::wonder::content::WonderContentWidgetExt;
+use crate::wonder::content::*;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -24,6 +24,56 @@ live_design! {
         show_bg: true,
         draw_bg: {
             color: #5d2a2c
+        }
+
+        header = <FadeView> {
+            visible: false,
+            flow: Overlay,
+            width: Fill,
+            height: 280, // Issue: height: Fit, doesn't work as expected
+
+            draw_bg: { instance opacity: 0.0 }
+
+            <View> {
+                show_bg: true,
+                draw_bg: {
+                    color: #8b9e77
+                }
+
+                width: Fill,
+                height: 230,
+
+                <Image> {
+                    source: (IMG_BACKGROUND_ROLLER),
+                    abs_pos: vec2(-60, -20),
+
+                    width: (1476 * 0.6),
+                    height: (1371 * 0.6),
+
+                    draw_bg: {
+                        instance opacity: 0.2
+                    }
+                }
+            }
+            sun = <Image> {
+                source: (IMG_SUN),
+                abs_pos: vec2(100, 60),
+                width: (200 * 0.6),
+                height: (202 * 0.6),
+            }
+            <Image> {
+                source: (IMG_GREAT_WALL),
+                abs_pos: vec2(60, 30),
+
+                width: (1476 * 0.185),
+                height: (1371 * 0.185),
+            }
+        }
+
+        content = <WonderContent> {
+            visible: false,
+            width: Fill,
+            height: Fit,
         }
 
         subtitle_group = <FadeView> {
@@ -193,7 +243,7 @@ live_design! {
             }
         }
 
-        title = <View> {
+        title = <FadeView> {
             flow: Down,
             width: Fill,
             height: Fit,
@@ -215,57 +265,6 @@ live_design! {
                 }
                 text: "Great Wall"
             }
-        }
-
-        header = <FadeView> {
-            visible: false,
-            flow: Overlay,
-            width: Fill,
-            height: 280, // Issue: height: Fit, doesn't work as expected
-
-            draw_bg: { instance opacity: 0.0 }
-
-            <View> {
-                show_bg: true,
-                draw_bg: {
-                    color: #8b9e77
-                }
-
-                width: Fill,
-                height: 230,
-
-                <Image> {
-                    source: (IMG_BACKGROUND_ROLLER),
-                    abs_pos: vec2(-60, -20),
-
-                    width: (1476 * 0.6),
-                    height: (1371 * 0.6),
-
-                    draw_bg: {
-                        instance opacity: 0.2
-                    }
-                }
-            }
-            sun = <Image> {
-                source: (IMG_SUN),
-                abs_pos: vec2(100, 60),
-                width: (200 * 0.6),
-                height: (202 * 0.6),
-            }
-            <Image> {
-                source: (IMG_GREAT_WALL),
-                abs_pos: vec2(60, 30),
-
-                width: (1476 * 0.185),
-                height: (1371 * 0.185),
-            }
-        }
-
-        content = <WonderContent> {
-            visible: false,
-            margin: { top: 570.0 },
-            width: Fill,
-            height: Fit,
         }
 
         animator: {
@@ -498,6 +497,7 @@ live_design! {
 enum WonderState {
     Intro,
     Content,
+    IntoContent
 }
 
 #[derive(Live)]
@@ -510,6 +510,7 @@ pub struct Wonder {
 
     #[rust]
     dragging: bool,
+    
     #[rust]
     last_abs: DVec2,
     #[rust]
@@ -557,6 +558,9 @@ impl Widget for Wonder {
             WonderState::Content => {
                 self.handle_content_event(cx, event);
             }
+            WonderState::IntoContent => {
+                self.handle_into_content_event(cx, event);
+            }
         }
     }
 
@@ -584,15 +588,17 @@ impl Wonder {
             Hit::FingerDown(fe) => {
                 self.last_abs = fe.abs;
                 self.init_drag_time = fe.time;
+                self.dragging = true;
             }
             Hit::FingerMove(fe) => {
                 let time_elapsed = fe.time - self.init_drag_time;
                 if time_elapsed > 0.15 {
-                    self.dragging = true;
                     let delta = (self.last_abs.y - fe.abs.y) * 0.6;
 
                     if delta > 60. {
                         self.state = WonderState::Content;
+                        self.dragging = false;
+
                         self.view(id!(header)).set_visible(true);
                         self.view(id!(subtitle_group)).set_visible(true);
 
@@ -638,13 +644,12 @@ impl Wonder {
             Hit::FingerDown(fe) => {
                 self.last_abs = fe.abs;
                 self.init_drag_time = fe.time;
+                self.dragging = true;
             }
             Hit::FingerMove(fe) => {
                 let time_elapsed = fe.time - self.init_drag_time;
                 if time_elapsed > 0.15 {
-                    self.dragging = true;
                     let delta = (self.last_abs.y - fe.abs.y) * 0.6;
-
                     if delta < -60. {
                         self.state = WonderState::Intro;
 
@@ -673,9 +678,12 @@ impl Wonder {
 
                         let title = self.view(id!(title));
                         title.apply_over(cx, live!{
-                            margin: {top: (-delta * 2.0)},
+                            margin: {top: (-delta)},
                         });
                         title.redraw(cx);
+                    } else if delta > 20.0 {
+                        dbg!("into content");
+                        self.state = WonderState::IntoContent;
                     }
                 }
             }
@@ -684,6 +692,76 @@ impl Wonder {
             }
             _ => {}
         }
+    }
+
+    fn handle_into_content_event(&mut self, cx: &mut Cx, event: &Event) {
+        match event.hits_with_capture_overload(cx, self.view.area(), true) {
+            Hit::FingerDown(fe) => {
+                self.last_abs = fe.abs;
+                self.init_drag_time = fe.time;
+                self.dragging = true;
+            }
+            Hit::FingerMove(fe) => {
+                if !self.dragging { return; }
+
+                let time_elapsed = fe.time - self.init_drag_time;
+                if time_elapsed > 0.15 {
+                    let delta = self.last_abs.y - fe.abs.y;
+                    self.process_dragging_into_content(cx, delta, fe.abs, fe.time, false);
+                }
+            }
+            Hit::FingerUp(fe) => {
+                if !self.dragging { return; }
+
+                self.dragging = false;
+                let delta = self.last_abs.y - fe.abs.y;
+                self.process_dragging_into_content(cx, delta, fe.abs, fe.time, true);
+            }
+            _ => {}
+        }
+    }
+
+    fn process_dragging_into_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, is_up: bool) {
+        let action = self.wonder_content(id!(content)).process_dragging(cx, delta, is_up);
+
+        match action {
+            WonderContentAction::Scrolling(into_content_offset) => {
+                self.update_title_position_on_into_content(cx, into_content_offset);
+            }
+            WonderContentAction::Closed => {
+                self.state = WonderState::Content;
+                self.update_title_position_on_into_content(cx, 0.0);
+
+                self.last_abs = event_abs;
+                self.init_drag_time = event_time;
+            }
+            _ => {}
+        }
+    }
+
+    fn update_title_position_on_into_content(&mut self, cx: &mut Cx, offset: f64) {
+        let opacity = min(1.0, 1.0 - offset / 570.0);
+        dbg!(opacity);
+
+        let subtitle_group = self.view(id!(subtitle_group));
+        subtitle_group.apply_over(cx, live!{
+            margin: {top: (-offset * 0.6)},
+            draw_bg: { opacity: (opacity) } 
+        });
+        subtitle_group.redraw(cx);
+
+        let title = self.view(id!(title));
+        title.apply_over(cx, live!{
+            margin: {top: (-offset * 0.6)},
+            draw_bg: { opacity: (opacity) } 
+        });
+        title.redraw(cx);
+
+        let header = self.view(id!(header));
+        header.apply_over(cx, live!{
+            draw_bg: { opacity: (opacity) } 
+        });
+        header.redraw(cx);
     }
 
     fn reset_intro_dragging(&mut self, cx: &mut Cx) {
@@ -719,7 +797,11 @@ impl Wonder {
                     margin: {top: 0}
                 });
                 title.redraw(cx);
-            }
+
+                let content = self.wonder_content(id!(content));
+                content.redraw(cx);
+            },
+            WonderState::IntoContent => {}
         }
     }
 

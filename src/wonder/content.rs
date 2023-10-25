@@ -9,7 +9,11 @@ live_design! {
     IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/great-wall-content-1.jpg")
 
     WonderContent = {{WonderContent}} {
-        <Image> {
+        flow: Down
+
+        margin: { top: 570.0 }
+
+        header_img = <Image> {
              // Override to have the upper corners rounded
              draw_bg: {
                 instance radius: 90.
@@ -38,17 +42,20 @@ live_design! {
     }
 }
 
+#[derive(Debug, Clone, WidgetAction)]
+pub enum WonderContentAction {
+    Scrolling(f64),
+    Closed,
+    None,
+}
+
 #[derive(Live)]
 pub struct WonderContent {
     #[deref]
     view: View,
 
-    #[rust]
-    dragging: bool,
-    #[rust]
-    last_abs: DVec2,
-    #[rust]
-    init_drag_time: f64,
+    #[rust(0.0)]
+    current_scroll_offset: f64,
 
     #[animator]
     animator: Animator,
@@ -101,8 +108,49 @@ impl Widget for WonderContent {
     }
 }
 
-// impl WonderContent {
-// }
+impl WonderContent {
+    fn update_header_section(&mut self, cx: &mut Cx, offset: f64) {
+        let margin = max(0.0, 570.0 - offset);
+        self.apply_over(cx, live!{
+            margin: {top: (margin)}
+        });
+
+        let opacity = min(1.0, 0.5 + offset / 570.);
+        let scale = 0.9 + min(0.1, offset / 5700.);
+        dbg!(scale);
+        self.image(id!(header_img)).apply_over(cx, live!{
+            draw_bg: {
+                radius: 90.0,
+                image_scale: (dvec2(scale, scale)),
+                opacity: (opacity)
+            }
+        });
+    }
+}
 
 #[derive(Clone, PartialEq, WidgetRef)]
 pub struct WonderContentRef(WidgetRef);
+
+impl WonderContentRef {
+    pub fn process_dragging(&mut self, cx: &mut Cx, delta: f64, is_up: bool) -> WonderContentAction {
+        if let Some(mut inner) = self.borrow_mut() {
+            let new_delta = inner.current_scroll_offset + delta;
+            if is_up {
+                inner.current_scroll_offset += delta;
+            }
+
+            if new_delta >= 0.0 {
+                inner.update_header_section(cx, new_delta);
+                
+                WonderContentAction::Scrolling(new_delta)
+            } else {
+                inner.update_header_section(cx, 0.0);
+                inner.current_scroll_offset = 0.0;
+
+                WonderContentAction::Closed
+            }
+        } else {
+            WonderContentAction::None
+        }
+    }
+}
