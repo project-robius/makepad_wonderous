@@ -682,7 +682,6 @@ impl Wonder {
                         });
                         title.redraw(cx);
                     } else if delta > 20.0 {
-                        dbg!("into content");
                         self.state = WonderState::IntoContent;
                     }
                 }
@@ -722,6 +721,8 @@ impl Wonder {
     }
 
     fn process_dragging_into_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, is_up: bool) {
+        // TODO add case/state where scroll of main content is happening
+        
         let action = self.wonder_content(id!(content)).process_dragging(cx, delta, is_up);
 
         match action {
@@ -741,7 +742,6 @@ impl Wonder {
 
     fn update_title_position_on_into_content(&mut self, cx: &mut Cx, offset: f64) {
         let opacity = min(1.0, 1.0 - offset / 570.0);
-        dbg!(opacity);
 
         let subtitle_group = self.view(id!(subtitle_group));
         subtitle_group.apply_over(cx, live!{
