@@ -409,7 +409,7 @@ impl WonderContent {
 pub struct WonderContentRef(WidgetRef);
 
 impl WonderContentRef {
-    pub fn process_dragging(&mut self, cx: &mut Cx, delta: f64, is_up: bool) -> WonderContentAction {
+    pub fn scroll(&mut self, cx: &mut Cx, delta: f64, is_up: bool) -> WonderContentAction {
         if let Some(mut inner) = self.borrow_mut() {
             let new_delta = inner.current_scroll_offset + delta;
             if is_up {

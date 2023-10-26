@@ -495,9 +495,9 @@ live_design! {
 }
 
 enum WonderState {
-    Intro,
-    Content,
-    IntoContent
+    Cover,
+    Title,
+    Content
 }
 
 #[derive(Live)]
@@ -505,7 +505,7 @@ pub struct Wonder {
     #[deref]
     view: View,
 
-    #[rust(WonderState::Intro)]
+    #[rust(WonderState::Cover)]
     state: WonderState,
 
     #[rust]
@@ -530,7 +530,7 @@ impl LiveHook for Wonder {
 
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc() {
-            self.state = WonderState::Intro;
+            self.state = WonderState::Cover;
             self.next_frame = cx.new_next_frame();
         }
     }
@@ -552,14 +552,14 @@ impl Widget for Wonder {
         self.view.handle_widget_event_with(cx, event, dispatch_action);
 
         match self.state {
-            WonderState::Intro => {
-                self.handle_intro_event(cx, event);
+            WonderState::Cover => {
+                self.handle_event_in_cover_state(cx, event);
+            }
+            WonderState::Title => {
+                self.handle_event_in_content_state(cx, event);
             }
             WonderState::Content => {
-                self.handle_content_event(cx, event);
-            }
-            WonderState::IntoContent => {
-                self.handle_into_content_event(cx, event);
+                self.handle_event_in_content_event(cx, event);
             }
         }
     }
@@ -583,7 +583,7 @@ impl Widget for Wonder {
 }
 
 impl Wonder {
-    fn handle_intro_event(&mut self, cx: &mut Cx, event: &Event) {
+    fn handle_event_in_cover_state(&mut self, cx: &mut Cx, event: &Event) {
         match event.hits_with_capture_overload(cx, self.view.area(), true) {
             Hit::FingerDown(fe) => {
                 self.last_abs = fe.abs;
@@ -596,7 +596,7 @@ impl Wonder {
                     let delta = (self.last_abs.y - fe.abs.y) * 0.6;
 
                     if delta > 60. {
-                        self.state = WonderState::Content;
+                        self.state = WonderState::Title;
                         self.dragging = false;
 
                         self.view(id!(header)).set_visible(true);
@@ -607,7 +607,7 @@ impl Wonder {
                             visible: true
                         });
 
-                        self.reset_intro_dragging(cx);
+                        self.reset_dragging(cx);
                         self.animator_play(cx, id!(intro.hide));
                         self.animator_play(cx, id!(content_sun.show));
                         self.animator_play(cx, id!(title.content));
@@ -632,14 +632,14 @@ impl Wonder {
                     }
                 }
             }
-            Hit::FingerUp(fe) => {
-                self.reset_intro_dragging(cx);
+            Hit::FingerUp(_fe) => {
+                self.reset_dragging(cx);
             }
             _ => {}
         }
     }
 
-    fn handle_content_event(&mut self, cx: &mut Cx, event: &Event) {
+    fn handle_event_in_content_state(&mut self, cx: &mut Cx, event: &Event) {
         match event.hits_with_capture_overload(cx, self.view.area(), true) {
             Hit::FingerDown(fe) => {
                 self.last_abs = fe.abs;
@@ -651,9 +651,9 @@ impl Wonder {
                 if time_elapsed > 0.15 {
                     let delta = (self.last_abs.y - fe.abs.y) * 0.6;
                     if delta < -60. {
-                        self.state = WonderState::Intro;
+                        self.state = WonderState::Cover;
 
-                        self.reset_intro_dragging(cx);
+                        self.reset_dragging(cx);
 
                         self.animator_play(cx, id!(intro.show));
                         self.animator_play(cx, id!(great_wall_scale.will_show));
@@ -682,18 +682,18 @@ impl Wonder {
                         });
                         title.redraw(cx);
                     } else if delta > 20.0 {
-                        self.state = WonderState::IntoContent;
+                        self.state = WonderState::Content;
                     }
                 }
             }
-            Hit::FingerUp(fe) => {
-                self.reset_intro_dragging(cx);
+            Hit::FingerUp(_fe) => {
+                self.reset_dragging(cx);
             }
             _ => {}
         }
     }
 
-    fn handle_into_content_event(&mut self, cx: &mut Cx, event: &Event) {
+    fn handle_event_in_content_event(&mut self, cx: &mut Cx, event: &Event) {
         match event.hits_with_capture_overload(cx, self.view.area(), true) {
             Hit::FingerDown(fe) => {
                 self.last_abs = fe.abs;
@@ -706,7 +706,7 @@ impl Wonder {
                 let time_elapsed = fe.time - self.init_drag_time;
                 if time_elapsed > 0.15 {
                     let delta = self.last_abs.y - fe.abs.y;
-                    self.process_dragging_into_content(cx, delta, fe.abs, fe.time, false);
+                    self.scroll_content(cx, delta, fe.abs, fe.time, false);
                 }
             }
             Hit::FingerUp(fe) => {
@@ -714,23 +714,20 @@ impl Wonder {
 
                 self.dragging = false;
                 let delta = self.last_abs.y - fe.abs.y;
-                self.process_dragging_into_content(cx, delta, fe.abs, fe.time, true);
+                self.scroll_content(cx, delta, fe.abs, fe.time, true);
             }
             _ => {}
         }
     }
 
-    fn process_dragging_into_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, is_up: bool) {
-        // TODO add case/state where scroll of main content is happening
-        
-        let action = self.wonder_content(id!(content)).process_dragging(cx, delta, is_up);
-
+    fn scroll_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, is_up: bool) {        
+        let action = self.wonder_content(id!(content)).scroll(cx, delta, is_up);
         match action {
             WonderContentAction::Scrolling(into_content_offset) => {
                 self.update_title_position_on_into_content(cx, into_content_offset);
             }
             WonderContentAction::Closed => {
-                self.state = WonderState::Content;
+                self.state = WonderState::Title;
                 self.update_title_position_on_into_content(cx, 0.0);
 
                 self.last_abs = event_abs;
@@ -764,11 +761,11 @@ impl Wonder {
         header.redraw(cx);
     }
 
-    fn reset_intro_dragging(&mut self, cx: &mut Cx) {
+    fn reset_dragging(&mut self, cx: &mut Cx) {
         self.dragging = false;
 
         match self.state {
-            WonderState::Intro => {
+            WonderState::Cover => {
                 let left_image = self.view(id!(left_great_wall));
                 left_image.apply_over(cx, live!{
                     margin: {top: 0, left: 0},
@@ -785,7 +782,7 @@ impl Wonder {
                 });
                 right_image.redraw(cx);
             },
-            WonderState::Content => {
+            WonderState::Title => {
                 let subtitle_group = self.view(id!(subtitle_group));
                 subtitle_group.apply_over(cx, live!{
                     margin: {top: 0}
@@ -801,7 +798,7 @@ impl Wonder {
                 let content = self.wonder_content(id!(content));
                 content.redraw(cx);
             },
-            WonderState::IntoContent => {}
+            WonderState::Content => {}
         }
     }
 
@@ -810,7 +807,7 @@ impl Wonder {
         cx: &mut Cx,
         event: &Event
     ){
-        if let Some(ne) = self.next_frame.is_event(event) {
+        if let Some(_ne) = self.next_frame.is_event(event) {
             if self.animator.is_track_animating(cx, id!(subtitle_on_content)) {
                 if self.animator.animator_in_state(cx, id!(subtitle_on_content.will_show)) {
                     // Make sure the subtitle is visible
