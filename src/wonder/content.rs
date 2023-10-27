@@ -1,6 +1,11 @@
 use makepad_widgets::*;
 use makepad_widgets::widget::WidgetCache;
 
+const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
+const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
+const SCROLL_LENGHT_FOR_MAIN_CONTENT: f64 = 430.0;
+const CONTENT_PANEL_REACHES_TOP_OFFSET: f64 = SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0;
+
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
@@ -9,19 +14,25 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
 
+    HEADER_REACHES_TOP_OFFSET = 570.0
+    SCROLL_LENGHT_FOR_HEADER = 380.0
+    SCROLL_LENGHT_FOR_MAIN_CONTENT = 430.0
+    CONTENT_PANEL_REACHES_TOP_OFFSET = (SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0);
+    MAIN_CONTENT_LENGTH = 3000.0;
+
     IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/great-wall-content-1.jpg")
 
     WonderContent = {{WonderContent}} {
         flow: Overlay
 
-        margin: { top: 570.0 }
+        margin: { top: (HEADER_REACHES_TOP_OFFSET) }
 
         <View> {
             flow: Overlay
             width: Fill
             height: Fit
 
-            header_img = <Image> {
+            header_before_full_content = <Image> {
                 // Override to have the upper corners rounded
                 draw_bg: {
                     instance radius: 90.
@@ -48,7 +59,7 @@ live_design! {
                 height: 430,
             }
 
-            header_img_2 = <View> {
+            header_for_full_content = <View> {
                 flow: Down
                 visible: false
                 show_bg: true
@@ -79,7 +90,7 @@ live_design! {
             width: Fill
             height: 130
 
-            margin: {top: 380.0}
+            margin: {top: (SCROLL_LENGHT_FOR_HEADER)}
             align: {x: 0.5, y: 0.0}
 
             <View> {
@@ -109,14 +120,14 @@ live_design! {
         main_content = <View> {
             flow: Overlay
             width: Fill
-            height: 3000.0
+            height: (MAIN_CONTENT_LENGTH)
 
             show_bg: true
             draw_bg: {
                 color: #fff
             }
 
-            margin: { top: 470. }
+            margin: {top: (SCROLL_LENGHT_FOR_MAIN_CONTENT)}
 
             main_content_inner = <View> {
                 flow: Down
@@ -271,6 +282,12 @@ pub enum WonderContentAction {
     None,
 }
 
+#[derive(PartialEq)]
+enum WonderContentState {
+    BeforeFullContent,
+    FullContent,
+}
+
 #[derive(Live)]
 pub struct WonderContent {
     #[deref]
@@ -278,6 +295,9 @@ pub struct WonderContent {
 
     #[rust(0.0)]
     current_scroll_offset: f64,
+
+    #[rust(WonderContentState::BeforeFullContent)]
+    state: WonderContentState,
 
     #[animator]
     animator: Animator,
@@ -331,76 +351,94 @@ impl Widget for WonderContent {
 }
 
 impl WonderContent {
-    fn update_header_section(&mut self, cx: &mut Cx, offset: f64) {
-        let margin = max(0.0, 570.0 - offset);
+    fn update_state(&mut self, cx: &mut Cx, offset: f64) {
+        match self.state {
+            WonderContentState::BeforeFullContent => {
+                if offset > CONTENT_PANEL_REACHES_TOP_OFFSET {
+                    self.state = WonderContentState::FullContent;
+                }
+
+                self.update_top_margin(cx, offset);
+                self.update_header_section(cx, offset);
+                self.update_content_position(cx, offset);
+            }
+            WonderContentState::FullContent => {
+                if offset < CONTENT_PANEL_REACHES_TOP_OFFSET {
+                    self.state = WonderContentState::BeforeFullContent;
+
+                    self.update_top_margin(cx, offset);
+                    self.update_header_section(cx, offset);
+                }
+
+                self.update_content_position(cx, offset);
+            }
+        }
+    }
+
+    fn update_top_margin(&mut self, cx: &mut Cx, offset: f64) {
+        let margin = max(0.0, HEADER_REACHES_TOP_OFFSET - offset);
         self.apply_over(cx, live!{
             margin: {top: (margin)}
         });
+    }
 
-        let opacity = if offset > 380. + 570. - 80. {
-            0.0
-        } else {
-            min(1.0, 0.5 + offset / 570.)
-        };
+    fn update_header_section(&mut self, cx: &mut Cx, offset: f64) {
+        match self.state {
+            WonderContentState::BeforeFullContent => {
+                self.view(id!(header_for_full_content)).set_visible(false);
 
-        let scale = 0.9 + min(0.1, offset / (570. * 10.));
+                let opacity = min(1.0, 0.5 + offset / HEADER_REACHES_TOP_OFFSET);
+                let scale = 0.9 + min(0.1, offset / (HEADER_REACHES_TOP_OFFSET * 10.));
+                let pan_factor = HEADER_REACHES_TOP_OFFSET * 3.0;
+                let vertical_pan = max(0.0, (offset - HEADER_REACHES_TOP_OFFSET) / pan_factor);
 
-        let vertical_pan = if offset > 380. + 570. - 80. {
-            // TODO Add constants to better communicate these calculations
-            (380. - 80.) / (570. * 3.)
-        } else if offset > 570. {
-            (offset - 570.) / (570. * 3.)
-        } else {
-            0.0
-        };
+                self.image(id!(header_before_full_content)).apply_over(cx, live!{
+                    draw_bg: {
+                        radius: 90.0,
+                        image_scale: (dvec2(scale, scale)),
+                        image_pan: (dvec2(0.0, vertical_pan)),
+                        opacity: (opacity)
+                    }
+                });
 
-        self.image(id!(header_img)).apply_over(cx, live!{
-            draw_bg: {
-                radius: 90.0,
-                image_scale: (dvec2(scale, scale)),
-                image_pan: (dvec2(0.0, vertical_pan)),
-                opacity: (opacity)
             }
-        });
-
-        if offset > 380. + 570. - 80. {
-            self.view(id!(main_content)).apply_over(cx, live!{
-                margin: {top: (470.0 - (380. - 80.))}
-            });
-
-            let inner_offset = offset - (380. + 570. - 80.);
-            self.view(id!(main_content_inner)).apply_over(cx, live!{
-                abs_pos: (dvec2(0.0, -inner_offset))
-            });
-        } else if offset > 570.0 {
-            self.view(id!(main_content)).apply_over(cx, live!{
-                margin: {top: (470.0 - (offset - 570.0))}
-            });
-            self.view(id!(main_content_inner)).apply_over(cx, live!{
-                abs_pos: (dvec2(0.0, 837.0 - offset))
-            });
-        } else {
-            self.view(id!(main_content_inner)).apply_over(cx, live!{
-                abs_pos: (dvec2(0.0, 837.0 - offset))
-            });
+            WonderContentState::FullContent => {
+                self.view(id!(header_for_full_content)).set_visible(true);
+                self.image(id!(header_before_full_content)).apply_over(cx, live!{
+                    draw_bg: { opacity: (0.0) }
+                });
+            }
         }
 
-        let header_bottom_margin = if offset > 570.0 {
-            max(370.0 - (offset - 570.0), 70.0)
+        let header_bottom_margin_base = if offset > HEADER_REACHES_TOP_OFFSET {
+            max(SCROLL_LENGHT_FOR_HEADER - (offset - HEADER_REACHES_TOP_OFFSET), 80.0)
         } else {
-            370.0 // 430. - 80.
+            SCROLL_LENGHT_FOR_HEADER
         };
+        let header_bottom_margin = header_bottom_margin_base - 50.0;
 
         self.view(id!(header_bottom)).apply_over(cx, live!{
             margin: {top: (header_bottom_margin)}
         });
+    }
 
-        // Visibility toggle for permanent header
-        if offset > 380. + 570. - 80. {
-            self.view(id!(header_img_2)).set_visible(true);
+    fn update_content_position(&mut self, cx: &mut Cx, offset: f64) {
+        let main_content_margin = if offset > CONTENT_PANEL_REACHES_TOP_OFFSET {
+            SCROLL_LENGHT_FOR_MAIN_CONTENT - (SCROLL_LENGHT_FOR_HEADER - 80.)
+        } else if offset > HEADER_REACHES_TOP_OFFSET {
+            SCROLL_LENGHT_FOR_MAIN_CONTENT - (offset - HEADER_REACHES_TOP_OFFSET)
         } else {
-            self.view(id!(header_img_2)).set_visible(false);
-        }
+            SCROLL_LENGHT_FOR_MAIN_CONTENT
+        };
+
+        self.view(id!(main_content)).apply_over(cx, live!{
+            margin: {top: (main_content_margin)}
+        });
+
+        let main_content_inner_offset = SCROLL_LENGHT_FOR_MAIN_CONTENT + HEADER_REACHES_TOP_OFFSET + 20.0;
+        self.view(id!(main_content_inner)).apply_over(cx, live!{
+            abs_pos: (dvec2(0.0, main_content_inner_offset - offset))
+        });
     }
 }
 
@@ -409,21 +447,19 @@ impl WonderContent {
 pub struct WonderContentRef(WidgetRef);
 
 impl WonderContentRef {
-    pub fn scroll(&mut self, cx: &mut Cx, delta: f64, is_up: bool) -> WonderContentAction {
+    pub fn scroll(&mut self, cx: &mut Cx, delta: f64, scroll_end: bool) -> WonderContentAction {
         if let Some(mut inner) = self.borrow_mut() {
             let new_delta = inner.current_scroll_offset + delta;
-            if is_up {
+            if scroll_end {
                 inner.current_scroll_offset += delta;
             }
 
             if new_delta >= 0.0 {
-                inner.update_header_section(cx, new_delta);
-                
+                inner.update_state(cx, new_delta);
                 WonderContentAction::Scrolling(new_delta)
             } else {
-                inner.update_header_section(cx, 0.0);
+                inner.update_state(cx, 0.0);
                 inner.current_scroll_offset = 0.0;
-
                 WonderContentAction::Closed
             }
         } else {

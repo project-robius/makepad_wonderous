@@ -720,8 +720,8 @@ impl Wonder {
         }
     }
 
-    fn scroll_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, is_up: bool) {        
-        let action = self.wonder_content(id!(content)).scroll(cx, delta, is_up);
+    fn scroll_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, scroll_end: bool) {
+        let action = self.wonder_content(id!(content)).scroll(cx, delta, scroll_end);
         match action {
             WonderContentAction::Scrolling(into_content_offset) => {
                 self.update_title_position_on_into_content(cx, into_content_offset);
