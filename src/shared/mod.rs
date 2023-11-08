@@ -1,3 +1,3 @@
 pub mod styles;
 pub mod widgets;
-pub mod swipe_gesture;
+pub mod touch_gesture;
