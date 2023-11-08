@@ -1,7 +1,7 @@
-use makepad_widgets::*;
-use makepad_widgets::widget::WidgetCache;
 use crate::wonder::content::*;
 use crate::shared::touch_gesture::*;
+use makepad_widgets::widget::WidgetCache;
+use makepad_widgets::*;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -153,7 +153,7 @@ live_design! {
                     height: Fit,
 
                     align: { x: 0.5, y: 0.5 }
-                    
+
                     <Label> {
                         draw_text:{
                             text_style: <SUBTITLE_CAPTION>{font_size: 10},
@@ -251,7 +251,7 @@ live_design! {
 
             abs_pos: vec2(0, 600.0),
             align: { x: 0.5, y: 0 }
- 
+
             <Label> {
                 draw_text:{
                     text_style: <INTRO_TITLE>{font_size: 14},
@@ -498,7 +498,7 @@ live_design! {
 enum WonderState {
     Cover,
     Title,
-    Content
+    Content,
 }
 
 #[derive(Live)]
@@ -511,7 +511,7 @@ pub struct Wonder {
 
     #[animator]
     animator: Animator,
-    
+
     #[rust]
     next_frame: NextFrame,
 
@@ -546,7 +546,8 @@ impl Widget for Wonder {
 
         self.orchestrate_animations(cx, event);
 
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+        self.view
+            .handle_widget_event_with(cx, event, dispatch_action);
 
         match self.state {
             WonderState::Cover => {
@@ -714,23 +715,32 @@ impl Wonder {
         let opacity = min(1.0, 1.0 - offset / 570.0);
 
         let subtitle_group = self.view(id!(subtitle_group));
-        subtitle_group.apply_over(cx, live!{
-            margin: {top: (-offset * 0.6)},
-            draw_bg: { opacity: (opacity) } 
-        });
+        subtitle_group.apply_over(
+            cx,
+            live! {
+                margin: {top: (-offset * 0.6)},
+                draw_bg: { opacity: (opacity) }
+            },
+        );
         subtitle_group.redraw(cx);
 
         let title = self.view(id!(title));
-        title.apply_over(cx, live!{
-            margin: {top: (-offset * 0.6)},
-            draw_bg: { opacity: (opacity) } 
-        });
+        title.apply_over(
+            cx,
+            live! {
+                margin: {top: (-offset * 0.6)},
+                draw_bg: { opacity: (opacity) }
+            },
+        );
         title.redraw(cx);
 
         let header = self.view(id!(header));
-        header.apply_over(cx, live!{
-            draw_bg: { opacity: (opacity) } 
-        });
+        header.apply_over(
+            cx,
+            live! {
+                draw_bg: { opacity: (opacity) }
+            },
+        );
         header.redraw(cx);
     }
 
@@ -738,49 +748,63 @@ impl Wonder {
         match self.state {
             WonderState::Cover => {
                 let left_image = self.view(id!(left_great_wall));
-                left_image.apply_over(cx, live!{
-                    margin: {top: 0, left: 0},
-                    width: (1386. * 0.35),
-                    height: (1764. * 0.35)
-                });
+                left_image.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0, left: 0},
+                        width: (1386. * 0.35),
+                        height: (1764. * 0.35)
+                    },
+                );
                 left_image.redraw(cx);
 
                 let right_image = self.view(id!(right_great_wall));
-                right_image.apply_over(cx, live!{
-                    margin: {top: 0, left: 0},
-                    width: (1386. * 0.45),
-                    height: (1764. * 0.45)
-                });
+                right_image.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0, left: 0},
+                        width: (1386. * 0.45),
+                        height: (1764. * 0.45)
+                    },
+                );
                 right_image.redraw(cx);
-            },
+            }
             WonderState::Title => {
                 let subtitle_group = self.view(id!(subtitle_group));
-                subtitle_group.apply_over(cx, live!{
-                    margin: {top: 0}
-                });
+                subtitle_group.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0}
+                    },
+                );
                 subtitle_group.redraw(cx);
 
                 let title = self.view(id!(title));
-                title.apply_over(cx, live!{
-                    margin: {top: 0}
-                });
+                title.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0}
+                    },
+                );
                 title.redraw(cx);
 
                 let content = self.wonder_content(id!(content));
                 content.redraw(cx);
-            },
+            }
             WonderState::Content => {}
         }
     }
 
-    fn orchestrate_animations(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event
-    ){
+    fn orchestrate_animations(&mut self, cx: &mut Cx, event: &Event) {
         if let Some(_ne) = self.next_frame.is_event(event) {
-            if self.animator.is_track_animating(cx, id!(subtitle_on_content)) {
-                if self.animator.animator_in_state(cx, id!(subtitle_on_content.will_show)) {
+            if self
+                .animator
+                .is_track_animating(cx, id!(subtitle_on_content))
+            {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(subtitle_on_content.will_show))
+                {
                     // Make sure the subtitle is visible
                     self.animator_play(cx, id!(subtitle_on_intro.reset));
 
@@ -788,22 +812,37 @@ impl Wonder {
                 }
             }
             if self.animator.is_track_animating(cx, id!(subtitle_on_intro)) {
-                if self.animator.animator_in_state(cx, id!(subtitle_on_intro.will_show)) {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(subtitle_on_intro.will_show))
+                {
                     self.animator_play(cx, id!(subtitle_on_intro.show));
                 }
             }
             if self.animator.is_track_animating(cx, id!(great_wall_scale)) {
-                if self.animator.animator_in_state(cx, id!(great_wall_scale.will_show)) {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(great_wall_scale.will_show))
+                {
                     self.animator_play(cx, id!(great_wall_scale.show));
                 }
             }
-            if self.animator.is_track_animating(cx, id!(great_wall_padding)) {
-                if self.animator.animator_in_state(cx, id!(great_wall_padding.will_show)) {
+            if self
+                .animator
+                .is_track_animating(cx, id!(great_wall_padding))
+            {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(great_wall_padding.will_show))
+                {
                     self.animator_play(cx, id!(great_wall_padding.show));
                 }
             }
             if self.animator.is_track_animating(cx, id!(great_wall_leaves)) {
-                if self.animator.animator_in_state(cx, id!(great_wall_leaves.will_show)) {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(great_wall_leaves.will_show))
+                {
                     self.animator_play(cx, id!(great_wall_leaves.show));
                 }
             }
