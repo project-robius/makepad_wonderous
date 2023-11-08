@@ -277,7 +277,7 @@ live_design! {
 
 #[derive(Debug, Clone, WidgetAction)]
 pub enum WonderContentAction {
-    Scrolling(f64),
+    Scrolling,
     Closed,
     None,
 }
@@ -447,16 +447,13 @@ impl WonderContent {
 pub struct WonderContentRef(WidgetRef);
 
 impl WonderContentRef {
-    pub fn scroll(&mut self, cx: &mut Cx, delta: f64, scroll_end: bool) -> WonderContentAction {
+    pub fn scroll(&mut self, cx: &mut Cx, delta: f64) -> WonderContentAction {
         if let Some(mut inner) = self.borrow_mut() {
-            let new_delta = inner.current_scroll_offset + delta;
-            if scroll_end {
-                inner.current_scroll_offset += delta;
-            }
+            inner.current_scroll_offset = delta;
 
-            if new_delta >= 0.0 {
-                inner.update_state(cx, new_delta);
-                WonderContentAction::Scrolling(new_delta)
+            if inner.current_scroll_offset >= -0.1 {
+                inner.update_state(cx, max(delta, 0.0));
+                WonderContentAction::Scrolling
             } else {
                 inner.update_state(cx, 0.0);
                 inner.current_scroll_offset = 0.0;

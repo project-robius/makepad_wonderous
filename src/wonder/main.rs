@@ -1,6 +1,7 @@
 use makepad_widgets::*;
 use makepad_widgets::widget::WidgetCache;
 use crate::wonder::content::*;
+use crate::shared::swipe_gesture::*;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -521,6 +522,9 @@ pub struct Wonder {
     
     #[rust]
     next_frame: NextFrame,
+
+    #[rust]
+    swipe_motion: SwipeGesture,
 }
 
 impl LiveHook for Wonder {
@@ -532,6 +536,8 @@ impl LiveHook for Wonder {
         if from.is_from_doc() {
             self.state = WonderState::Cover;
             self.next_frame = cx.new_next_frame();
+            self.swipe_motion = SwipeGesture::new();
+            self.swipe_motion.reset(0.0, f64::MIN, f64::MAX);
         }
     }
 }
@@ -556,10 +562,10 @@ impl Widget for Wonder {
                 self.handle_event_in_cover_state(cx, event);
             }
             WonderState::Title => {
-                self.handle_event_in_content_state(cx, event);
+                self.handle_event_in_title_state(cx, event);
             }
             WonderState::Content => {
-                self.handle_event_in_content_event(cx, event);
+                self.handle_event_in_content_state(cx, event);
             }
         }
     }
@@ -637,9 +643,14 @@ impl Wonder {
             }
             _ => {}
         }
+
+        // It is not visually impacting in this state, but we need
+        // to track the dragging status for the case where it transitions to
+        // the content state.
+        self.swipe_motion.handle_event(cx, event, self.view.area());
     }
 
-    fn handle_event_in_content_state(&mut self, cx: &mut Cx, event: &Event) {
+    fn handle_event_in_title_state(&mut self, cx: &mut Cx, event: &Event) {
         match event.hits_with_capture_overload(cx, self.view.area(), true) {
             Hit::FingerDown(fe) => {
                 self.last_abs = fe.abs;
@@ -683,6 +694,7 @@ impl Wonder {
                         title.redraw(cx);
                     } else if delta > 20.0 {
                         self.state = WonderState::Content;
+                        self.swipe_motion.reset(0.0, -10.0, 3000.0)
                     }
                 }
             }
@@ -691,47 +703,30 @@ impl Wonder {
             }
             _ => {}
         }
+
+        // It is not visually impacting in this state, but we need
+        // to track the dragging status for the case where it transitions to
+        // the content state.
+        self.swipe_motion.handle_event(cx, event, self.view.area());
     }
 
-    fn handle_event_in_content_event(&mut self, cx: &mut Cx, event: &Event) {
-        match event.hits_with_capture_overload(cx, self.view.area(), true) {
-            Hit::FingerDown(fe) => {
-                self.last_abs = fe.abs;
-                self.init_drag_time = fe.time;
-                self.dragging = true;
-            }
-            Hit::FingerMove(fe) => {
-                if !self.dragging { return; }
+    fn handle_event_in_content_state(&mut self, cx: &mut Cx, event: &Event) {
+        self.swipe_motion.handle_event(cx, event, self.view.area());
+        let delta = self.swipe_motion.scroll_offset;
 
-                let time_elapsed = fe.time - self.init_drag_time;
-                if time_elapsed > 0.15 {
-                    let delta = self.last_abs.y - fe.abs.y;
-                    self.scroll_content(cx, delta, fe.abs, fe.time, false);
-                }
-            }
-            Hit::FingerUp(fe) => {
-                if !self.dragging { return; }
-
-                self.dragging = false;
-                let delta = self.last_abs.y - fe.abs.y;
-                self.scroll_content(cx, delta, fe.abs, fe.time, true);
-            }
-            _ => {}
-        }
-    }
-
-    fn scroll_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, scroll_end: bool) {
-        let action = self.wonder_content(id!(content)).scroll(cx, delta, scroll_end);
+        let action = self.wonder_content(id!(content)).scroll(cx, delta);
         match action {
-            WonderContentAction::Scrolling(into_content_offset) => {
-                self.update_title_position_on_into_content(cx, into_content_offset);
+            WonderContentAction::Scrolling => {
+                self.update_title_position_on_into_content(cx, delta);
             }
             WonderContentAction::Closed => {
                 self.state = WonderState::Title;
                 self.update_title_position_on_into_content(cx, 0.0);
 
-                self.last_abs = event_abs;
-                self.init_drag_time = event_time;
+                if let Some(e) = &self.swipe_motion.last_finger_move_event {
+                    self.last_abs = e.abs;
+                    self.init_drag_time = e.time;
+                }
             }
             _ => {}
         }
