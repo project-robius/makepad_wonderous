@@ -686,15 +686,16 @@ impl Wonder {
             self.state = WonderState::Content;
 
             // Note this is NOT reseting current dragging state
-            self.touch_gesture.reset(0.0, -10.0, 3000.0, ScrollMode::Swipe);
+            self.touch_gesture.reset(0.0, 0.0, 3000.0, ScrollMode::Swipe);
         }
     }
 
     fn handle_event_in_content_state(&mut self, cx: &mut Cx, event: &Event) {
         self.touch_gesture.handle_event(cx, event, self.view.area());
         let delta = self.touch_gesture.scroll_offset;
+        let is_dragging = self.touch_gesture.is_dragging();
 
-        let action = self.wonder_content(id!(content)).scroll(cx, delta);
+        let action = self.wonder_content(id!(content)).scroll(cx, delta, is_dragging);
         match action {
             WonderContentAction::Scrolling => {
                 self.update_title_position_on_into_content(cx, delta);

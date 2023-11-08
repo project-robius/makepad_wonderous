@@ -447,17 +447,23 @@ impl WonderContent {
 pub struct WonderContentRef(WidgetRef);
 
 impl WonderContentRef {
-    pub fn scroll(&mut self, cx: &mut Cx, delta: f64) -> WonderContentAction {
+    pub fn scroll(&mut self, cx: &mut Cx, delta: f64, is_dragging: bool) -> WonderContentAction {
         if let Some(mut inner) = self.borrow_mut() {
             inner.current_scroll_offset = delta;
 
-            if inner.current_scroll_offset >= -0.1 {
-                inner.update_state(cx, max(delta, 0.0));
-                WonderContentAction::Scrolling
+            if is_dragging {
+                // 60 is pulldown maximum offset in touch_gesture.rs
+                if inner.current_scroll_offset >= -59.0 {
+                    inner.update_state(cx, max(delta, -59.0));
+                    WonderContentAction::Scrolling
+                } else {
+                    inner.update_state(cx, 0.0);
+                    inner.current_scroll_offset = 0.0;
+                    WonderContentAction::Closed
+                }
             } else {
-                inner.update_state(cx, 0.0);
-                inner.current_scroll_offset = 0.0;
-                WonderContentAction::Closed
+                inner.update_state(cx, delta);
+                WonderContentAction::Scrolling
             }
         } else {
             WonderContentAction::None

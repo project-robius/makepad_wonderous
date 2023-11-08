@@ -34,6 +34,7 @@ pub struct TouchGesture {
 
     min_scroll_offset: f64,
     max_scroll_offset: f64,
+    pulldown_maximum: f64,
 
     pub scroll_offset: f64,
     pub last_finger_move_event: Option<FingerMoveEvent>,
@@ -53,6 +54,7 @@ impl TouchGesture {
             scroll_offset: 0.0,
             min_scroll_offset: f64::MIN,
             max_scroll_offset: f64::MAX,
+            pulldown_maximum: 60.0,
             last_finger_move_event: None,
         }
     }
@@ -60,7 +62,10 @@ impl TouchGesture {
     pub fn reset(&mut self, initial_offset: f64, min_offset: f64, max_offset: f64, scroll_mode: ScrollMode) {
         self.min_scroll_offset = min_offset;
         self.max_scroll_offset = max_offset;
-        self.scroll_offset = initial_offset.clamp(self.min_scroll_offset, self.max_scroll_offset);
+        self.scroll_offset = initial_offset.clamp(
+            self.min_scroll_offset - self.pulldown_maximum,
+            self.max_scroll_offset + self.pulldown_maximum
+        );
         self.scroll_mode = scroll_mode;
     }
 
@@ -77,19 +82,63 @@ impl TouchGesture {
         }
     }
 
+    pub fn is_dragging(&self) -> bool {
+        match self.scroll_state {
+            ScrollState::Drag {..} => true,
+            _ => false
+        }
+    }
+
     pub fn handle_event(&mut self, cx: &mut Cx, event: &Event, area: Area) {
+        let needs_pulldown_when_flicking = self.needs_pulldown_when_flicking();
+        let needs_pulldown = self.needs_pulldown();
+
         match &mut self.scroll_state {
             ScrollState::Flick {delta, next_frame} => {
                 if let Some(_) = next_frame.is_event(event) {
                     *delta = *delta * self.flick_scroll_decay;
-                    if delta.abs()>self.flick_scroll_minimum {
+                    if needs_pulldown_when_flicking {
+                        self.scroll_state = ScrollState::Pulldown {next_frame: cx.new_next_frame()};
+                    } else if delta.abs() > self.flick_scroll_minimum {
                         *next_frame = cx.new_next_frame();
                         let delta = *delta;
 
                         let new_offset = self.scroll_offset - delta;
-                        self.scroll_offset = new_offset.clamp(self.min_scroll_offset, self.max_scroll_offset);
+                        self.scroll_offset = new_offset.clamp(
+                            self.min_scroll_offset - self.pulldown_maximum,
+                            self.max_scroll_offset + self.pulldown_maximum
+                        );
                     } else {
-                        self.scroll_state = ScrollState::Stopped;
+                        if needs_pulldown {
+                            self.scroll_state = ScrollState::Pulldown {next_frame: cx.new_next_frame()};
+                        } else {
+                            self.scroll_state = ScrollState::Stopped;
+                        }
+                    }
+                }
+            }
+            ScrollState::Pulldown {next_frame} => {
+                if let Some(_) = next_frame.is_event(event) {
+                    if self.scroll_offset < self.min_scroll_offset {
+                        self.scroll_offset += (self.min_scroll_offset - self.scroll_offset) * 0.1;
+                        if self.min_scroll_offset - self.scroll_offset < 1.0 {
+                            self.scroll_offset = self.min_scroll_offset + 0.5;
+                        }
+                        else {
+                            *next_frame = cx.new_next_frame();
+                        }
+                    }
+                    else if self.scroll_offset > self.max_scroll_offset {
+                        self.scroll_offset -= (self.scroll_offset - self.max_scroll_offset) * 0.1;
+                        if self.scroll_offset - self.max_scroll_offset < 1.0 {
+                            self.scroll_offset = self.max_scroll_offset - 0.5;
+                        }
+                        else {
+                            *next_frame = cx.new_next_frame();
+                        }
+                    }
+                    else {
+                        self.scroll_state = ScrollState::Stopped
                     }
                 }
             }
@@ -113,7 +162,10 @@ impl TouchGesture {
                             samples.remove(0);
                         }
                         let new_offset = self.scroll_offset + old_sample.abs - new_abs;
-                        self.scroll_offset = new_offset.clamp(self.min_scroll_offset, self.max_scroll_offset);
+                        self.scroll_offset = new_offset.clamp(
+                            self.min_scroll_offset - self.pulldown_maximum,
+                            self.max_scroll_offset + self.pulldown_maximum
+                        );
 
                         self.last_finger_move_event = Some(e);
                     }
@@ -138,8 +190,11 @@ impl TouchGesture {
                                     }
                                 }
                                 scaled_delta *= self.flick_scroll_scaling;
-                                
-                                if total_delta.abs() > 10.0 && scaled_delta.abs() > self.flick_scroll_minimum {
+
+                                if self.needs_pulldown() {
+                                    self.scroll_state = ScrollState::Pulldown {next_frame: cx.new_next_frame()};
+                                }
+                                else if total_delta.abs() > 10.0 && scaled_delta.abs() > self.flick_scroll_minimum {
                                     self.scroll_state = ScrollState::Flick {
                                         delta: scaled_delta.min(self.flick_scroll_maximum).max(-self.flick_scroll_maximum),
                                         next_frame: cx.new_next_frame()
@@ -158,11 +213,16 @@ impl TouchGesture {
                     _=>()
                 }
             }
-            Hit::KeyFocus(_) => {
-            }
-            Hit::KeyFocusLost(_) => {
-            }
             _ => ()
         }
+    }
+
+    fn needs_pulldown(&self) -> bool {
+        self.scroll_offset < self.min_scroll_offset || self.scroll_offset > self.max_scroll_offset
+    }
+
+    fn needs_pulldown_when_flicking(&self) -> bool {
+        self.scroll_offset - 0.5 < self.min_scroll_offset - self.pulldown_maximum ||
+            self.scroll_offset + 0.5 > self.max_scroll_offset + self.pulldown_maximum
     }
 }
