@@ -1,6 +1,7 @@
 use makepad_widgets::*;
 use makepad_widgets::widget::WidgetCache;
 use crate::wonder::content::*;
+use crate::shared::touch_gesture::*;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -508,19 +509,14 @@ pub struct Wonder {
     #[rust(WonderState::Cover)]
     state: WonderState,
 
-    #[rust]
-    dragging: bool,
-    
-    #[rust]
-    last_abs: DVec2,
-    #[rust]
-    init_drag_time: f64,
-
     #[animator]
     animator: Animator,
     
     #[rust]
     next_frame: NextFrame,
+
+    #[rust]
+    touch_gesture: TouchGesture,
 }
 
 impl LiveHook for Wonder {
@@ -531,6 +527,7 @@ impl LiveHook for Wonder {
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc() {
             self.state = WonderState::Cover;
+            self.touch_gesture = TouchGesture::new();
             self.next_frame = cx.new_next_frame();
         }
     }
@@ -556,10 +553,10 @@ impl Widget for Wonder {
                 self.handle_event_in_cover_state(cx, event);
             }
             WonderState::Title => {
-                self.handle_event_in_content_state(cx, event);
+                self.handle_event_in_title_state(cx, event);
             }
             WonderState::Content => {
-                self.handle_event_in_content_event(cx, event);
+                self.handle_event_in_content_state(cx, event);
             }
         }
     }
@@ -584,154 +581,130 @@ impl Widget for Wonder {
 
 impl Wonder {
     fn handle_event_in_cover_state(&mut self, cx: &mut Cx, event: &Event) {
-        match event.hits_with_capture_overload(cx, self.view.area(), true) {
-            Hit::FingerDown(fe) => {
-                self.last_abs = fe.abs;
-                self.init_drag_time = fe.time;
-                self.dragging = true;
-            }
-            Hit::FingerMove(fe) => {
-                let time_elapsed = fe.time - self.init_drag_time;
-                if time_elapsed > 0.15 {
-                    let delta = (self.last_abs.y - fe.abs.y) * 0.6;
+        self.touch_gesture.handle_event(cx, event, self.view.area());
+        
+        if self.touch_gesture.is_stopped() {
+            self.reset_all_positions(cx);
+            self.touch_gesture.scroll_offset = 0.0;
+            return;
+        }
+        
+        const COVER_STATE_SCROLL_FACTOR: f64 = 0.6;
+        let delta = self.touch_gesture.scroll_offset * COVER_STATE_SCROLL_FACTOR;
 
-                    if delta > 60. {
-                        self.state = WonderState::Title;
-                        self.dragging = false;
+        const SHOW_TITLE_THRESHOLD: f64 = 60.0;
+        if delta > SHOW_TITLE_THRESHOLD {
+            self.view(id!(header)).set_visible(true);
+            self.view(id!(subtitle_group)).set_visible(true);
 
-                        self.view(id!(header)).set_visible(true);
-                        self.view(id!(subtitle_group)).set_visible(true);
+            // TODO it is hard to access to set_visible in the "view parent" of the custom widget
+            self.wonder_content(id!(content)).apply_over(cx, live!{
+                visible: true
+            });
 
-                        // TODO it is hard to access to set_visible in the "view parent" of the custom widget
-                        self.wonder_content(id!(content)).apply_over(cx, live!{
-                            visible: true
-                        });
+            self.state = WonderState::Title;
+            self.reset_all_positions(cx);
 
-                        self.reset_dragging(cx);
-                        self.animator_play(cx, id!(intro.hide));
-                        self.animator_play(cx, id!(content_sun.show));
-                        self.animator_play(cx, id!(title.content));
-                        self.animator_play(cx, id!(subtitle_on_content.will_show));
-                        self.animator_play(cx, id!(compass.show));
-                    } else if delta > 0. {
-                        let left_image = self.view(id!(left_great_wall));
-                        left_image.apply_over(cx, live!{
-                            margin: {top: (-delta), left: (-delta / 2.)},
-                            width: (1386. * 0.35 + delta),
-                            height: (1764. * 0.35 + delta * (1764. / 1386.))
-                        });
-                        left_image.redraw(cx);
+            self.animator_play(cx, id!(intro.hide));
+            self.animator_play(cx, id!(content_sun.show));
+            self.animator_play(cx, id!(title.content));
+            self.animator_play(cx, id!(subtitle_on_content.will_show));
+            self.animator_play(cx, id!(compass.show));
 
-                        let right_image = self.view(id!(right_great_wall));
-                        right_image.apply_over(cx, live!{
-                            margin: {top: (-delta), left: (-delta / 2.)},
-                            width: (1386. * 0.45 + delta),
-                            height: (1764. * 0.45 + delta * (1764. / 1386.))
-                        });
-                        right_image.redraw(cx);
-                    }
-                }
-            }
-            Hit::FingerUp(_fe) => {
-                self.reset_dragging(cx);
-            }
-            _ => {}
+            self.touch_gesture.stop();
+            self.touch_gesture.scroll_offset = 0.0;
+        } else if delta > 0. {
+            // Animate the great wall left and right images
+
+            let left_image = self.view(id!(left_great_wall));
+            left_image.apply_over(cx, live!{
+                margin: {top: (-delta), left: (-delta / 2.)},
+                width: (1386. * 0.35 + delta),
+                height: (1764. * 0.35 + delta * (1764. / 1386.))
+            });
+            left_image.redraw(cx);
+
+            let right_image = self.view(id!(right_great_wall));
+            right_image.apply_over(cx, live!{
+                margin: {top: (-delta), left: (-delta / 2.)},
+                width: (1386. * 0.45 + delta),
+                height: (1764. * 0.45 + delta * (1764. / 1386.))
+            });
+            right_image.redraw(cx);
+        }
+    }
+
+    fn handle_event_in_title_state(&mut self, cx: &mut Cx, event: &Event) {
+        self.touch_gesture.handle_event(cx, event, self.view.area());
+
+        if self.touch_gesture.is_stopped() {
+            // TODO rename this!
+            self.reset_all_positions(cx);
+            self.touch_gesture.scroll_offset = 0.0;
+            return;
+        }
+
+        let delta = self.touch_gesture.scroll_offset;
+
+        const SHOW_COVER_THRESHOLD: f64 = -60.0;
+        const SHOW_CONTENT_THRESHOLD: f64 = 20.0;
+
+        if delta < SHOW_COVER_THRESHOLD {
+            self.state = WonderState::Cover;
+            self.reset_all_positions(cx);
+
+            self.animator_play(cx, id!(intro.show));
+            self.animator_play(cx, id!(great_wall_scale.will_show));
+            self.animator_play(cx, id!(great_wall_padding.will_show));
+            self.animator_play(cx, id!(great_wall_leaves.will_show));
+
+            self.animator_play(cx, id!(content_sun.hide));
+            self.animator_play(cx, id!(title.intro));
+            self.animator_play(cx, id!(subtitle_on_intro.will_show));
+            self.animator_play(cx, id!(compass.hide));
+
+            // TODO it is hard to access to set_visible in the "view parent" of the custom widget
+            self.wonder_content(id!(content)).apply_over(cx, live!{
+                visible: false
+            });
+
+            self.touch_gesture.stop();
+            self.touch_gesture.scroll_offset = 0.0;
+        } else if delta < 0. {
+            let subtitle_group = self.view(id!(subtitle_group));
+            subtitle_group.apply_over(cx, live!{
+                margin: {top: (-delta)},
+            });
+            subtitle_group.redraw(cx);
+
+            let title = self.view(id!(title));
+            title.apply_over(cx, live!{
+                margin: {top: (-delta)},
+            });
+            title.redraw(cx);
+        } else if delta > SHOW_CONTENT_THRESHOLD {
+            self.state = WonderState::Content;
+
+            // Note this is NOT reseting current dragging state
+            self.touch_gesture.reset(0.0, 0.0, 3000.0, ScrollMode::Swipe);
         }
     }
 
     fn handle_event_in_content_state(&mut self, cx: &mut Cx, event: &Event) {
-        match event.hits_with_capture_overload(cx, self.view.area(), true) {
-            Hit::FingerDown(fe) => {
-                self.last_abs = fe.abs;
-                self.init_drag_time = fe.time;
-                self.dragging = true;
-            }
-            Hit::FingerMove(fe) => {
-                let time_elapsed = fe.time - self.init_drag_time;
-                if time_elapsed > 0.15 {
-                    let delta = (self.last_abs.y - fe.abs.y) * 0.6;
-                    if delta < -60. {
-                        self.state = WonderState::Cover;
+        self.touch_gesture.handle_event(cx, event, self.view.area());
+        let delta = self.touch_gesture.scroll_offset;
+        let is_dragging = self.touch_gesture.is_dragging();
 
-                        self.reset_dragging(cx);
-
-                        self.animator_play(cx, id!(intro.show));
-                        self.animator_play(cx, id!(great_wall_scale.will_show));
-                        self.animator_play(cx, id!(great_wall_padding.will_show));
-                        self.animator_play(cx, id!(great_wall_leaves.will_show));
-
-                        self.animator_play(cx, id!(content_sun.hide));
-                        self.animator_play(cx, id!(title.intro));
-                        self.animator_play(cx, id!(subtitle_on_intro.will_show));
-                        self.animator_play(cx, id!(compass.hide));
-
-                        // TODO it is hard to access to set_visible in the "view parent" of the custom widget
-                        self.wonder_content(id!(content)).apply_over(cx, live!{
-                            visible: false
-                        });
-                    } else if delta < 0. {
-                        let subtitle_group = self.view(id!(subtitle_group));
-                        subtitle_group.apply_over(cx, live!{
-                            margin: {top: (-delta)},
-                        });
-                        subtitle_group.redraw(cx);
-
-                        let title = self.view(id!(title));
-                        title.apply_over(cx, live!{
-                            margin: {top: (-delta)},
-                        });
-                        title.redraw(cx);
-                    } else if delta > 20.0 {
-                        self.state = WonderState::Content;
-                    }
-                }
-            }
-            Hit::FingerUp(_fe) => {
-                self.reset_dragging(cx);
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_event_in_content_event(&mut self, cx: &mut Cx, event: &Event) {
-        match event.hits_with_capture_overload(cx, self.view.area(), true) {
-            Hit::FingerDown(fe) => {
-                self.last_abs = fe.abs;
-                self.init_drag_time = fe.time;
-                self.dragging = true;
-            }
-            Hit::FingerMove(fe) => {
-                if !self.dragging { return; }
-
-                let time_elapsed = fe.time - self.init_drag_time;
-                if time_elapsed > 0.15 {
-                    let delta = self.last_abs.y - fe.abs.y;
-                    self.scroll_content(cx, delta, fe.abs, fe.time, false);
-                }
-            }
-            Hit::FingerUp(fe) => {
-                if !self.dragging { return; }
-
-                self.dragging = false;
-                let delta = self.last_abs.y - fe.abs.y;
-                self.scroll_content(cx, delta, fe.abs, fe.time, true);
-            }
-            _ => {}
-        }
-    }
-
-    fn scroll_content(&mut self, cx: &mut Cx, delta: f64, event_abs: DVec2, event_time: f64, scroll_end: bool) {
-        let action = self.wonder_content(id!(content)).scroll(cx, delta, scroll_end);
+        let action = self.wonder_content(id!(content)).scroll(cx, delta, is_dragging);
         match action {
-            WonderContentAction::Scrolling(into_content_offset) => {
-                self.update_title_position_on_into_content(cx, into_content_offset);
+            WonderContentAction::Scrolling => {
+                self.update_title_position_on_into_content(cx, delta);
             }
             WonderContentAction::Closed => {
                 self.state = WonderState::Title;
                 self.update_title_position_on_into_content(cx, 0.0);
 
-                self.last_abs = event_abs;
-                self.init_drag_time = event_time;
+                self.touch_gesture.reset(0.0, f64::MIN, f64::MAX, ScrollMode::DragAndDrop);
             }
             _ => {}
         }
@@ -761,9 +734,7 @@ impl Wonder {
         header.redraw(cx);
     }
 
-    fn reset_dragging(&mut self, cx: &mut Cx) {
-        self.dragging = false;
-
+    fn reset_all_positions(&mut self, cx: &mut Cx) {
         match self.state {
             WonderState::Cover => {
                 let left_image = self.view(id!(left_great_wall));
