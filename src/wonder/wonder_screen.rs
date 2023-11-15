@@ -11,15 +11,15 @@ live_design! {
     import crate::shared::widgets::*;
     import crate::wonder::content::*;
 
-    IMG_SUN = dep("crate://self/resources/sun.png")
-    IMG_CLOUD = dep("crate://self/resources/cloud-white.png")
-    IMG_GREAT_WALL = dep("crate://self/resources/great-wall.png")
-    IMG_FG_LEFT_GREAT_WALL = dep("crate://self/resources/foreground_left_great_wall.png")
-    IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/foreground_right_great_wall.png")
-    IMG_BACKGROUND_ROLLER = dep("crate://self/resources/roller-1-black.png")
-    IMG_COMPASS = dep("crate://self/resources/compass-icon.png")
+    IMG_SUN = dep("crate://self/resources/images/sun.png")
+    IMG_CLOUD = dep("crate://self/resources/images/cloud-white.png")
+    IMG_GREAT_WALL = dep("crate://self/resources/images/great-wall.png")
+    IMG_FG_LEFT_GREAT_WALL = dep("crate://self/resources/images/foreground_left_great_wall.png")
+    IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/images/foreground_right_great_wall.png")
+    IMG_BACKGROUND_ROLLER = dep("crate://self/resources/images/roller-1-black.png")
+    IMG_COMPASS = dep("crate://self/resources/images/compass-icon.png")
 
-    Wonder = {{Wonder}} {
+    WonderScreen = {{WonderScreen}} {
         flow: Overlay,
 
         show_bg: true,
@@ -495,19 +495,23 @@ live_design! {
     }
 }
 
-enum WonderState {
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum WonderState {
+    #[default]
     Cover,
     Title,
     Content,
 }
 
 #[derive(Live)]
-pub struct Wonder {
+pub struct WonderScreen {
     #[deref]
     view: View,
 
-    #[rust(WonderState::Cover)]
+    #[rust]
     state: WonderState,
+    #[rust]
+    previous_state: WonderState,
 
     #[animator]
     animator: Animator,
@@ -519,9 +523,9 @@ pub struct Wonder {
     touch_gesture: TouchGesture,
 }
 
-impl LiveHook for Wonder {
+impl LiveHook for WonderScreen {
     fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, Wonder);
+        register_widget!(cx, WonderScreen);
     }
 
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
@@ -533,13 +537,17 @@ impl LiveHook for Wonder {
     }
 }
 
-impl Widget for Wonder {
+impl Widget for WonderScreen {
     fn handle_widget_event_with(
         &mut self,
         cx: &mut Cx,
         event: &Event,
         dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
+        self.handle_event_with(cx, event, &mut |cx, action| {
+            dispatch_action(cx, action);
+        });
+
         if self.animator_handle_event(cx, event).must_redraw() {
             self.redraw(cx);
         }
@@ -580,7 +588,26 @@ impl Widget for Wonder {
     }
 }
 
-impl Wonder {
+impl WonderScreen {
+    fn handle_event_with(
+        &mut self,
+        cx: &mut Cx,
+        event: &Event,
+        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
+    ) {
+        let widget_uid = self.widget_uid();
+        if self.previous_state != self.state {
+            dispatch_action(
+                cx,
+                WidgetActionItem::new(
+                    Box::new(WonderScreenAction::StateChange(self.state)),
+                    widget_uid,
+                ),
+            );
+            self.previous_state = self.state;
+        }
+    }
+
     fn handle_event_in_cover_state(&mut self, cx: &mut Cx, event: &Event) {
         self.touch_gesture.handle_event(cx, event, self.view.area());
         
@@ -850,4 +877,10 @@ impl Wonder {
             self.next_frame = cx.new_next_frame();
         }
     }
+}
+
+#[derive(Debug, Clone, WidgetAction)]
+pub enum WonderScreenAction {
+    StateChange(WonderState),
+    None,
 }
