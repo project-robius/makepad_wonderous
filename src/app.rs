@@ -83,7 +83,7 @@ live_design! {
                                         fn get_color(self) -> vec4 {
                                             return mix(
                                                 #000,
-                                                #0b0,
+                                                #e6945c,
                                                 self.selected
                                             )
                                         }
@@ -98,7 +98,7 @@ live_design! {
                                         fn get_color(self) -> vec4 {
                                             return mix(
                                                 #000,
-                                                #0b0,
+                                                #e6945c,
                                                 self.selected
                                             )
                                         }
@@ -113,7 +113,7 @@ live_design! {
                                         fn get_color(self) -> vec4 {
                                             return mix(
                                                 #000,
-                                                #0b0,
+                                                #e6945c,
                                                 self.selected
                                             )
                                         }
@@ -128,7 +128,7 @@ live_design! {
                                         fn get_color(self) -> vec4 {
                                             return mix(
                                                 #000,
-                                                #0b0,
+                                                #e6945c,
                                                 self.selected
                                             )
                                         }
