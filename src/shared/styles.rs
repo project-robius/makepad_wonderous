@@ -15,4 +15,9 @@ live_design! {
         font_size: (10),
         font: {path: dep("crate://self/resources/fonts/Raleway-Bold.ttf")}
     }
+
+    MONO_TEXT = {
+        font_size: (12),
+        font: {path: dep("crate://self/resources/fonts/B612Mono-Regular.ttf")}
+    }
 }
