@@ -7,6 +7,8 @@ const SCROLL_LENGHT_FOR_MAIN_CONTENT: f64 = 430.0;
 const CONTENT_PANEL_REACHES_TOP_OFFSET: f64 =
     SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0;
 
+pub const MAIN_CONTENT_LENGTH: f64 = 2600.0;
+
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
@@ -20,9 +22,67 @@ live_design! {
     SCROLL_LENGHT_FOR_HEADER = 380.0
     SCROLL_LENGHT_FOR_MAIN_CONTENT = 430.0
     CONTENT_PANEL_REACHES_TOP_OFFSET = (SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0);
-    MAIN_CONTENT_LENGTH = 3000.0;
+    MAIN_CONTENT_LENGTH = 2000.0;
 
     IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/images/great-wall-content-1.jpg")
+    IMG_GREAT_WALL_LOCATION = dep("crate://self/resources/images/great-wall-location.jpg")
+    IMG_GREAT_WALL_VIDEO = dep("crate://self/resources/images/great-wall-video.jpg")
+
+    ContentLabel = <Label> {
+        padding: 20.
+        width: Fill
+        draw_text: {
+            text_style: <REGULAR_TEXT>{font_size: 9},
+            color: #333,
+            wrap: Word,
+        }
+    }
+
+    ContentCallout = <View> { 
+        flow: Right
+        width: Fill
+        
+        //height: Fit is not working?
+        padding: 20.
+        spacing: 10.
+
+        <VerticalLine> {
+            draw_bg: {
+                color: #e6945c
+            }
+        }
+        label = <Label> {
+            width: Fill
+            margin: {top: 6}
+            draw_text: {
+                text_style: <ITALIC_TEXT>{font_size: 10},
+                color: #333,
+                wrap: Word,
+            }
+        }
+    }
+
+    PictureWithCaption = <View> {
+        flow: Down,
+        width: Fill,
+        height: Fit,
+        spacing: 8,
+
+        align: {x: 0.5, y: 0.0}
+
+        image = <Image> {
+            width: 375,
+        }
+
+        caption = <Label> {
+            width: Fill,
+            padding: {left: 20, right: 20}
+            draw_text: {
+                text_style: <REGULAR_ITALIC_TEXT>{font_size: 8},
+                color: #666,
+            }
+        }
+    }
 
     WonderContent = {{WonderContent}} {
         flow: Overlay
@@ -116,6 +176,25 @@ live_design! {
                     color: #f8eee5
                     radius: 80.0
                 }
+
+                <CurvedLabel> {
+                    width: 140
+                    height: Fit
+                    text: "FACTS AND HISTORY",
+
+                    total_angle: (PI * 0.8)
+
+                    margin: { left: 18, top: 16 }
+
+                    draw_bg: {
+                        color: #0000
+                    }
+
+                    draw_text: {
+                        color: #e6945c,
+                        text_style: {font_size: 8},
+                    }
+                }
             }
         }
 
@@ -143,154 +222,131 @@ live_design! {
 
                 spacing: 20.
 
-                <Label> {
-                    padding: 20.
-                    width: Fill
-                    draw_text: {
-                        text_style: <INTRO_SUBTITLE>{font_size: 10},
-                        color: #333,
-                        wrap: Word,
-                    }
+                <ContentLabel> {
                     text: "The Great Wall of China is a series of fortifications that were built across the historical northern borders of ancient Chinese states and Imperial China as protection against various nomadic groups from the Eurasian Steppe. The total length of all sections ever built is over 13,000 miles."
                 }
 
-                <Label> {
-                    padding: 20.
-                    width: Fill
-                    draw_text: {
-                        text_style: <INTRO_SUBTITLE>{font_size: 10},
-                        color: #333,
-                        wrap: Word,
+                <ContentCallout> {
+                    height: 80.
+                    label = {
+                        text: "The best-known sections of the wall were built by the Ming dynasty (1368-1644)"
                     }
+                }
+
+                <ContentLabel> {
                     text: "Several walls were built from as early as the 7th century BCE, with selective stretches later joined together by Qin Shi Huang (220-206  BCE), the first emperor of China. Little of the Qin wall remains."
                 }
 
-                <Label> {
-                    padding: 20.
-                    width: Fill
-                    draw_text: {
-                        text_style: <INTRO_SUBTITLE>{font_size: 10},
-                        color: #333,
-                        wrap: Word,
-                    }
+                <ContentLabel> {
                     text: "Later on, many successive dynasties built and maintained multiple stretches of border walls."
                 }
 
-                <Label> {
-                    padding: 20.
-                    width: Fill
-                    draw_text: {
-                        text_style: <INTRO_SUBTITLE>{font_size: 10},
-                        color: #333,
-                        wrap: Word,
-                    }
+                <ContentLabel> {
                     text: "Transporting the large quantity of materials required for construction was difficult, so builders always tried to use local resources. Stones from the mountains were used over mountain ranges, while rammed earth was used for construction in the plains. Most of the ancient walls have eroded away over the centuries."
                 }
 
-                <Label> {
-                    padding: 20.
-                    width: Fill
-                    draw_text: {
-                        text_style: <INTRO_SUBTITLE>{font_size: 10},
-                        color: #333,
-                        wrap: Word,
+                <PictureWithCaption> {
+                    image = {
+                        source: (IMG_GREAT_WALL_VIDEO),
+                        height: 280,
                     }
+
+                    caption = {
+                        text: "“See China’s Iconic Great Wall From Above | National Geographic.” Youtube, uploaded by National Geographic."
+                    }
+                }
+
+                <ContentCallout> {
+                    height: 96.
+                    label = {
+                        text: "During the Ming dynasty, however, bricks were heavily used in many areas of the wall, as were materials such as tiles, lime, and stone."
+                    }
+                }
+
+                <ContentLabel> {
                     text: "Stones cut into rectangular shapes were used for the foundation, inner and outer brims, and gateways of the wall."
                 }
 
-                <Label> {
-                    padding: 20.
-                    width: Fill
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 10},
-                        color: #333,
-                        wrap: Word,
-                    }
+                <ContentLabel> {
                     text: "Under the rule of the Qing dynasty, China's borders extended beyond the walls and Mongolia was annexed into the empire, so construction was discontinued."
                 }
 
+                <ContentLabel> {
+                    text: "The frontier walls built by different dynasties have multiple courses. Collectively, they stretch from Liaodong in the east to Lop Lake in the west, from the present-day Sino-Russian border in the north to Tao River in the south; along an arc that roughly delineates the edge of the Mongolian steppe."
+                }
+
                 <View> {
-                    width: Fill,
-                    height: Fit,
-                    padding: {left: 100, right: 100}
-                    <CurvedLabel> {
-                        width: Fill
-                        height: Fit,
-                        text: "FACTS AND HISTORY",
+                    flow: Down
+                    width: Fill
+                    height: Fit
+                    spacing: 8.0
+                    align: {x: 0.5, y: 0.0}
 
-                        draw_bg: {
-                            color: #f8eee5
-                        }
-
+                    <Label> {
+                        text: "“",
                         draw_text: {
+                            text_style: <MONO_TEXT>{font_size: 70},
+                            color: #e6945c,
+                        }
+                    }
+
+                    <Label> {
+                        margin: {top: -40}
+                        text: "Its historic and strategic",
+                        draw_text: {
+                            text_style: <DECORATIVE_TEXT>{font_size: 13},
                             color: #333,
-                            text_style: {font_size: 10},
+                            wrap: Word,
+                        }
+                    }
+                    <Label> {
+                        text: "importance is matched only",
+                        draw_text: {
+                            text_style: <DECORATIVE_TEXT>{font_size: 13},
+                            color: #333,
+                            wrap: Word,
+                        }
+                    }
+                    <Label> {
+                        text: "by its architectural",
+                        draw_text: {
+                            text_style: <DECORATIVE_TEXT>{font_size: 13},
+                            color: #333,
+                            wrap: Word,
+                        }
+                    }
+                    <Label> {
+                        text: "significance.",
+                        draw_text: {
+                            text_style: <DECORATIVE_TEXT>{font_size: 13},
+                            color: #333,
+                            wrap: Word,
+                        }
+                    }
+
+                    <Label> {
+                        text: "- UNESCO",
+                        margin: {top: 20}
+                        draw_text: {
+                            text_style: <REGULAR_TEXT>{font_size: 10},
+                            color: #e6945c,
                         }
                     }
                 }
 
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
-                    }
-                    text: "LONGEST STRUCTURE ON EARTH"
+                <ContentLabel> {
+                    text: "Apart from defense, other purposes of the Great Wall have included border controls, allowing the imposition of duties on goods transported along the Silk Road, regulation or encouragement of trade and the control of immigration and emigration."
                 }
 
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
+                <PictureWithCaption> {
+                    image = {
+                        source: (IMG_GREAT_WALL_LOCATION),
+                        height: 178,
                     }
-                    text: "LONGEST STRUCTURE ON EARTH 2"
-                }
 
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
+                    caption = {
+                        text: "Map showing location of Great Wall of China in northern China."
                     }
-                    text: "LONGEST STRUCTURE ON EARTH"
-                }
-
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
-                    }
-                    text: "LONGEST STRUCTURE ON EARTH 2"
-                }
-
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
-                    }
-                    text: "LONGEST STRUCTURE ON EARTH"
-                }
-
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
-                    }
-                    text: "LONGEST STRUCTURE ON EARTH 2"
-                }
-
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
-                    }
-                    text: "LONGEST STRUCTURE ON EARTH"
-                }
-
-                <Label> {
-                    draw_text:{
-                        text_style: <INTRO_SUBTITLE>{font_size: 20},
-                        color: #000
-                    }
-                    text: "LONGEST STRUCTURE ON EARTH 8"
                 }
             }
         }

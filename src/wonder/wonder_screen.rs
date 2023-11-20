@@ -714,7 +714,7 @@ impl WonderScreen {
             self.state = WonderState::Content;
 
             // Note this is NOT reseting current dragging state
-            self.touch_gesture.reset(0.0, 0.0, 3000.0, ScrollMode::Swipe);
+            self.touch_gesture.reset(0.0, 0.0, MAIN_CONTENT_LENGTH, ScrollMode::Swipe);
         }
     }
 

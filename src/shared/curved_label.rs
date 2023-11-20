@@ -137,6 +137,10 @@ impl Widget for CurvedLabel {
         self.draw_text.redraw(cx);
     }
 
+    fn walk(&mut self, _cx: &mut Cx) -> Walk {
+        self.walk
+    }
+
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
         let _ = self.draw_walk(cx, walk);
         WidgetDraw::done()
@@ -149,7 +153,7 @@ impl CurvedLabel {
         let abs_pos = cx.turtle().pos();
 
         let width = cx.turtle().size().x;
-        let radius = if width.is_nan() {
+        let radius = if walk.width.is_fit() || width.is_nan() {
             self.radius
         } else {
             ((width - self.layout.padding.left - self.layout.padding.right) / 2.0) / sin(self.total_angle / 2.0)

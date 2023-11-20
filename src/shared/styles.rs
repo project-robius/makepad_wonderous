@@ -16,8 +16,28 @@ live_design! {
         font: {path: dep("crate://self/resources/fonts/Raleway-Bold.ttf")}
     }
 
+    REGULAR_TEXT = {
+        font_size: (10),
+        font: {path: dep("crate://self/resources/fonts/Raleway-Regular.ttf")}
+    }
+
+    ITALIC_TEXT = {
+        font_size: (10),
+        font: {path: dep("crate://self/resources/fonts/Raleway-MediumItalic.ttf")}
+    }
+
+    REGULAR_ITALIC_TEXT = {
+        font_size: (10),
+        font: {path: dep("crate://self/resources/fonts/Raleway-MediumItalic.ttf")}
+    }
+
     MONO_TEXT = {
         font_size: (12),
         font: {path: dep("crate://self/resources/fonts/B612Mono-Regular.ttf")}
+    }
+
+    DECORATIVE_TEXT = {
+        font_size: (16),
+        font: {path: dep("crate://self/resources/fonts/CinzelDecorative-Regular.ttf")}
     }
 }

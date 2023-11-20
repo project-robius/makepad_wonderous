@@ -129,4 +129,13 @@ live_design! {
             color: #8b9e77
         }
     }
+
+    VerticalLine = <View> {
+        width: 1,
+        height: Fill,
+        show_bg: true,
+        draw_bg: {
+            color: #8b9e77
+        }
+    }
 }
