@@ -1,7 +1,7 @@
-use makepad_widgets::*;
-use makepad_widgets::widget::WidgetCache;
 use crate::wonder::content::*;
 use crate::shared::touch_gesture::*;
+use makepad_widgets::widget::WidgetCache;
+use makepad_widgets::*;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -11,15 +11,15 @@ live_design! {
     import crate::shared::widgets::*;
     import crate::wonder::content::*;
 
-    IMG_SUN = dep("crate://self/resources/sun.png")
-    IMG_CLOUD = dep("crate://self/resources/cloud-white.png")
-    IMG_GREAT_WALL = dep("crate://self/resources/great-wall.png")
-    IMG_FG_LEFT_GREAT_WALL = dep("crate://self/resources/foreground_left_great_wall.png")
-    IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/foreground_right_great_wall.png")
-    IMG_BACKGROUND_ROLLER = dep("crate://self/resources/roller-1-black.png")
-    IMG_COMPASS = dep("crate://self/resources/compass-icon.png")
+    IMG_SUN = dep("crate://self/resources/images/sun.png")
+    IMG_CLOUD = dep("crate://self/resources/images/cloud-white.png")
+    IMG_GREAT_WALL = dep("crate://self/resources/images/great-wall.png")
+    IMG_FG_LEFT_GREAT_WALL = dep("crate://self/resources/images/foreground_left_great_wall.png")
+    IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/images/foreground_right_great_wall.png")
+    IMG_BACKGROUND_ROLLER = dep("crate://self/resources/images/roller-1-black.png")
+    IMG_COMPASS = dep("crate://self/resources/images/compass-icon.png")
 
-    Wonder = {{Wonder}} {
+    WonderScreen = {{WonderScreen}} {
         flow: Overlay,
 
         show_bg: true,
@@ -153,7 +153,7 @@ live_design! {
                     height: Fit,
 
                     align: { x: 0.5, y: 0.5 }
-                    
+
                     <Label> {
                         draw_text:{
                             text_style: <SUBTITLE_CAPTION>{font_size: 10},
@@ -251,7 +251,7 @@ live_design! {
 
             abs_pos: vec2(0, 600.0),
             align: { x: 0.5, y: 0 }
- 
+
             <Label> {
                 draw_text:{
                     text_style: <INTRO_TITLE>{font_size: 14},
@@ -495,23 +495,27 @@ live_design! {
     }
 }
 
-enum WonderState {
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub enum WonderState {
+    #[default]
     Cover,
     Title,
-    Content
+    Content,
 }
 
 #[derive(Live)]
-pub struct Wonder {
+pub struct WonderScreen {
     #[deref]
     view: View,
 
-    #[rust(WonderState::Cover)]
+    #[rust]
     state: WonderState,
+    #[rust]
+    previous_state: WonderState,
 
     #[animator]
     animator: Animator,
-    
+
     #[rust]
     next_frame: NextFrame,
 
@@ -519,9 +523,9 @@ pub struct Wonder {
     touch_gesture: TouchGesture,
 }
 
-impl LiveHook for Wonder {
+impl LiveHook for WonderScreen {
     fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, Wonder);
+        register_widget!(cx, WonderScreen);
     }
 
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
@@ -533,20 +537,25 @@ impl LiveHook for Wonder {
     }
 }
 
-impl Widget for Wonder {
+impl Widget for WonderScreen {
     fn handle_widget_event_with(
         &mut self,
         cx: &mut Cx,
         event: &Event,
         dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
+        self.handle_event_with(cx, event, &mut |cx, action| {
+            dispatch_action(cx, action);
+        });
+
         if self.animator_handle_event(cx, event).must_redraw() {
             self.redraw(cx);
         }
 
         self.orchestrate_animations(cx, event);
 
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+        self.view
+            .handle_widget_event_with(cx, event, dispatch_action);
 
         match self.state {
             WonderState::Cover => {
@@ -579,7 +588,26 @@ impl Widget for Wonder {
     }
 }
 
-impl Wonder {
+impl WonderScreen {
+    fn handle_event_with(
+        &mut self,
+        cx: &mut Cx,
+        event: &Event,
+        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
+    ) {
+        let widget_uid = self.widget_uid();
+        if self.previous_state != self.state {
+            dispatch_action(
+                cx,
+                WidgetActionItem::new(
+                    Box::new(WonderScreenAction::StateChange(self.state)),
+                    widget_uid,
+                ),
+            );
+            self.previous_state = self.state;
+        }
+    }
+
     fn handle_event_in_cover_state(&mut self, cx: &mut Cx, event: &Event) {
         self.touch_gesture.handle_event(cx, event, self.view.area());
         
@@ -714,23 +742,32 @@ impl Wonder {
         let opacity = min(1.0, 1.0 - offset / 570.0);
 
         let subtitle_group = self.view(id!(subtitle_group));
-        subtitle_group.apply_over(cx, live!{
-            margin: {top: (-offset * 0.6)},
-            draw_bg: { opacity: (opacity) } 
-        });
+        subtitle_group.apply_over(
+            cx,
+            live! {
+                margin: {top: (-offset * 0.6)},
+                draw_bg: { opacity: (opacity) }
+            },
+        );
         subtitle_group.redraw(cx);
 
         let title = self.view(id!(title));
-        title.apply_over(cx, live!{
-            margin: {top: (-offset * 0.6)},
-            draw_bg: { opacity: (opacity) } 
-        });
+        title.apply_over(
+            cx,
+            live! {
+                margin: {top: (-offset * 0.6)},
+                draw_bg: { opacity: (opacity) }
+            },
+        );
         title.redraw(cx);
 
         let header = self.view(id!(header));
-        header.apply_over(cx, live!{
-            draw_bg: { opacity: (opacity) } 
-        });
+        header.apply_over(
+            cx,
+            live! {
+                draw_bg: { opacity: (opacity) }
+            },
+        );
         header.redraw(cx);
     }
 
@@ -738,49 +775,63 @@ impl Wonder {
         match self.state {
             WonderState::Cover => {
                 let left_image = self.view(id!(left_great_wall));
-                left_image.apply_over(cx, live!{
-                    margin: {top: 0, left: 0},
-                    width: (1386. * 0.35),
-                    height: (1764. * 0.35)
-                });
+                left_image.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0, left: 0},
+                        width: (1386. * 0.35),
+                        height: (1764. * 0.35)
+                    },
+                );
                 left_image.redraw(cx);
 
                 let right_image = self.view(id!(right_great_wall));
-                right_image.apply_over(cx, live!{
-                    margin: {top: 0, left: 0},
-                    width: (1386. * 0.45),
-                    height: (1764. * 0.45)
-                });
+                right_image.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0, left: 0},
+                        width: (1386. * 0.45),
+                        height: (1764. * 0.45)
+                    },
+                );
                 right_image.redraw(cx);
-            },
+            }
             WonderState::Title => {
                 let subtitle_group = self.view(id!(subtitle_group));
-                subtitle_group.apply_over(cx, live!{
-                    margin: {top: 0}
-                });
+                subtitle_group.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0}
+                    },
+                );
                 subtitle_group.redraw(cx);
 
                 let title = self.view(id!(title));
-                title.apply_over(cx, live!{
-                    margin: {top: 0}
-                });
+                title.apply_over(
+                    cx,
+                    live! {
+                        margin: {top: 0}
+                    },
+                );
                 title.redraw(cx);
 
                 let content = self.wonder_content(id!(content));
                 content.redraw(cx);
-            },
+            }
             WonderState::Content => {}
         }
     }
 
-    fn orchestrate_animations(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event
-    ){
+    fn orchestrate_animations(&mut self, cx: &mut Cx, event: &Event) {
         if let Some(_ne) = self.next_frame.is_event(event) {
-            if self.animator.is_track_animating(cx, id!(subtitle_on_content)) {
-                if self.animator.animator_in_state(cx, id!(subtitle_on_content.will_show)) {
+            if self
+                .animator
+                .is_track_animating(cx, id!(subtitle_on_content))
+            {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(subtitle_on_content.will_show))
+                {
                     // Make sure the subtitle is visible
                     self.animator_play(cx, id!(subtitle_on_intro.reset));
 
@@ -788,22 +839,37 @@ impl Wonder {
                 }
             }
             if self.animator.is_track_animating(cx, id!(subtitle_on_intro)) {
-                if self.animator.animator_in_state(cx, id!(subtitle_on_intro.will_show)) {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(subtitle_on_intro.will_show))
+                {
                     self.animator_play(cx, id!(subtitle_on_intro.show));
                 }
             }
             if self.animator.is_track_animating(cx, id!(great_wall_scale)) {
-                if self.animator.animator_in_state(cx, id!(great_wall_scale.will_show)) {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(great_wall_scale.will_show))
+                {
                     self.animator_play(cx, id!(great_wall_scale.show));
                 }
             }
-            if self.animator.is_track_animating(cx, id!(great_wall_padding)) {
-                if self.animator.animator_in_state(cx, id!(great_wall_padding.will_show)) {
+            if self
+                .animator
+                .is_track_animating(cx, id!(great_wall_padding))
+            {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(great_wall_padding.will_show))
+                {
                     self.animator_play(cx, id!(great_wall_padding.show));
                 }
             }
             if self.animator.is_track_animating(cx, id!(great_wall_leaves)) {
-                if self.animator.animator_in_state(cx, id!(great_wall_leaves.will_show)) {
+                if self
+                    .animator
+                    .animator_in_state(cx, id!(great_wall_leaves.will_show))
+                {
                     self.animator_play(cx, id!(great_wall_leaves.show));
                 }
             }
@@ -811,4 +877,10 @@ impl Wonder {
             self.next_frame = cx.new_next_frame();
         }
     }
+}
+
+#[derive(Debug, Clone, WidgetAction)]
+pub enum WonderScreenAction {
+    StateChange(WonderState),
+    None,
 }

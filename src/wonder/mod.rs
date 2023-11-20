@@ -1,2 +1,2 @@
 pub mod content;
-pub mod main;
+pub mod wonder_screen;

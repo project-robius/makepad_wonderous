@@ -1,10 +1,11 @@
-use makepad_widgets::*;
 use makepad_widgets::widget::WidgetCache;
+use makepad_widgets::*;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
 const SCROLL_LENGHT_FOR_MAIN_CONTENT: f64 = 430.0;
-const CONTENT_PANEL_REACHES_TOP_OFFSET: f64 = SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0;
+const CONTENT_PANEL_REACHES_TOP_OFFSET: f64 =
+    SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -20,7 +21,7 @@ live_design! {
     CONTENT_PANEL_REACHES_TOP_OFFSET = (SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0);
     MAIN_CONTENT_LENGTH = 3000.0;
 
-    IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/great-wall-content-1.jpg")
+    IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/images/great-wall-content-1.jpg")
 
     WonderContent = {{WonderContent}} {
         flow: Overlay
@@ -47,7 +48,7 @@ live_design! {
                             self.rect_size.y + self.radius * 2.0,
                             max(1.0, self.radius)
                         );
-                        
+
                         let color = self.get_color();
                         sdf.fill_keep(Pal::premul(vec4(color.xyz, color.w * self.opacity)));
                         return sdf.result
@@ -81,7 +82,7 @@ live_design! {
                         width: 375,
                         height: 430,
                     }
-                } 
+                }
             }
         }
 
@@ -101,7 +102,7 @@ live_design! {
 
                 show_bg: true
                 draw_bg: {
-                    color: #fff
+                    color: #f8eee5
                 }
             }
 
@@ -111,7 +112,7 @@ live_design! {
 
                 show_bg: true
                 draw_bg: {
-                    color: #fff
+                    color: #f8eee5
                     radius: 80.0
                 }
             }
@@ -124,7 +125,7 @@ live_design! {
 
             show_bg: true
             draw_bg: {
-                color: #fff
+                color: #f8eee5
             }
 
             margin: {top: (SCROLL_LENGHT_FOR_MAIN_CONTENT)}
@@ -136,7 +137,7 @@ live_design! {
 
                 show_bg: true
                 draw_bg: {
-                    color: #fff
+                    color: #f8eee5
                 }
 
                 spacing: 20.
@@ -301,7 +302,7 @@ pub struct WonderContent {
 
     #[animator]
     animator: Animator,
-    
+
     #[rust]
     next_frame: NextFrame,
 }
@@ -329,7 +330,8 @@ impl Widget for WonderContent {
         //     self.redraw(cx);
         // }
 
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+        self.view
+            .handle_widget_event_with(cx, event, dispatch_action);
     }
 
     fn walk(&mut self, cx: &mut Cx) -> Walk {
@@ -377,9 +379,12 @@ impl WonderContent {
 
     fn update_top_margin(&mut self, cx: &mut Cx, offset: f64) {
         let margin = max(0.0, HEADER_REACHES_TOP_OFFSET - offset);
-        self.apply_over(cx, live!{
-            margin: {top: (margin)}
-        });
+        self.apply_over(
+            cx,
+            live! {
+                margin: {top: (margin)}
+            },
+        );
     }
 
     fn update_header_section(&mut self, cx: &mut Cx, offset: f64) {
@@ -392,34 +397,45 @@ impl WonderContent {
                 let pan_factor = HEADER_REACHES_TOP_OFFSET * 3.0;
                 let vertical_pan = max(0.0, (offset - HEADER_REACHES_TOP_OFFSET) / pan_factor);
 
-                self.image(id!(header_before_full_content)).apply_over(cx, live!{
-                    draw_bg: {
-                        radius: 90.0,
-                        image_scale: (dvec2(scale, scale)),
-                        image_pan: (dvec2(0.0, vertical_pan)),
-                        opacity: (opacity)
-                    }
-                });
-
+                self.image(id!(header_before_full_content)).apply_over(
+                    cx,
+                    live! {
+                        draw_bg: {
+                            radius: 90.0,
+                            image_scale: (dvec2(scale, scale)),
+                            image_pan: (dvec2(0.0, vertical_pan)),
+                            opacity: (opacity)
+                        }
+                    },
+                );
             }
             WonderContentState::FullContent => {
                 self.view(id!(header_for_full_content)).set_visible(true);
-                self.image(id!(header_before_full_content)).apply_over(cx, live!{
-                    draw_bg: { opacity: (0.0) }
-                });
+                self.image(id!(header_before_full_content)).apply_over(
+                    cx,
+                    live! {
+                        draw_bg: { opacity: (0.0) }
+                    },
+                );
             }
         }
 
         let header_bottom_margin_base = if offset > HEADER_REACHES_TOP_OFFSET {
-            max(SCROLL_LENGHT_FOR_HEADER - (offset - HEADER_REACHES_TOP_OFFSET), 80.0)
+            max(
+                SCROLL_LENGHT_FOR_HEADER - (offset - HEADER_REACHES_TOP_OFFSET),
+                80.0,
+            )
         } else {
             SCROLL_LENGHT_FOR_HEADER
         };
         let header_bottom_margin = header_bottom_margin_base - 50.0;
 
-        self.view(id!(header_bottom)).apply_over(cx, live!{
-            margin: {top: (header_bottom_margin)}
-        });
+        self.view(id!(header_bottom)).apply_over(
+            cx,
+            live! {
+                margin: {top: (header_bottom_margin)}
+            },
+        );
     }
 
     fn update_content_position(&mut self, cx: &mut Cx, offset: f64) {
@@ -431,17 +447,23 @@ impl WonderContent {
             SCROLL_LENGHT_FOR_MAIN_CONTENT
         };
 
-        self.view(id!(main_content)).apply_over(cx, live!{
-            margin: {top: (main_content_margin)}
-        });
+        self.view(id!(main_content)).apply_over(
+            cx,
+            live! {
+                margin: {top: (main_content_margin)}
+            },
+        );
 
-        let main_content_inner_offset = SCROLL_LENGHT_FOR_MAIN_CONTENT + HEADER_REACHES_TOP_OFFSET + 20.0;
-        self.view(id!(main_content_inner)).apply_over(cx, live!{
-            abs_pos: (dvec2(0.0, main_content_inner_offset - offset))
-        });
+        let main_content_inner_offset =
+            SCROLL_LENGHT_FOR_MAIN_CONTENT + HEADER_REACHES_TOP_OFFSET + 20.0;
+        self.view(id!(main_content_inner)).apply_over(
+            cx,
+            live! {
+                abs_pos: (dvec2(0.0, main_content_inner_offset - offset))
+            },
+        );
     }
 }
-
 
 #[derive(Clone, PartialEq, WidgetRef)]
 pub struct WonderContentRef(WidgetRef);
