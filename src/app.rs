@@ -180,6 +180,7 @@ impl LiveHook for App {
         crate::shared::styles::live_design(cx);
         crate::shared::widgets::live_design(cx);
         crate::shared::stack_navigation::live_design(cx);
+        crate::shared::curved_label::live_design(cx);
 
         // Wonder
         crate::wonder::content::live_design(cx);

@@ -13,6 +13,7 @@ live_design! {
     import makepad_draw::shader::std::*;
 
     import crate::shared::styles::*;
+    import crate::shared::curved_label::*;
     import crate::shared::widgets::*;
 
     HEADER_REACHES_TOP_OFFSET = 570.0
@@ -206,6 +207,26 @@ live_design! {
                         wrap: Word,
                     }
                     text: "Under the rule of the Qing dynasty, China's borders extended beyond the walls and Mongolia was annexed into the empire, so construction was discontinued."
+                }
+
+                <View> {
+                    width: Fill,
+                    height: Fit,
+                    padding: {left: 100, right: 100}
+                    <CurvedLabel> {
+                        width: Fill
+                        height: Fit,
+                        text: "FACTS AND HISTORY",
+
+                        draw_bg: {
+                            color: #f8eee5
+                        }
+
+                        draw_text: {
+                            color: #333,
+                            text_style: {font_size: 10},
+                        }
+                    }
                 }
 
                 <Label> {
