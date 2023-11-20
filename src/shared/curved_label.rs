@@ -129,26 +129,12 @@ impl LiveHook for CurvedLabel {
     fn before_live_design(cx: &mut Cx) {
         register_widget!(cx, CurvedLabel);
     }
-
-    fn after_new_from_doc(&mut self, cx: &mut Cx) {
-    }
 }
 
 impl Widget for CurvedLabel {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        _dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-       
-    }
-
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.walk
-    }
-
     fn redraw(&mut self, cx: &mut Cx) {
+        self.draw_bg.redraw(cx);
+        self.draw_text.redraw(cx);
     }
 
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
@@ -198,7 +184,7 @@ impl CurvedLabel {
                 &[font_width as f32 * 0.6666 / 2.0 , font_width as f32 / 2.0]
             );
 
-            let mut new_pos = abs_pos + offset_pos;
+            let new_pos = abs_pos + offset_pos;
             self.draw_text.draw_walk(cx, Walk{abs_pos: Some(new_pos), ..walk}, Align::default(), &char.to_string());
         }
 
