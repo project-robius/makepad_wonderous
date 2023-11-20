@@ -112,7 +112,7 @@ live_design! {
 
                 show_bg: true
                 draw_bg: {
-                    color: #fff
+                    color: #f8eee5
                     radius: 80.0
                 }
             }
