@@ -112,6 +112,9 @@ pub struct CurvedLabel {
     #[layout]
     layout: Layout,
 
+    #[live(0.0)]
+    rotation: f64,
+
     #[live(100.0)]
     radius: f64,
 
@@ -162,7 +165,7 @@ impl CurvedLabel {
         let len = self.text.len();
         for (index, char) in self.text.chars().enumerate() {
             let slice_angle = self.total_angle / (len as f64);
-            let angle = -(index as f64 - (len / 2) as f64) * slice_angle;
+            let angle = -(index as f64 - (len / 2) as f64) * slice_angle + self.rotation;
 
             let width_reduction = walk.margin.left + walk.margin.right + self.layout.padding.left + self.layout.padding.right;
             let offset_pos = if width.is_nan() {

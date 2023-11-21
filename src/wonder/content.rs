@@ -1,5 +1,6 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
+use crate::wonder::rotating_title::RotatingTitleWidgetExt;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
@@ -15,8 +16,8 @@ live_design! {
     import makepad_draw::shader::std::*;
 
     import crate::shared::styles::*;
-    import crate::shared::curved_label::*;
     import crate::shared::widgets::*;
+    import crate::wonder::rotating_title::*;
 
     HEADER_REACHES_TOP_OFFSET = 570.0
     SCROLL_LENGHT_FOR_HEADER = 380.0
@@ -28,6 +29,10 @@ live_design! {
     IMG_GREAT_WALL_LOCATION = dep("crate://self/resources/images/great-wall-location.jpg")
     IMG_GREAT_WALL_VIDEO = dep("crate://self/resources/images/great-wall-video.jpg")
 
+    IMG_ICON_HISTORY = dep("crate://self/resources/images/history.png")
+    IMG_ICON_GEOGRAPHY = dep("crate://self/resources/images/geography.png")
+    IMG_ICON_CONSTRUCTION = dep("crate://self/resources/images/construction.png")
+
     ContentLabel = <Label> {
         padding: 20.
         width: Fill
@@ -38,7 +43,7 @@ live_design! {
         }
     }
 
-    ContentCallout = <View> { 
+    ContentCallout = <View> {
         flow: Right
         width: Fill
         
@@ -176,25 +181,10 @@ live_design! {
                     color: #f8eee5
                     radius: 80.0
                 }
+            }
 
-                <CurvedLabel> {
-                    width: 140
-                    height: Fit
-                    text: "FACTS AND HISTORY",
-
-                    total_angle: (PI * 0.8)
-
-                    margin: { left: 18, top: 16 }
-
-                    draw_bg: {
-                        color: #0000
-                    }
-
-                    draw_text: {
-                        color: #e6945c,
-                        text_style: {font_size: 8},
-                    }
-                }
+            rotating_title = <RotatingTitle> {
+                width: 140
             }
         }
 
@@ -376,23 +366,11 @@ pub struct WonderContent {
 
     #[rust(WonderContentState::BeforeFullContent)]
     state: WonderContentState,
-
-    #[animator]
-    animator: Animator,
-
-    #[rust]
-    next_frame: NextFrame,
 }
 
 impl LiveHook for WonderContent {
     fn before_live_design(cx: &mut Cx) {
         register_widget!(cx, WonderContent);
-    }
-
-    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
-        if from.is_from_doc() {
-            self.next_frame = cx.new_next_frame();
-        }
     }
 }
 
@@ -403,12 +381,7 @@ impl Widget for WonderContent {
         event: &Event,
         dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
-        // if self.animator_handle_event(cx, event).must_redraw() {
-        //     self.redraw(cx);
-        // }
-
-        self.view
-            .handle_widget_event_with(cx, event, dispatch_action);
+        self.view.handle_widget_event_with(cx, event, dispatch_action);
     }
 
     fn walk(&mut self, cx: &mut Cx) -> Walk {
@@ -539,6 +512,11 @@ impl WonderContent {
                 abs_pos: (dvec2(0.0, main_content_inner_offset - offset))
             },
         );
+
+        //if offset > 1200.0 {
+            let mut rotating_title = self.rotating_title(id!(rotating_title));
+            rotating_title.set_scroll_progress(offset);
+        //}
     }
 }
 
