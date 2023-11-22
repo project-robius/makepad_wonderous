@@ -23,7 +23,7 @@ live_design! {
 
     ITALIC_TEXT = {
         font_size: (10),
-        font: {path: dep("crate://self/resources/fonts/Raleway-MediumItalic.ttf")}
+        font: {path: dep("crate://self/resources/fonts/Raleway-Italic.ttf")}
     }
 
     REGULAR_ITALIC_TEXT = {

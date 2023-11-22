@@ -592,7 +592,7 @@ impl WonderScreen {
     fn handle_event_with(
         &mut self,
         cx: &mut Cx,
-        event: &Event,
+        _event: &Event,
         dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
     ) {
         let widget_uid = self.widget_uid();

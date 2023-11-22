@@ -262,7 +262,6 @@ impl App {
                     WonderState::Content | WonderState::Title => stack_navigation
                         .view(id!(root_view.mobile_menu))
                         .set_visible(true),
-                    _ => {}
                 }
             }
         }
