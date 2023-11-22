@@ -513,10 +513,10 @@ impl WonderContent {
             },
         );
 
-        //if offset > 1200.0 {
+        if self.state == WonderContentState::FullContent {
             let mut rotating_title = self.rotating_title(id!(rotating_title));
             rotating_title.set_scroll_progress(offset);
-        //}
+        }
     }
 }
 

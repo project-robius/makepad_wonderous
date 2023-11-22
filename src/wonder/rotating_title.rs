@@ -31,16 +31,16 @@ live_design! {
         }
     }
 
-    Icon = <FadeView> {
+    Icon = <View> {
         width: Fit,
         height: Fit,
-        image = <Image> {
+        image = <CenteredScaledImage> {
             margin: { top: 56 }
             width: 26,
             height: 26,
-        }
 
-        draw_bg: { instance opacity: 0.0 }
+            draw_bg: { instance image_scale: vec2(0.0, 0.0) }
+        }
     }
 
     RotatingTitle = {{RotatingTitle}} {
@@ -70,8 +70,7 @@ live_design! {
         }
 
         history_icon = <Icon> {
-            draw_bg: { instance opacity: 1.0 },
-            image = { source: (IMG_ICON_HISTORY) },
+            image = { source: (IMG_ICON_HISTORY), draw_bg: { instance image_scale: vec2(1.0, 1.0) }},
         }
 
         construction_icon = <Icon> {
@@ -90,7 +89,9 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {
                         history_title = { rotation: 3.14159 }
-                        history_icon = { draw_bg: { opacity: 0.0 } }
+                        history_icon = {
+                            image = { draw_bg: {image_scale: vec2(10.0, 10.0)} }
+                        }
                     }
                 }
                 show = {
@@ -98,7 +99,9 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {
                         history_title = { rotation: 0.0 }
-                        history_icon = { draw_bg: { opacity: 1.0 } }
+                        history_icon = {
+                            image = { draw_bg: {image_scale: vec2(1.0, 1.0)} }
+                        }
                     }
                 }
             },
@@ -110,7 +113,9 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {
                         construction_title = { rotation: 3.14159 }
-                        construction_icon = { draw_bg: { opacity: 0.0 } }
+                        construction_icon = {
+                            image = { draw_bg: {image_scale: vec2(10.0, 10.0)} }
+                        }
                     }
                 }
                 hide_left = {
@@ -118,7 +123,9 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {
                         construction_title = { rotation: -3.14159 }
-                        construction_icon = { draw_bg: { opacity: 0.0 } }
+                        construction_icon = {
+                            image = { draw_bg: {image_scale: vec2(10.0, 10.0)} }
+                        }
                     }
                 }
                 show = {
@@ -126,7 +133,9 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {
                         construction_title = { rotation: 0.0 }
-                        construction_icon = { draw_bg: { opacity: 1.0 } }
+                        construction_icon = {
+                            image = { draw_bg: {image_scale: vec2(1.0, 1.0)} }
+                        }
                     }
                 }
             },
@@ -138,7 +147,9 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {
                         geography_title = { rotation: -3.14159 }
-                        geography_icon = { draw_bg: { opacity: 0.0 } }
+                        geography_icon = {
+                            image = { draw_bg: {image_scale: vec2(10.0, 10.0)} }
+                        }
                     }
                 }
                 show = {
@@ -146,7 +157,9 @@ live_design! {
                     from: {all: Forward {duration: 0.5}}
                     apply: {
                         geography_title = { rotation: 0.0 }
-                        geography_icon = { draw_bg: { opacity: 1.0 } }
+                        geography_icon = {
+                            image = { draw_bg: {image_scale: vec2(1.0, 1.0)} }
+                        }
                     }
                 }
             }
@@ -237,9 +250,11 @@ impl RotatingTitle {
         if state != self.state {
             match self.state {
                 RotatingTitleState::History => {
+                    self.view(id!(history_icon)).set_visible(false);
                     self.animator_play(cx, id!(history.hide));
                 }
                 RotatingTitleState::Construction => {
+                    self.view(id!(construction_icon)).set_visible(false);
                     if state == RotatingTitleState::History {
                         self.animator_play(cx, id!(construction.hide_left));
                     } else {
@@ -247,18 +262,43 @@ impl RotatingTitle {
                     }
                 }
                 RotatingTitleState::Geography => {
+                    self.view(id!(geography_icon)).set_visible(false);
                     self.animator_play(cx, id!(geography.hide));
                 }
             }
 
             match state {
                 RotatingTitleState::History => {
+                    self.view(id!(history_icon)).set_visible(true);
+                    let scale = dvec2(10.0, 10.0);
+                    self.view(id!(history_icon)).apply_over(
+                        cx,
+                        live!{
+                            image = { draw_bg: {image_scale: (scale)}}
+                        }
+                    );
                     self.animator_play(cx, id!(history.show));
                 }
                 RotatingTitleState::Construction => {
+                    self.view(id!(construction_icon)).set_visible(true);
+                    let scale = dvec2(10.0, 10.0);
+                    self.view(id!(construction_icon)).apply_over(
+                        cx,
+                        live!{
+                            image = { draw_bg: {image_scale: (scale)}}
+                        }
+                    );
                     self.animator_play(cx, id!(construction.show));
                 }
                 RotatingTitleState::Geography => {
+                    self.view(id!(geography_icon)).set_visible(true);
+                    let scale = dvec2(10.0, 10.0);
+                    self.view(id!(geography_icon)).apply_over(
+                        cx,
+                        live!{
+                            image = { draw_bg: {image_scale: (scale)}}
+                        }
+                    );
                     self.animator_play(cx, id!(geography.show));
                 }
             }
