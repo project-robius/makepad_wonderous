@@ -1,6 +1,8 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 use crate::wonder::rotating_title::RotatingTitleWidgetExt;
+use crate::wonder::before_content_header::BeforeContentHeaderWidgetExt;
+use crate::wonder::content_header::ContentHeaderWidgetExt;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
@@ -18,6 +20,8 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
     import crate::wonder::rotating_title::*;
+    import crate::wonder::before_content_header::*;
+    import crate::wonder::content_header::*;
 
     HEADER_REACHES_TOP_OFFSET = 570.0
     SCROLL_LENGHT_FOR_HEADER = 380.0
@@ -25,7 +29,6 @@ live_design! {
     CONTENT_PANEL_REACHES_TOP_OFFSET = (SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0);
     MAIN_CONTENT_LENGTH = 2000.0;
 
-    IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/images/great-wall-content-1.jpg")
     IMG_GREAT_WALL_LOCATION = dep("crate://self/resources/images/great-wall-location.jpg")
     IMG_GREAT_WALL_VIDEO = dep("crate://self/resources/images/great-wall-video.jpg")
 
@@ -99,57 +102,9 @@ live_design! {
             width: Fill
             height: Fit
 
-            header_before_full_content = <Image> {
-                // Override to have the upper corners rounded
-                draw_bg: {
-                    instance radius: 90.
-                    instance opacity: 0.5
-                    fn pixel(self) -> vec4 {
-                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                        sdf.box(
-                            1,
-                            1,
-                            self.rect_size.x - 2.0,
-                            // This calculation is to make sure the bottom part is not rounded
-                            self.rect_size.y + self.radius * 2.0,
-                            max(1.0, self.radius)
-                        );
+            header_before_full_content = <BeforeContentHeader> {}
 
-                        let color = self.get_color();
-                        sdf.fill_keep(Pal::premul(vec4(color.xyz, color.w * self.opacity)));
-                        return sdf.result
-                    }
-                }
-
-                source: (IMG_GREAT_WALL_CONTENT_1),
-                width: 375,
-                height: 430,
-            }
-
-            header_for_full_content = <View> {
-                flow: Down
-                visible: false
-                show_bg: true
-                draw_bg: {
-                    color: #5d2a2c
-                }
-                width: 375,
-                height: 430,
-
-                margin: { top: -86 }
-
-                <FadeView> {
-                    width: 375,
-                    height: 430,
-                    draw_bg: { instance opacity: 0.3 }
-
-                    <Image> {
-                        source: (IMG_GREAT_WALL_CONTENT_1),
-                        width: 375,
-                        height: 430,
-                    }
-                }
-            }
+            header_for_full_content = <ContentHeader> {}
         }
 
         header_bottom = <View> {
@@ -438,35 +393,27 @@ impl WonderContent {
     }
 
     fn update_header_section(&mut self, cx: &mut Cx, offset: f64) {
+        let mut before_content_header = self.before_content_header(id!(header_before_full_content));
+        let mut full_content_header = self.content_header(id!(header_for_full_content));
         match self.state {
             WonderContentState::BeforeFullContent => {
-                self.view(id!(header_for_full_content)).set_visible(false);
+                full_content_header.hide(cx);
 
-                let opacity = min(1.0, 0.5 + offset / HEADER_REACHES_TOP_OFFSET);
+                let opacity = min(1.0, 0.3 + offset / (HEADER_REACHES_TOP_OFFSET * 2.0));
                 let scale = 0.9 + min(0.1, offset / (HEADER_REACHES_TOP_OFFSET * 10.));
                 let pan_factor = HEADER_REACHES_TOP_OFFSET * 3.0;
                 let vertical_pan = max(0.0, (offset - HEADER_REACHES_TOP_OFFSET) / pan_factor);
 
-                self.image(id!(header_before_full_content)).apply_over(
+                before_content_header.show(
                     cx,
-                    live! {
-                        draw_bg: {
-                            radius: 90.0,
-                            image_scale: (dvec2(scale, scale)),
-                            image_pan: (dvec2(0.0, vertical_pan)),
-                            opacity: (opacity)
-                        }
-                    },
-                );
+                    scale,
+                    vertical_pan,
+                    opacity,
+                )
             }
             WonderContentState::FullContent => {
-                self.view(id!(header_for_full_content)).set_visible(true);
-                self.image(id!(header_before_full_content)).apply_over(
-                    cx,
-                    live! {
-                        draw_bg: { opacity: (0.0) }
-                    },
-                );
+                full_content_header.show(cx);
+                before_content_header.hide(cx);
             }
         }
 
