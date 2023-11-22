@@ -112,6 +112,9 @@ pub struct CurvedLabel {
     #[layout]
     layout: Layout,
 
+    #[live(0.0)]
+    rotation: f64,
+
     #[live(100.0)]
     radius: f64,
 
@@ -137,6 +140,10 @@ impl Widget for CurvedLabel {
         self.draw_text.redraw(cx);
     }
 
+    fn walk(&mut self, _cx: &mut Cx) -> Walk {
+        self.walk
+    }
+
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
         let _ = self.draw_walk(cx, walk);
         WidgetDraw::done()
@@ -149,7 +156,7 @@ impl CurvedLabel {
         let abs_pos = cx.turtle().pos();
 
         let width = cx.turtle().size().x;
-        let radius = if width.is_nan() {
+        let radius = if walk.width.is_fit() || width.is_nan() {
             self.radius
         } else {
             ((width - self.layout.padding.left - self.layout.padding.right) / 2.0) / sin(self.total_angle / 2.0)
@@ -158,7 +165,7 @@ impl CurvedLabel {
         let len = self.text.len();
         for (index, char) in self.text.chars().enumerate() {
             let slice_angle = self.total_angle / (len as f64);
-            let angle = -(index as f64 - (len / 2) as f64) * slice_angle;
+            let angle = -(index as f64 - (len / 2) as f64) * slice_angle + self.rotation;
 
             let width_reduction = walk.margin.left + walk.margin.right + self.layout.padding.left + self.layout.padding.right;
             let offset_pos = if width.is_nan() {

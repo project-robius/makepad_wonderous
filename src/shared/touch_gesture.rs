@@ -172,7 +172,7 @@ impl TouchGesture {
                     _=>()
                 }
             }
-            Hit::FingerUp(e) => {
+            Hit::FingerUp(_e) => {
                 match &mut self.scroll_state {
                     ScrollState::Drag {samples} => {
                         match self.scroll_mode {

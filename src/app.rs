@@ -183,6 +183,7 @@ impl LiveHook for App {
         crate::shared::curved_label::live_design(cx);
 
         // Wonder
+        crate::wonder::rotating_title::live_design(cx);
         crate::wonder::content::live_design(cx);
         crate::wonder::wonder_screen::live_design(cx);
 
@@ -261,7 +262,6 @@ impl App {
                     WonderState::Content | WonderState::Title => stack_navigation
                         .view(id!(root_view.mobile_menu))
                         .set_visible(true),
-                    _ => {}
                 }
             }
         }
