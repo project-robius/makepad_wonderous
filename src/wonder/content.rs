@@ -3,6 +3,7 @@ use makepad_widgets::*;
 use crate::wonder::rotating_title::RotatingTitleWidgetExt;
 use crate::wonder::before_content_header::BeforeContentHeaderWidgetExt;
 use crate::wonder::content_header::ContentHeaderWidgetExt;
+use crate::wonder::great_wall_highligth::GreatWallHighlightWidgetExt;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
@@ -22,6 +23,7 @@ live_design! {
     import crate::wonder::rotating_title::*;
     import crate::wonder::before_content_header::*;
     import crate::wonder::content_header::*;
+    import crate::wonder::great_wall_highligth::*;
 
     HEADER_REACHES_TOP_OFFSET = 570.0
     SCROLL_LENGHT_FOR_HEADER = 380.0
@@ -170,6 +172,8 @@ live_design! {
                 <ContentLabel> {
                     text: "The Great Wall of China is a series of fortifications that were built across the historical northern borders of ancient Chinese states and Imperial China as protection against various nomadic groups from the Eurasian Steppe. The total length of all sections ever built is over 13,000 miles."
                 }
+
+                great_wall_highlight = <GreatWallHighlight> {}
 
                 <ContentCallout> {
                     height: 80.
@@ -464,6 +468,9 @@ impl WonderContent {
             let mut rotating_title = self.rotating_title(id!(rotating_title));
             rotating_title.set_scroll_progress(offset);
         }
+
+        let mut great_wall_highlight = self.great_wall_highlight(id!(great_wall_highlight));
+        great_wall_highlight.update_values(cx, offset);
     }
 }
 

@@ -140,14 +140,12 @@ impl BeforeContentHeaderRef {
     pub fn hide(&mut self, cx: &mut Cx) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.hide(cx);
-            dbg!("hide");
         }
     }
 
     pub fn show(&mut self, cx: &mut Cx, scale: f64, vertical_pan: f64, opacity: f64) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.update_values(cx, scale, vertical_pan, opacity);
-            dbg!(opacity);
         }
     }
 }
