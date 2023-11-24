@@ -40,4 +40,9 @@ live_design! {
         font_size: (16),
         font: {path: dep("crate://self/resources/fonts/CinzelDecorative-Regular.ttf")}
     }
+
+    DECORATIVE_BOLD_TEXT = {
+        font_size: (16),
+        font: {path: dep("crate://self/resources/fonts/CinzelDecorative-Bold.ttf")}
+    }
 }
