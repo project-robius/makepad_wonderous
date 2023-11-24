@@ -11,7 +11,7 @@ const SCROLL_LENGHT_FOR_MAIN_CONTENT: f64 = 430.0;
 const CONTENT_PANEL_REACHES_TOP_OFFSET: f64 =
     SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0;
 
-pub const MAIN_CONTENT_LENGTH: f64 = 2600.0;
+pub const MAIN_CONTENT_LENGTH: f64 = 2800.0;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -29,7 +29,6 @@ live_design! {
     SCROLL_LENGHT_FOR_HEADER = 380.0
     SCROLL_LENGHT_FOR_MAIN_CONTENT = 430.0
     CONTENT_PANEL_REACHES_TOP_OFFSET = (SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0);
-    MAIN_CONTENT_LENGTH = 2000.0;
 
     IMG_GREAT_WALL_LOCATION = dep("crate://self/resources/images/great-wall-location.jpg")
     IMG_GREAT_WALL_VIDEO = dep("crate://self/resources/images/great-wall-video.jpg")
@@ -148,7 +147,7 @@ live_design! {
         main_content = <View> {
             flow: Overlay
             width: Fill
-            height: (MAIN_CONTENT_LENGTH)
+            height: Fit
 
             show_bg: true
             draw_bg: {
@@ -160,7 +159,7 @@ live_design! {
             main_content_inner = <View> {
                 flow: Down
                 width: Fill
-                height: Fill
+                height: Fit
 
                 show_bg: true
                 draw_bg: {
@@ -296,6 +295,12 @@ live_design! {
                     caption = {
                         text: "Map showing location of Great Wall of China in northern China."
                     }
+                }
+
+                // Gap space
+                <View> {
+                    width: Fill
+                    height: 300
                 }
             }
         }
