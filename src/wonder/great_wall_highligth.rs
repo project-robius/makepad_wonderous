@@ -27,36 +27,13 @@ live_design! {
 
         align: {x: 0.5, y: 0.0},
 
-        image = <Image> {
+        image = <CenteredOnTop> {
             source: (IMG_GREAT_WALL),
             width: 300,
             height: 600,
 
-            // Override to have the upper corners rounded
             draw_bg: {
                 instance radius: 70.
-                instance opacity: 1.0
-                instance image_scale: vec2(1.0, 1.0)
-                instance image_pan: vec2(0.0, 0.15)
-                fn pixel(self) -> vec4 {
-                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(
-                        1,
-                        1,
-                        self.rect_size.x - 2.0,
-                        // This calculation is to make sure the bottom part is not rounded
-                        self.rect_size.y + self.radius * 2.0,
-                        max(1.0, self.radius)
-                    );
-
-                    let color = self.get_color();
-                    sdf.fill_keep(mix(
-                        Pal::premul(vec4(color.xyz, color.w * self.opacity)),
-                        #xFFA6958C,
-                        0.2
-                    ));
-                    return sdf.result
-                }
             }
         }
 
