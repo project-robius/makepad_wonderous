@@ -13,12 +13,12 @@ live_design! {
     IMG_GREAT_WALL_CONTENT_1 = dep("crate://self/resources/images/great-wall-content-1.jpg")
 
     BeforeContentHeader = {{BeforeContentHeader}} {
-        width: Fit,
+        width: Fill,
         height: Fit,
 
         image = <CenteredOnTop> {
             source: (IMG_GREAT_WALL_CONTENT_1),
-            width: 375,
+            width: Fill,
             height: 430,
         }
 
