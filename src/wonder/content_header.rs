@@ -19,19 +19,19 @@ live_design! {
         draw_bg: {
             color: #5d2a2c
         }
-        width: 375,
+        width: Fill,
         height: 430,
 
         margin: { top: -86 }
 
         view = <FadeView> {
-            width: 375,
+            width: Fill,
             height: 430,
             draw_bg: { instance opacity: 0.3 }
 
             <Image> {
                 source: (IMG_GREAT_WALL_CONTENT_1),
-                width: 375,
+                width: Fill,
                 height: 430,
             }
         }
