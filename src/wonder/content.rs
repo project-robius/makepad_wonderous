@@ -3,7 +3,7 @@ use makepad_widgets::*;
 use crate::wonder::rotating_title::RotatingTitleWidgetExt;
 use crate::wonder::before_content_header::BeforeContentHeaderWidgetExt;
 use crate::wonder::content_header::ContentHeaderWidgetExt;
-use crate::wonder::great_wall_highligth::GreatWallHighlightWidgetExt;
+use crate::wonder::great_wall_highlight::GreatWallHighlightWidgetExt;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
@@ -23,7 +23,7 @@ live_design! {
     import crate::wonder::rotating_title::*;
     import crate::wonder::before_content_header::*;
     import crate::wonder::content_header::*;
-    import crate::wonder::great_wall_highligth::*;
+    import crate::wonder::great_wall_highlight::*;
 
     HEADER_REACHES_TOP_OFFSET = 570.0
     SCROLL_LENGHT_FOR_HEADER = 380.0
