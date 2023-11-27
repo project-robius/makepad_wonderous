@@ -4,6 +4,7 @@ use crate::wonder::rotating_title::RotatingTitleWidgetExt;
 use crate::wonder::before_content_header::BeforeContentHeaderWidgetExt;
 use crate::wonder::content_header::ContentHeaderWidgetExt;
 use crate::wonder::great_wall_highlight::GreatWallHighlightWidgetExt;
+use crate::wonder::great_wall_construction_images::GreatWallConstructionImagesWidgetExt;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
@@ -11,7 +12,7 @@ const SCROLL_LENGHT_FOR_MAIN_CONTENT: f64 = 430.0;
 const CONTENT_PANEL_REACHES_TOP_OFFSET: f64 =
     SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0;
 
-pub const MAIN_CONTENT_LENGTH: f64 = 2800.0;
+pub const MAIN_CONTENT_LENGTH: f64 = 3500.0;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -24,6 +25,7 @@ live_design! {
     import crate::wonder::before_content_header::*;
     import crate::wonder::content_header::*;
     import crate::wonder::great_wall_highlight::*;
+    import crate::wonder::great_wall_construction_images::*;
 
     HEADER_REACHES_TOP_OFFSET = 570.0
     SCROLL_LENGHT_FOR_HEADER = 380.0
@@ -217,6 +219,10 @@ live_design! {
 
                 <ContentLabel> {
                     text: "Under the rule of the Qing dynasty, China's borders extended beyond the walls and Mongolia was annexed into the empire, so construction was discontinued."
+                }
+
+                great_wall_construction_images = <GreatWallConstructionImages> {
+                    margin: {top: -50.0}
                 }
 
                 <ContentLabel> {
@@ -476,6 +482,10 @@ impl WonderContent {
 
         let mut great_wall_highlight = self.great_wall_highlight(id!(great_wall_highlight));
         great_wall_highlight.update_values(cx, offset);
+
+        let mut great_wall_construction_images =
+            self.great_wall_construction_images(id!(great_wall_construction_images));
+        great_wall_construction_images.update_values(cx, offset);
     }
 }
 

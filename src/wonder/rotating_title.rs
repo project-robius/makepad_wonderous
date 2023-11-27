@@ -239,11 +239,11 @@ impl RotatingTitle {
     fn check_state(&mut self, cx: &mut Cx) {
         let mut state = RotatingTitleState::History;
 
-        if self.scroll_progress > 900.0 {
+        if self.scroll_progress > 1600.0 {
             state = RotatingTitleState::Construction;
         }
 
-        if self.scroll_progress > 1600.0 {
+        if self.scroll_progress > 2700.0 {
             state = RotatingTitleState::Geography;
         }
 

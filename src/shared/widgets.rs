@@ -49,8 +49,8 @@ live_design! {
     CenteredOnTop = <Image> {
         draw_bg: {
             instance radius: 90.
-            instance opacity: 0.3
-            instance image_scale: vec2(0.9, 0.9)
+            instance opacity: 1.0
+            instance image_scale: vec2(1.0, 1.0)
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                 sdf.box(
@@ -59,6 +59,29 @@ live_design! {
                     self.rect_size.x - 2.0,
                     // This calculation is to make sure the bottom part is not rounded
                     self.rect_size.y + self.radius * 2.0,
+                    max(1.0, self.radius)
+                );
+
+                let color = self.get_color();
+                sdf.fill_keep(Pal::premul(vec4(color.xyz, color.w * self.opacity)));
+                return sdf.result
+            }
+        }
+    }
+
+    CenteredOnBottom = <Image> {
+        draw_bg: {
+            instance radius: 60.
+            instance opacity: 1.0
+            instance image_scale: vec2(1.0, 1.0)
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                sdf.box_y(
+                    1,
+                    1,
+                    self.rect_size.x - 2.0,
+                    self.rect_size.y - 2.0,
+                    1.0,
                     max(1.0, self.radius)
                 );
 
