@@ -18,6 +18,7 @@ live_design! {
     IMG_FG_RIGHT_GREAT_WALL = dep("crate://self/resources/images/foreground_right_great_wall.png")
     IMG_BACKGROUND_ROLLER = dep("crate://self/resources/images/roller-1-black.png")
     IMG_COMPASS = dep("crate://self/resources/images/compass-icon.png")
+    ICO_DOWN = dep("crate://self/resources/icons/down-icon.svg")
 
     WonderScreenInner = {{WonderScreenInner}} {
         flow: Overlay,
@@ -241,6 +242,106 @@ live_design! {
 
                 width: (1386 * 0.45),
                 height: (1764 * 0.45),
+            }
+
+            navigation = <View> {
+                width: Fill,
+                height: Fill,
+
+                flow: Overlay,
+
+                align: { x: 0.5, y: 1.0}
+
+                vertical_fading_bar = <VerticalFadingBar> {
+                    margin: {bottom: 20.0},
+                    width: 44.0
+                    height: 120.0,
+
+                    draw_bg: {
+                        color: #fff,
+                        radius: vec2(1.0, 11.0),
+                        opacity: 0.0
+                    }
+                }
+
+                <View> {
+                    width: Fill,
+                    height: Fit,
+
+                    padding: {bottom: 80.0, left: 130.0},
+                    spacing: 5.0
+
+                    <RoundedView> {
+                        width: 20.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                    <RoundedView> {
+                        width: 8.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                    <RoundedView> {
+                        width: 8.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                    <RoundedView> {
+                        width: 8.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                    <RoundedView> {
+                        width: 8.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                    <RoundedView> {
+                        width: 8.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                    <RoundedView> {
+                        width: 8.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                    <RoundedView> {
+                        width: 8.0, height: 8.0,
+                        show_bg: true,
+                        draw_bg: {
+                            instance radius: 2.0,
+                            color: #fff
+                        }
+                    }
+                }
+
+                <IconButton> {
+                    margin: {bottom: 30.0},
+                    draw_icon: {svg_file: (ICO_DOWN)}
+                    icon_walk: {width: 20.0, height: Fit}
+                }
             }
         }
 
@@ -675,6 +776,11 @@ impl WonderScreenInner {
                 },
             );
             right_image.redraw(cx);
+
+            let vertical_fading_bar = self.view(id!(vertical_fading_bar));
+            vertical_fading_bar.apply_over(cx, live!{
+                draw_bg: {opacity: (delta / 60.)},
+            });
         }
     }
 
@@ -824,6 +930,11 @@ impl WonderScreenInner {
                     },
                 );
                 right_image.redraw(cx);
+
+                let vertical_fading_bar = self.view(id!(vertical_fading_bar));
+                vertical_fading_bar.apply_over(cx, live!{
+                    draw_bg: {opacity: 0.0},
+                });
             }
             WonderState::Title => {
                 let subtitle_group = self.view(id!(subtitle_group));

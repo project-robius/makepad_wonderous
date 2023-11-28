@@ -109,4 +109,56 @@ live_design! {
             color: #8b9e77
         }
     }
+
+    IconButton = <Button> {
+        draw_icon: {
+            fn get_color(self) -> vec4 {
+                return #fff
+            }
+        }
+        icon_walk: {width: 7.5, height: Fit}
+        draw_bg: {
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                return sdf.result
+            }
+        }
+        padding: 9.0
+        text: ""
+    }
+
+    VerticalFadingBar = <RoundedYView> {
+        width: 10.0
+        height: 50.0
+
+        show_bg: true
+        draw_bg: {
+            color: #fff
+            instance opacity: 0.3
+
+            fn get_color(self) -> vec4 {
+                return mix(
+                    vec4(self.color.rgb, 0.0),
+                    vec4(self.color.rgb, self.opacity),
+                    self.pos.y);
+            }
+
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size)
+                sdf.box_y(
+                    self.inset.x + self.border_width,
+                    self.inset.y + self.border_width,
+                    self.rect_size.x - (self.inset.x + self.inset.z + self.border_width * 2.0),
+                    self.rect_size.y - (self.inset.y + self.inset.w + self.border_width * 2.0),
+                    self.radius.x,
+                    self.radius.y
+                )
+                sdf.fill_keep(self.get_color())
+                if self.border_width > 0.0 {
+                    sdf.stroke(self.get_border_color(), self.border_width)
+                }
+                return sdf.result;
+            }
+        }
+    }
 }
