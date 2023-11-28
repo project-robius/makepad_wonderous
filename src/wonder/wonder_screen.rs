@@ -734,12 +734,11 @@ impl WonderScreenInner {
             self.view(id!(subtitle_group)).set_visible(true);
 
             // TODO it is hard to access to set_visible in the "view parent" of the custom widget
-            self.wonder_content(id!(content)).apply_over(
-                cx,
-                live! {
-                    visible: true
-                },
-            );
+            let mut content = self.wonder_content(id!(content));
+            content.show(cx);
+            content.apply_over(cx, live!{
+                visible: true
+            });
 
             self.state = WonderState::Title;
             self.reset_all_positions(cx);
@@ -814,12 +813,11 @@ impl WonderScreenInner {
             self.animator_play(cx, id!(compass.hide));
 
             // TODO it is hard to access to set_visible in the "view parent" of the custom widget
-            self.wonder_content(id!(content)).apply_over(
-                cx,
-                live! {
-                    visible: false
-                },
-            );
+            let mut content = self.wonder_content(id!(content));
+            content.hide(cx);
+            content.apply_over(cx, live!{
+                visible: false
+            });
 
             self.touch_gesture.stop();
             self.touch_gesture.scroll_offset = 0.0;
@@ -907,6 +905,15 @@ impl WonderScreenInner {
     }
 
     fn reset_all_positions(&mut self, cx: &mut Cx) {
+        let title = self.view(id!(title));
+        title.apply_over(
+            cx,
+            live! {
+                margin: {top: 0.0}
+            },
+        );
+        title.redraw(cx);
+
         match self.state {
             WonderState::Cover => {
                 let left_image = self.view(id!(left_great_wall));
@@ -945,15 +952,6 @@ impl WonderScreenInner {
                     },
                 );
                 subtitle_group.redraw(cx);
-
-                let title = self.view(id!(title));
-                title.apply_over(
-                    cx,
-                    live! {
-                        margin: {top: 0}
-                    },
-                );
-                title.redraw(cx);
 
                 let content = self.wonder_content(id!(content));
                 content.redraw(cx);

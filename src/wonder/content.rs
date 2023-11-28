@@ -435,7 +435,7 @@ impl WonderContent {
             WonderContentState::BeforeFullContent => {
                 full_content_header.hide(cx);
 
-                let opacity = min(1.0, 0.3 + offset / (HEADER_REACHES_TOP_OFFSET * 2.0));
+                let opacity = min(1.0, 0.7 + offset / (HEADER_REACHES_TOP_OFFSET * 4.0));
                 let scale = 0.9 + min(0.1, offset / (HEADER_REACHES_TOP_OFFSET * 10.));
                 let pan_factor = HEADER_REACHES_TOP_OFFSET * 3.0;
                 let vertical_pan = max(0.0, (offset - HEADER_REACHES_TOP_OFFSET) / pan_factor);
@@ -520,6 +520,18 @@ impl WonderContent {
 pub struct WonderContentRef(WidgetRef);
 
 impl WonderContentRef {
+    pub fn show(&mut self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.update_header_section(cx, 0.0);
+        }
+    }
+
+    pub fn hide(&mut self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.before_content_header(id!(header_before_full_content)).hide(cx);
+        }
+    }
+
     pub fn scroll(&mut self, cx: &mut Cx, delta: f64, is_dragging: bool) -> WonderContentAction {
         if let Some(mut inner) = self.borrow_mut() {
             inner.current_scroll_offset = delta;
