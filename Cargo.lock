@@ -54,10 +54,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "makepad-error-log"
-version = "0.4.0"
-
-[[package]]
 name = "makepad-futures"
 version = "0.4.0"
 
@@ -82,7 +78,6 @@ dependencies = [
 name = "makepad-live-id"
 version = "0.4.0"
 dependencies = [
- "makepad-error-log",
  "makepad-live-id-macros",
 ]
 
