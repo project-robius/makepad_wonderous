@@ -1,5 +1,5 @@
-use crate::wonder::content::*;
 use crate::shared::touch_gesture::*;
+use crate::wonder::content::*;
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
@@ -610,13 +610,13 @@ impl WonderScreen {
 
     fn handle_event_in_cover_state(&mut self, cx: &mut Cx, event: &Event) {
         self.touch_gesture.handle_event(cx, event, self.view.area());
-        
+
         if self.touch_gesture.is_stopped() {
             self.reset_all_positions(cx);
             self.touch_gesture.scroll_offset = 0.0;
             return;
         }
-        
+
         const COVER_STATE_SCROLL_FACTOR: f64 = 0.6;
         let delta = self.touch_gesture.scroll_offset * COVER_STATE_SCROLL_FACTOR;
 
@@ -626,9 +626,12 @@ impl WonderScreen {
             self.view(id!(subtitle_group)).set_visible(true);
 
             // TODO it is hard to access to set_visible in the "view parent" of the custom widget
-            self.wonder_content(id!(content)).apply_over(cx, live!{
-                visible: true
-            });
+            self.wonder_content(id!(content)).apply_over(
+                cx,
+                live! {
+                    visible: true
+                },
+            );
 
             self.state = WonderState::Title;
             self.reset_all_positions(cx);
@@ -645,19 +648,25 @@ impl WonderScreen {
             // Animate the great wall left and right images
 
             let left_image = self.view(id!(left_great_wall));
-            left_image.apply_over(cx, live!{
-                margin: {top: (-delta), left: (-delta / 2.)},
-                width: (1386. * 0.35 + delta),
-                height: (1764. * 0.35 + delta * (1764. / 1386.))
-            });
+            left_image.apply_over(
+                cx,
+                live! {
+                    margin: {top: (-delta), left: (-delta / 2.)},
+                    width: (1386. * 0.35 + delta),
+                    height: (1764. * 0.35 + delta * (1764. / 1386.))
+                },
+            );
             left_image.redraw(cx);
 
             let right_image = self.view(id!(right_great_wall));
-            right_image.apply_over(cx, live!{
-                margin: {top: (-delta), left: (-delta / 2.)},
-                width: (1386. * 0.45 + delta),
-                height: (1764. * 0.45 + delta * (1764. / 1386.))
-            });
+            right_image.apply_over(
+                cx,
+                live! {
+                    margin: {top: (-delta), left: (-delta / 2.)},
+                    width: (1386. * 0.45 + delta),
+                    height: (1764. * 0.45 + delta * (1764. / 1386.))
+                },
+            );
             right_image.redraw(cx);
         }
     }
@@ -692,29 +701,39 @@ impl WonderScreen {
             self.animator_play(cx, id!(compass.hide));
 
             // TODO it is hard to access to set_visible in the "view parent" of the custom widget
-            self.wonder_content(id!(content)).apply_over(cx, live!{
-                visible: false
-            });
+            self.wonder_content(id!(content)).apply_over(
+                cx,
+                live! {
+                    visible: false
+                },
+            );
 
             self.touch_gesture.stop();
             self.touch_gesture.scroll_offset = 0.0;
         } else if delta < 0. {
             let subtitle_group = self.view(id!(subtitle_group));
-            subtitle_group.apply_over(cx, live!{
-                margin: {top: (-delta)},
-            });
+            subtitle_group.apply_over(
+                cx,
+                live! {
+                    margin: {top: (-delta)},
+                },
+            );
             subtitle_group.redraw(cx);
 
             let title = self.view(id!(title));
-            title.apply_over(cx, live!{
-                margin: {top: (-delta)},
-            });
+            title.apply_over(
+                cx,
+                live! {
+                    margin: {top: (-delta)},
+                },
+            );
             title.redraw(cx);
         } else if delta > SHOW_CONTENT_THRESHOLD {
             self.state = WonderState::Content;
 
             // Note this is NOT reseting current dragging state
-            self.touch_gesture.reset(0.0, 0.0, MAIN_CONTENT_LENGTH, ScrollMode::Swipe);
+            self.touch_gesture
+                .reset(0.0, 0.0, MAIN_CONTENT_LENGTH, ScrollMode::Swipe);
         }
     }
 
@@ -723,7 +742,9 @@ impl WonderScreen {
         let delta = self.touch_gesture.scroll_offset;
         let is_dragging = self.touch_gesture.is_dragging();
 
-        let action = self.wonder_content(id!(content)).scroll(cx, delta, is_dragging);
+        let action = self
+            .wonder_content(id!(content))
+            .scroll(cx, delta, is_dragging);
         match action {
             WonderContentAction::Scrolling => {
                 self.update_title_position_on_into_content(cx, delta);
@@ -732,7 +753,8 @@ impl WonderScreen {
                 self.state = WonderState::Title;
                 self.update_title_position_on_into_content(cx, 0.0);
 
-                self.touch_gesture.reset(0.0, f64::MIN, f64::MAX, ScrollMode::DragAndDrop);
+                self.touch_gesture
+                    .reset(0.0, f64::MIN, f64::MAX, ScrollMode::DragAndDrop);
             }
             _ => {}
         }

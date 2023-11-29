@@ -9,6 +9,12 @@ live_design! {
     import crate::shared::widgets::*;
 
     ArtifactsScreen = <View> {
+        width: Fill, height: Fill
+        flow: Right,
 
+        show_bg: true,
+        draw_bg: {
+            color: #004
+        }
     }
 }
