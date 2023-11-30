@@ -20,11 +20,13 @@ live_design! {
             source: (IMG_GREAT_WALL_CONTENT_1),
             width: Fill,
             height: 430,
+
+            draw_bg: { opacity: 0.7 }
         }
 
         animator: {
             header = {
-                default: show,
+                default: hide,
                 hide = {
                     redraw: true,
                     from: {all: Forward {duration: 0.5}}
@@ -34,9 +36,9 @@ live_design! {
                 }
                 show = {
                     redraw: true,
-                    from: {all: Snap}
+                    from: {all: Forward {duration: 1.0}}
                     apply: {
-                        image = { draw_bg: { opacity: 1.0 } }
+                        image = { draw_bg: { opacity: 0.7 } }
                     }
                 }
             },
@@ -92,18 +94,32 @@ impl Widget for BeforeContentHeader {
 }
 
 impl BeforeContentHeader {
-    fn update_values(&mut self, cx: &mut Cx, scale: f64, vertical_pan: f64, opacity: f64) {
-        self.animator_play(cx, id!(header.show));
-        self.image(id!(image)).apply_over(
-            cx,
-            live! {
-                draw_bg: {
-                    image_scale: (dvec2(scale, scale)),
-                    image_pan: (dvec2(0.0, vertical_pan)),
-                    opacity: (opacity)
-                }
-            },
-        );
+    fn show_and_update_values(&mut self, cx: &mut Cx, scale: f64, vertical_pan: f64, opacity: f64) {
+        if self.animator.is_track_animating(cx, id!(header)) ||
+                self.animator_in_state(cx, id!(header.show)) {
+            self.image(id!(image)).apply_over(
+                cx,
+                live! {
+                    draw_bg: {
+                        image_scale: (dvec2(scale, scale)),
+                        image_pan: (dvec2(0.0, vertical_pan)),
+                        opacity: (opacity)
+                    }
+                },
+            );
+        } else {
+            self.animator_play(cx, id!(header.show));
+
+            self.image(id!(image)).apply_over(
+                cx,
+                live! {
+                    draw_bg: {
+                        image_scale: (dvec2(scale, scale)),
+                        image_pan: (dvec2(0.0, vertical_pan)),
+                    }
+                },
+            );
+        } 
     }
 
     fn hide(&mut self, cx: &mut Cx) {
@@ -123,7 +139,7 @@ impl BeforeContentHeaderRef {
 
     pub fn show(&mut self, cx: &mut Cx, scale: f64, vertical_pan: f64, opacity: f64) {
         if let Some(mut inner) = self.borrow_mut() {
-            inner.update_values(cx, scale, vertical_pan, opacity);
+            inner.show_and_update_values(cx, scale, vertical_pan, opacity);
         }
     }
 }

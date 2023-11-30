@@ -169,7 +169,9 @@ impl LiveHook for App {
         crate::wonder::wonder_screen::live_design(cx);
         crate::wonder::before_content_header::live_design(cx);
         crate::wonder::content_header::live_design(cx);
-        crate::wonder::great_wall_highligth::live_design(cx);
+        crate::wonder::great_wall_highlight::live_design(cx);
+        crate::wonder::great_wall_construction_images::live_design(cx);
+        crate::wonder::separator::live_design(cx);
 
         // Gallery
         crate::gallery::gallery_screen::live_design(cx);

@@ -3,7 +3,10 @@ use makepad_widgets::*;
 use crate::wonder::rotating_title::RotatingTitleWidgetExt;
 use crate::wonder::before_content_header::BeforeContentHeaderWidgetExt;
 use crate::wonder::content_header::ContentHeaderWidgetExt;
-use crate::wonder::great_wall_highligth::GreatWallHighlightWidgetExt;
+use crate::wonder::great_wall_highlight::GreatWallHighlightWidgetExt;
+use crate::wonder::great_wall_construction_images::GreatWallConstructionImagesWidgetExt;
+use crate::wonder::separator::SeparatorWidgetExt;
+use crate::wonder::content_sections::ContentSections;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
@@ -11,7 +14,7 @@ const SCROLL_LENGHT_FOR_MAIN_CONTENT: f64 = 430.0;
 const CONTENT_PANEL_REACHES_TOP_OFFSET: f64 =
     SCROLL_LENGHT_FOR_HEADER + HEADER_REACHES_TOP_OFFSET - 80.0;
 
-pub const MAIN_CONTENT_LENGTH: f64 = 2800.0;
+pub const MAIN_CONTENT_LENGTH: f64 = 3500.0;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -23,7 +26,9 @@ live_design! {
     import crate::wonder::rotating_title::*;
     import crate::wonder::before_content_header::*;
     import crate::wonder::content_header::*;
-    import crate::wonder::great_wall_highligth::*;
+    import crate::wonder::great_wall_highlight::*;
+    import crate::wonder::great_wall_construction_images::*;
+    import crate::wonder::separator::*;
 
     HEADER_REACHES_TOP_OFFSET = 570.0
     SCROLL_LENGHT_FOR_HEADER = 380.0
@@ -189,6 +194,8 @@ live_design! {
                     text: "Later on, many successive dynasties built and maintained multiple stretches of border walls."
                 }
 
+                separator1 = <Separator> {}
+
                 <ContentLabel> {
                     text: "Transporting the large quantity of materials required for construction was difficult, so builders always tried to use local resources. Stones from the mountains were used over mountain ranges, while rammed earth was used for construction in the plains. Most of the ancient walls have eroded away over the centuries."
                 }
@@ -218,6 +225,12 @@ live_design! {
                 <ContentLabel> {
                     text: "Under the rule of the Qing dynasty, China's borders extended beyond the walls and Mongolia was annexed into the empire, so construction was discontinued."
                 }
+
+                great_wall_construction_images = <GreatWallConstructionImages> {
+                    margin: {top: -50.0}
+                }
+
+                separator2 = <Separator> {}
 
                 <ContentLabel> {
                     text: "The frontier walls built by different dynasties have multiple courses. Collectively, they stretch from Liaodong in the east to Lop Lake in the west, from the present-day Sino-Russian border in the north to Tao River in the south; along an arc that roughly delineates the edge of the Mongolian steppe."
@@ -336,6 +349,20 @@ impl LiveHook for WonderContent {
     fn before_live_design(cx: &mut Cx) {
         register_widget!(cx, WonderContent);
     }
+
+    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
+        if from.is_from_doc() {
+            // It is not possible to set this kind of programmatic calculations in DSL,
+            // so here is where we initialize those values.
+
+            self.separator(id!(separator1)).apply_over(cx, live!{
+                animate_at: (ContentSections::Construction.starts_at())
+            });
+            self.separator(id!(separator2)).apply_over(cx, live!{
+                animate_at: (ContentSections::Geography.starts_at())
+            });
+        }
+    }
 }
 
 impl Widget for WonderContent {
@@ -408,7 +435,7 @@ impl WonderContent {
             WonderContentState::BeforeFullContent => {
                 full_content_header.hide(cx);
 
-                let opacity = min(1.0, 0.3 + offset / (HEADER_REACHES_TOP_OFFSET * 2.0));
+                let opacity = min(1.0, 0.7 + offset / (HEADER_REACHES_TOP_OFFSET * 4.0));
                 let scale = 0.9 + min(0.1, offset / (HEADER_REACHES_TOP_OFFSET * 10.));
                 let pan_factor = HEADER_REACHES_TOP_OFFSET * 3.0;
                 let vertical_pan = max(0.0, (offset - HEADER_REACHES_TOP_OFFSET) / pan_factor);
@@ -476,6 +503,16 @@ impl WonderContent {
 
         let mut great_wall_highlight = self.great_wall_highlight(id!(great_wall_highlight));
         great_wall_highlight.update_values(cx, offset);
+
+        let mut great_wall_construction_images =
+            self.great_wall_construction_images(id!(great_wall_construction_images));
+        great_wall_construction_images.update_values(cx, offset);
+
+        let mut separator = self.separator(id!(separator1));
+        separator.update_animation(cx, offset);
+
+        let mut separator = self.separator(id!(separator2));
+        separator.update_animation(cx, offset);
     }
 }
 
@@ -483,6 +520,18 @@ impl WonderContent {
 pub struct WonderContentRef(WidgetRef);
 
 impl WonderContentRef {
+    pub fn show(&mut self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.update_header_section(cx, 0.0);
+        }
+    }
+
+    pub fn hide(&mut self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.before_content_header(id!(header_before_full_content)).hide(cx);
+        }
+    }
+
     pub fn scroll(&mut self, cx: &mut Cx, delta: f64, is_dragging: bool) -> WonderContentAction {
         if let Some(mut inner) = self.borrow_mut() {
             inner.current_scroll_offset = delta;

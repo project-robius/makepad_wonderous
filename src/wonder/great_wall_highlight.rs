@@ -33,6 +33,8 @@ live_design! {
             height: 600,
 
             draw_bg: {
+                instance opacity: 0.3
+                instance image_scale: vec2(0.9, 0.9)
                 instance radius: 70.
             }
         }

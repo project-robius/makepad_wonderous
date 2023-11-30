@@ -1,5 +1,6 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
+use crate::wonder::content_sections::ContentSections;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -167,21 +168,13 @@ live_design! {
     }
 }
 
-#[derive(PartialEq, Default)]
-enum RotatingTitleState {
-    #[default]
-    History,
-    Construction,
-    Geography,
-}
-
 #[derive(Live)]
 pub struct RotatingTitle {
     #[deref]
     view: View,
 
     #[rust]
-    state: RotatingTitleState,
+    current_section: ContentSections,
 
     #[animator]
     animator: Animator,
@@ -237,38 +230,38 @@ impl Widget for RotatingTitle {
 
 impl RotatingTitle {
     fn check_state(&mut self, cx: &mut Cx) {
-        let mut state = RotatingTitleState::History;
+        let mut current_section = ContentSections::History;
 
-        if self.scroll_progress > 900.0 {
-            state = RotatingTitleState::Construction;
+        if self.scroll_progress > ContentSections::Construction.starts_at() {
+            current_section = ContentSections::Construction;
         }
 
-        if self.scroll_progress > 1600.0 {
-            state = RotatingTitleState::Geography;
+        if self.scroll_progress > ContentSections::Geography.starts_at() {
+            current_section = ContentSections::Geography;
         }
 
-        if state != self.state {
-            match self.state {
-                RotatingTitleState::History => {
+        if current_section != self.current_section {
+            match self.current_section {
+                ContentSections::History => {
                     self.view(id!(history_icon)).set_visible(false);
                     self.animator_play(cx, id!(history.hide));
                 }
-                RotatingTitleState::Construction => {
+                ContentSections::Construction => {
                     self.view(id!(construction_icon)).set_visible(false);
-                    if state == RotatingTitleState::History {
+                    if current_section == ContentSections::History {
                         self.animator_play(cx, id!(construction.hide_left));
                     } else {
                         self.animator_play(cx, id!(construction.hide_right));
                     }
                 }
-                RotatingTitleState::Geography => {
+                ContentSections::Geography => {
                     self.view(id!(geography_icon)).set_visible(false);
                     self.animator_play(cx, id!(geography.hide));
                 }
             }
 
-            match state {
-                RotatingTitleState::History => {
+            match current_section {
+                ContentSections::History => {
                     self.view(id!(history_icon)).set_visible(true);
                     let scale = dvec2(10.0, 10.0);
                     self.view(id!(history_icon)).apply_over(
@@ -279,7 +272,7 @@ impl RotatingTitle {
                     );
                     self.animator_play(cx, id!(history.show));
                 }
-                RotatingTitleState::Construction => {
+                ContentSections::Construction => {
                     self.view(id!(construction_icon)).set_visible(true);
                     let scale = dvec2(10.0, 10.0);
                     self.view(id!(construction_icon)).apply_over(
@@ -290,7 +283,7 @@ impl RotatingTitle {
                     );
                     self.animator_play(cx, id!(construction.show));
                 }
-                RotatingTitleState::Geography => {
+                ContentSections::Geography => {
                     self.view(id!(geography_icon)).set_visible(true);
                     let scale = dvec2(10.0, 10.0);
                     self.view(id!(geography_icon)).apply_over(
@@ -303,7 +296,7 @@ impl RotatingTitle {
                 }
             }
 
-            self.state = state;
+            self.current_section = current_section;
         }
     }
 }

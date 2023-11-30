@@ -1,6 +1,9 @@
 pub mod content;
+pub mod content_sections;
 pub mod wonder_screen;
 pub mod rotating_title;
 pub mod before_content_header;
 pub mod content_header;
-pub mod great_wall_highligth;
+pub mod great_wall_highlight;
+pub mod great_wall_construction_images;
+pub mod separator;
