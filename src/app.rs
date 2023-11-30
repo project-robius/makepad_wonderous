@@ -13,6 +13,7 @@ live_design! {
     import crate::shared::styles::*;
     import crate::wonder::wonder_screen::*;
     import crate::gallery::gallery_screen::*;
+    import crate::gallery::image_grid::*;
     import crate::artifacts::artifacts_screen::*;
     import crate::timeline::timeline_screen::*;
     import crate::shared::stack_navigation::*;
@@ -43,102 +44,104 @@ live_design! {
             window: {position: vec2(0, 0), inner_size: vec2(375, 813)},
             pass: {clear_color: #2A}
 
-            body = {
-                navigation = <StackNavigation> {
-                    root_view = {
-                        width: Fill,
-                        height: Fill,
-                        padding: 0, align: {x: 0.0, y: 0.0}, spacing: 0., flow: Down
+<ImageGrid> {}
+            // <GalleryScreen> {}
+            // body = {
+            //     navigation = <StackNavigation> {
+            //         root_view = {
+            //             width: Fill,
+            //             height: Fill,
+            //             padding: 0, align: {x: 0.0, y: 0.0}, spacing: 0., flow: Down
 
-                        application_pages = <View> {
-                            margin: 0.0,
-                            padding: 0.0
+            //             application_pages = <View> {
+            //                 margin: 0.0,
+            //                 padding: 0.0
 
-                            tab1_frame = <WonderScreen> {visible: true}
-                            tab2_frame = <GalleryScreen> {visible: false}
-                            tab3_frame = <ArtifactsScreen> {visible: false}
-                            tab4_frame = <TimelineScreen> {visible: false}
-                        }
+            //                 tab1_frame = <WonderScreen> {visible: true}
+            //                 tab2_frame = <GalleryScreen> {visible: false}
+            //                 tab3_frame = <ArtifactsScreen> {visible: false}
+            //                 tab4_frame = <TimelineScreen> {visible: false}
+            //             }
 
-                        mobile_menu = <RoundedView> {
-                            visible: false,
-                            width: Fill,
-                            height: 60,
-                            flow: Right, spacing: 6.0, padding: -5
-                            draw_bg: {
-                                instance radius: 0.0,
-                                color: #fff
-                            }
+            //             mobile_menu = <RoundedView> {
+            //                 visible: false,
+            //                 width: Fill,
+            //                 height: 60,
+            //                 flow: Right, spacing: 6.0, padding: -5
+            //                 draw_bg: {
+            //                     instance radius: 0.0,
+            //                     color: #fff
+            //                 }
 
-                            mobile_modes = <View> {
-                                tab1 = <AppTab> {
-                                    animator: {selected = {default: on}}
-                                    draw_icon: {
-                                        svg_file: (ICON_WONDER),
-                                        fn get_color(self) -> vec4 {
-                                            return mix(
-                                                #000,
-                                                #e6945c,
-                                                self.selected
-                                            )
-                                        }
-                                    }
-                                    width: Fill,
-                                    icon_walk: {width: 20, height: 20}
-                                    flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
-                                }
-                                tab2 = <AppTab> {
-                                    draw_icon: {
-                                        svg_file: (ICON_GALLERY),
-                                        fn get_color(self) -> vec4 {
-                                            return mix(
-                                                #000,
-                                                #e6945c,
-                                                self.selected
-                                            )
-                                        }
-                                    }
-                                    width: Fill
-                                    icon_walk: {width: 20, height: 20}
-                                    flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
-                                }
-                                tab3 = <AppTab> {
-                                    draw_icon: {
-                                        svg_file: (ICON_ARTIFACTS),
-                                        fn get_color(self) -> vec4 {
-                                            return mix(
-                                                #000,
-                                                #e6945c,
-                                                self.selected
-                                            )
-                                        }
-                                    }
-                                    width: Fill
-                                    icon_walk: {width: 20, height: 20}
-                                    flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
-                                }
-                                tab4 = <AppTab> {
-                                    draw_icon: {
-                                        svg_file: (ICON_TIMELINE),
-                                        fn get_color(self) -> vec4 {
-                                            return mix(
-                                                #000,
-                                                #e6945c,
-                                                self.selected
-                                            )
-                                        }
-                                    }
-                                    width: Fill
-                                    icon_walk: {width: 20, height: 20}
-                                    flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
-                                }
-                            }
-                        }
-                    }
+            //                 mobile_modes = <View> {
+            //                     tab1 = <AppTab> {
+            //                         animator: {selected = {default: on}}
+            //                         draw_icon: {
+            //                             svg_file: (ICON_WONDER),
+            //                             fn get_color(self) -> vec4 {
+            //                                 return mix(
+            //                                     #000,
+            //                                     #e6945c,
+            //                                     self.selected
+            //                                 )
+            //                             }
+            //                         }
+            //                         width: Fill,
+            //                         icon_walk: {width: 20, height: 20}
+            //                         flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
+            //                     }
+            //                     tab2 = <AppTab> {
+            //                         draw_icon: {
+            //                             svg_file: (ICON_GALLERY),
+            //                             fn get_color(self) -> vec4 {
+            //                                 return mix(
+            //                                     #000,
+            //                                     #e6945c,
+            //                                     self.selected
+            //                                 )
+            //                             }
+            //                         }
+            //                         width: Fill
+            //                         icon_walk: {width: 20, height: 20}
+            //                         flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
+            //                     }
+            //                     tab3 = <AppTab> {
+            //                         draw_icon: {
+            //                             svg_file: (ICON_ARTIFACTS),
+            //                             fn get_color(self) -> vec4 {
+            //                                 return mix(
+            //                                     #000,
+            //                                     #e6945c,
+            //                                     self.selected
+            //                                 )
+            //                             }
+            //                         }
+            //                         width: Fill
+            //                         icon_walk: {width: 20, height: 20}
+            //                         flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
+            //                     }
+            //                     tab4 = <AppTab> {
+            //                         draw_icon: {
+            //                             svg_file: (ICON_TIMELINE),
+            //                             fn get_color(self) -> vec4 {
+            //                                 return mix(
+            //                                     #000,
+            //                                     #e6945c,
+            //                                     self.selected
+            //                                 )
+            //                             }
+            //                         }
+            //                         width: Fill
+            //                         icon_walk: {width: 20, height: 20}
+            //                         flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
+            //                     }
+            //                 }
+            //             }
+            //         }
 
-                    // Add stack navigations here
-                }
-            }
+            //         // Add stack navigations here
+            //     }
+            // }
         }
     }
 }
@@ -173,6 +176,9 @@ impl LiveHook for App {
 
         // Gallery
         crate::gallery::gallery_screen::live_design(cx);
+        crate::gallery::gallery_image::live_design(cx);
+        crate::gallery::image_box::live_design(cx);
+        crate::gallery::image_grid::live_design(cx);
 
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
