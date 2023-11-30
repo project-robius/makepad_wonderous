@@ -19,7 +19,7 @@ live_design! {
     IMG_BACKGROUND_ROLLER = dep("crate://self/resources/images/roller-1-black.png")
     IMG_COMPASS = dep("crate://self/resources/images/compass-icon.png")
 
-    WonderScreen = {{WonderScreen}} {
+    WonderScreenInner = {{WonderScreenInner}} {
         flow: Overlay,
 
         show_bg: true,
@@ -493,6 +493,13 @@ live_design! {
             }
         }
     }
+
+    WonderScreen = <View> {
+        width: Fill
+        height: Fill
+
+        <WonderScreenInner> {}
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -504,7 +511,7 @@ pub enum WonderState {
 }
 
 #[derive(Live)]
-pub struct WonderScreen {
+pub struct WonderScreenInner {
     #[deref]
     view: View,
 
@@ -523,9 +530,9 @@ pub struct WonderScreen {
     touch_gesture: TouchGesture,
 }
 
-impl LiveHook for WonderScreen {
+impl LiveHook for WonderScreenInner {
     fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, WonderScreen);
+        register_widget!(cx, WonderScreenInner);
     }
 
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
@@ -537,7 +544,7 @@ impl LiveHook for WonderScreen {
     }
 }
 
-impl Widget for WonderScreen {
+impl Widget for WonderScreenInner {
     fn handle_widget_event_with(
         &mut self,
         cx: &mut Cx,
@@ -588,7 +595,7 @@ impl Widget for WonderScreen {
     }
 }
 
-impl WonderScreen {
+impl WonderScreenInner {
     fn handle_event_with(
         &mut self,
         cx: &mut Cx,

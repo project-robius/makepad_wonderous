@@ -8,7 +8,7 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
 
-    GalleryScreen = {{GalleryScreen}} {
+    Gallery = {{Gallery}} {
         width: Fill, height: Fill
         flow: Down,
 
@@ -16,12 +16,17 @@ live_design! {
         draw_bg: {
             color: #000
         }
+    }
 
+    GalleryScreen = <View> {
+        width: Fill, height: Fill
+
+        <Gallery> {}
     }
 }
 
 #[derive(Live)]
-pub struct GalleryScreen {
+pub struct Gallery {
     #[deref]
     view: View,
 
@@ -29,13 +34,13 @@ pub struct GalleryScreen {
     animator: Animator,
 }
 
-impl LiveHook for GalleryScreen {
+impl LiveHook for Gallery {
     fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, GalleryScreen);
+        register_widget!(cx, Gallery);
     }
 }
 
-impl Widget for GalleryScreen {
+impl Widget for Gallery {
     fn handle_widget_event_with(
         &mut self,
         cx: &mut Cx,
@@ -62,4 +67,4 @@ impl Widget for GalleryScreen {
     }
 }
 
-impl GalleryScreen {}
+impl Gallery {}
