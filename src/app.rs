@@ -36,11 +36,6 @@ live_design! {
             color_unselected: #000,
             color_unselected_hover: #111,
         }
-        <View> {
-            width: 80,
-            height: 80,
-            flow: Right,
-        }
     }
 
     App = {{App}} {
@@ -141,21 +136,7 @@ live_design! {
                         }
                     }
 
-                    wonder_stack_view = <StackNavigationView> {
-                        wonder_screen = <WonderScreen> {}
-                    }
-
-                    gallery_stack_view = <StackNavigationView> {
-                        gallery_screen = <GalleryScreen> {}
-                    }
-
-                    artifacts_stack_view = <StackNavigationView> {
-                        artifacts_screen = <ArtifactsScreen> {}
-                    }
-
-                    timeline_stack_view = <StackNavigationView> {
-                        timeline_screen = <TimelineScreen> {}
-                    }
+                    // Add stack navigations here
                 }
             }
         }
@@ -242,16 +223,7 @@ impl AppMain for App {
 impl App {
     fn init_navigation_destinations(&mut self) {
         self.navigation_destinations = HashMap::new();
-        self.navigation_destinations
-            .insert(StackViewAction::ShowWonder, live_id!(wonder_stack_view));
-        self.navigation_destinations
-            .insert(StackViewAction::ShowGallery, live_id!(gallery_stack_view));
-        self.navigation_destinations.insert(
-            StackViewAction::ShowArtifacts,
-            live_id!(artifacts_stack_view),
-        );
-        self.navigation_destinations
-            .insert(StackViewAction::ShowTimeline, live_id!(timeline_stack_view));
+        // Add stack view actions here
     }
 
     fn handle_mobile_menu_visibility(&mut self, actions: &WidgetActions) {

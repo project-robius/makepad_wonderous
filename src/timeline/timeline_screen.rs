@@ -8,7 +8,13 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
 
-    GalleryScreen = <View> {
+    TimelineScreen = <View> {
+        width: Fill, height: Fill
+        flow: Right,
 
+        show_bg: true,
+        draw_bg: {
+            color: #fff
+        }
     }
 }
