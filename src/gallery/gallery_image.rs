@@ -1,6 +1,6 @@
 use makepad_widgets::*;
-pub const IMAGE_WIDTH: f64 = 200.;
-pub const IMAGE_HEIGHT: f64 = 350.;
+pub const IMAGE_WIDTH: f64 = 250.;
+pub const IMAGE_HEIGHT: f64 = 400.;
 
 live_design! {
     import makepad_draw::shader::std::*;
@@ -54,7 +54,6 @@ impl GalleryImage {
         _ = self
             .image
             .draw_walk_widget(cx, Walk::size(bg_width, bg_height).with_abs_pos(pos));
-        dbg!(Walk::size(bg_width, bg_height).with_abs_pos(pos));
     }
 }
 
