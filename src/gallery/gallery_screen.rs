@@ -120,7 +120,7 @@ impl Widget for Gallery {
     // }
 
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        self.view.draw_walk_widget(cx, walk);
+        let _ = self.view.draw_walk_widget(cx, walk);
         self.draw_walk(cx, walk);
         WidgetDraw::done()
     }
