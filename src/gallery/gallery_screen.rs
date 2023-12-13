@@ -16,6 +16,33 @@ live_design! {
     Gallery = {{Gallery}} {
         width: Fill, height: Fill
 
+        images_deps: [
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-0.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-1.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-2.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-3.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-4.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-5.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-6.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-7.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-8.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-9.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-10.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-11.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-12.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-13.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-14.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-15.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-16.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-17.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-18.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-19.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-20.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-21.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-22.jpg"),
+            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
+        ]
+
         gallery_image_template: <GalleryImage> {
             image: <RotatedImage> {
                 source: (IMG_CONTENT)
@@ -48,6 +75,9 @@ pub struct Gallery {
 
     // #[animator]
     // animator: Animator,
+    #[live]
+    images_deps: Vec<LiveDependency>,
+
     #[live]
     gallery_image_template: Option<LivePtr>,
     #[rust]
@@ -144,6 +174,14 @@ impl Gallery {
                     (col * padded_image_width + image_offset.x) - IMAGE_WIDTH / 2.,
                     (row * (padded_image_height) + image_offset.y) - IMAGE_HEIGHT / 2.,
                 );
+
+            if let Some(image_path) = match image_idu64 {
+                24 => Some(self.images_deps[0].as_str()),
+                _ => Some(self.images_deps[image_idu64 as usize].as_str()),
+            } {
+                gallery_image.set_path(image_path.to_owned());
+            }
+
             gallery_image.draw_abs(cx, pos);
         }
     }
@@ -227,6 +265,14 @@ impl Gallery {
             return;
         }
         self.current_index = value;
+    }
+
+    fn gallery_images_deps_path(&self, index: u64) -> Option<&str> {
+        // last photo is the same as the first one
+        match index {
+            24 => Some(self.images_deps[0].as_str()),
+            _ => Some(self.images_deps[index as usize].as_str()),
+        }
     }
 }
 
