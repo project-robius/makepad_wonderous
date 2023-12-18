@@ -69,7 +69,6 @@ live_design! {
                                 instance radius: 0.0,
                                 color: #fff
                             }
-
                             mobile_modes = <View> {
                                 tab1 = <AppTab> {
                                     animator: {selected = {default: on}}
@@ -175,6 +174,8 @@ impl LiveHook for App {
 
         // Gallery
         crate::gallery::gallery_screen::live_design(cx);
+        crate::gallery::gallery_image::live_design(cx);
+        crate::gallery::gallery_overlay::live_design(cx);
 
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
@@ -215,7 +216,7 @@ impl AppMain for App {
                 ),
             );
 
-        self.handle_mobile_menu_visibility(&actions);
+        self.handle_mobile_menu_visibility(cx, &actions);
 
         let mut navigation = self.ui.stack_navigation(id!(navigation));
         navigation.handle_stack_view_actions(cx, &actions, &self.navigation_destinations);
@@ -228,19 +229,26 @@ impl App {
         // Add stack view actions here
     }
 
-    fn handle_mobile_menu_visibility(&mut self, actions: &WidgetActions) {
+    fn handle_mobile_menu_visibility(&mut self, cx: &mut Cx, actions: &WidgetActions) {
+        // hide menu on first page
         let stack_navigation = self.ui.stack_navigation(id!(navigation));
+        let mobile_menu = stack_navigation.view(id!(root_view.mobile_menu));
         for action in actions {
             if let WonderScreenAction::StateChange(state) = action.action() {
                 match state {
-                    WonderState::Cover => stack_navigation
-                        .view(id!(root_view.mobile_menu))
-                        .set_visible(false),
-                    WonderState::Content | WonderState::Title => stack_navigation
-                        .view(id!(root_view.mobile_menu))
-                        .set_visible(true),
+                    WonderState::Cover => mobile_menu.set_visible(false),
+                    WonderState::Content | WonderState::Title => mobile_menu.set_visible(true),
                 }
             }
+        }
+
+        // Make background transperent on gallery
+        if self
+            .ui
+            .widget(id!(application_pages.tab2_frame))
+            .is_visible()
+        {
+            // TODO
         }
     }
 }
