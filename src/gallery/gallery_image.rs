@@ -7,9 +7,9 @@ live_design! {
     import makepad_widgets::base::*;
 
     GalleryImage = {{GalleryImage}} {
-        image: <Image> {
+        image: <RotatedImage> {
             draw_bg: {
-                instance radius: 70.0
+                instance radius: 3.
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                     sdf.box(
@@ -21,6 +21,24 @@ live_design! {
                     )
                     sdf.fill_keep(self.get_color())
                     return sdf.result
+                }
+            }
+        }
+
+        animator: {
+            zoom = {
+                default: off
+                on = {
+                    from: {all: Forward {duration: 0.3}}
+                    apply: {
+                        image: { draw_bg: {scale: 1.1} }
+                    }
+                }
+                off = {
+                    from: {all: Forward {duration: 0.3}}
+                    apply: {
+                        image: { draw_bg: {scale: 1.0} }
+                    }
                 }
             }
         }
@@ -66,7 +84,6 @@ impl GalleryImage {
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
-        // play animator here
         let bg_width = Size::Fixed(IMAGE_WIDTH);
         let bg_height = Size::Fixed(IMAGE_HEIGHT);
         self.image.load_image_dep_by_path(cx, &self.path);

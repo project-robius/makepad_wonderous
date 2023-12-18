@@ -6,10 +6,12 @@ use super::gallery_image::{GalleryImage, GalleryImageId, IMAGE_HEIGHT, IMAGE_WID
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
+    import makepad_draw::shader::std::*;
 
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
     import crate::gallery::gallery_image::*;
+    import crate::gallery::gallery_overlay::*;
 
     IMG_CONTENT = dep("crate://self/resources/images/great-wall-content-1.jpg")
 
@@ -43,25 +45,21 @@ live_design! {
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
         ]
 
-        gallery_image_template: <GalleryImage> {
-            image: <RotatedImage> {
-                source: (IMG_CONTENT)
-            }
-        }
+        gallery_image_template: <GalleryImage> {}
 
     }
 
     GalleryScreen = <View> {
         width: Fill, height: Fill
-
+        flow: Overlay
         show_bg: true,
         draw_bg: {
             color: #000
         }
 
         <Gallery> {}
+        black_overlay = <GalleryOverlay> {}
     }
-
 }
 
 #[derive(Live)]
@@ -73,8 +71,6 @@ pub struct Gallery {
     #[layout]
     layout: Layout,
 
-    // #[animator]
-    // animator: Animator,
     #[live]
     images_deps: Vec<LiveDependency>,
 
@@ -145,10 +141,6 @@ impl Widget for Gallery {
         self.view.redraw(cx);
     }
 
-    // fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-    //     self.view.find_widgets(path, cached, results);
-    // }
-
     fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
         let _ = self.view.draw_walk_widget(cx, walk);
         self.draw_walk(cx, walk);
@@ -212,7 +204,7 @@ impl Gallery {
     }
 
     fn handle_swipe(&mut self, cx: &mut Cx, event: &Event) {
-        match event.hits(cx, self.view.area()) {
+        match event.hits_with_capture_overload(cx, self.view.area(), true) {
             Hit::FingerMove(fe) => {
                 let mut swipe_vector = fe.abs - fe.abs_start;
                 // Negate y values because makepad's y axis grows to the south
@@ -224,14 +216,20 @@ impl Gallery {
                 if (swipe_vector.x.abs() > swipe_trigger_value)
                     || (swipe_vector.y.abs() > swipe_trigger_value)
                 {
+                    if !self.ready_to_swipe {
+                        return;
+                    }
+
                     let mut new_index = self.current_index;
 
                     // compensate diagonal swipe case (both trigger the diagonal value)
                     if swipe_vector.x.abs() > diagonal_trigger_value {
                         new_index += if swipe_vector.x > 0. { -1 } else { 1 };
+                        // play animations (shrink overlay)
                     }
                     if swipe_vector.y.abs() > diagonal_trigger_value {
                         new_index += self.grid_size * if swipe_vector.y > 0. { 1 } else { -1 };
+                        // play animations (shrink overlay)
                     }
 
                     // Handle prohibited swipe cases
@@ -248,10 +246,19 @@ impl Gallery {
                         return;
                     }
 
-                    // finally update the index if we didnt do it recently
-                    if self.ready_to_swipe {
-                        self.set_index(new_index);
+                    // Play animations
+                    if let Some(previous_image) = self
+                        .images
+                        .get_mut(&LiveId(self.current_index as u64).into())
+                    {
+                        previous_image.animator_play(cx, id!(zoom.off))
                     }
+                    if let Some(new_image) = self.images.get_mut(&LiveId(new_index as u64).into()) {
+                        new_image.animator_play(cx, id!(zoom.on))
+                    }
+
+                    self.set_index(new_index);
+
                     self.ready_to_swipe = false;
                 }
             }

@@ -173,6 +173,7 @@ impl LiveHook for App {
         // Gallery
         crate::gallery::gallery_screen::live_design(cx);
         crate::gallery::gallery_image::live_design(cx);
+        crate::gallery::gallery_overlay::live_design(cx);
 
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
