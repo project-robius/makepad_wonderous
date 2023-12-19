@@ -46,7 +46,7 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct BeforeContentHeader {
     #[deref]
     view: View,
@@ -55,41 +55,16 @@ pub struct BeforeContentHeader {
     animator: Animator,
 }
 
-impl LiveHook for BeforeContentHeader {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, BeforeContentHeader);
-    }
-}
-
 impl Widget for BeforeContentHeader {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         if self.animator_handle_event(cx, event).must_redraw() {
             self.redraw(cx);
         }
-
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+        self.view.handle_event(cx, event, scope)
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-        self.view.find_widgets(path, cached, results);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 
@@ -126,9 +101,6 @@ impl BeforeContentHeader {
         self.animator_play(cx, id!(header.hide));
     }
 }
-
-#[derive(Clone, PartialEq, WidgetRef)]
-pub struct BeforeContentHeaderRef(WidgetRef);
 
 impl BeforeContentHeaderRef {
     pub fn hide(&mut self, cx: &mut Cx) {

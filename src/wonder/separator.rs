@@ -97,7 +97,7 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct Separator {
     #[deref]
     view: View,
@@ -109,43 +109,16 @@ pub struct Separator {
     animator: Animator,
 }
 
-impl LiveHook for Separator {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, Separator);
-    }
-}
-
 impl Widget for Separator {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
-
-        let animatation_state = self.animator_handle_event(cx, event);
-        
-        if animatation_state.must_redraw() {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope);
+        if self.animator_handle_event(cx, event).must_redraw() {
             self.redraw(cx);
         }
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-        self.view.find_widgets(path, cached, results);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 
@@ -161,9 +134,6 @@ impl Separator {
         }
     }
 }
-
-#[derive(Clone, PartialEq, WidgetRef)]
-pub struct SeparatorRef(WidgetRef);
 
 impl SeparatorRef {
     pub fn update_animation(&mut self, cx: &mut Cx, scroll: f64) {

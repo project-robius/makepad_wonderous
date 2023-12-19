@@ -45,14 +45,18 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct GalleryImage {
-    #[live]
+    #[live] #[redraw]
     draw_bg: DrawQuad,
     #[live]
     image: Image,
+
     #[layout]
     layout: Layout,
+    #[walk]
+    walk: Walk,
+
     #[animator]
     animator: Animator,
     #[rust]
@@ -62,25 +66,22 @@ pub struct GalleryImage {
 #[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
 pub struct GalleryImageId(pub LiveId);
 
-impl LiveHook for GalleryImage {
-    fn before_apply(
-        &mut self,
-        _cx: &mut Cx,
-        _apply_from: ApplyFrom,
-        _index: usize,
-        _nodes: &[LiveNode],
-    ) {
+impl Widget for GalleryImage {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
+        self.animator_handle_event(cx, event);
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, _walk: Walk) -> DrawStep {
+        let pos = scope.data.get_mut::<DVec2>();
+        self.draw_abs(cx, *pos);
+
+        DrawStep::done()
     }
 }
 
 impl GalleryImage {
-    pub fn handle_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        _dispatch_action: &mut dyn FnMut(&mut Cx, GalleryImageAction),
-    ) {
-        self.animator_handle_event(cx, event);
+    pub fn set_path(&mut self, path: String) {
+        self.path = path;
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
@@ -89,12 +90,6 @@ impl GalleryImage {
         self.image.load_image_dep_by_path(cx, &self.path);
         _ = self
             .image
-            .draw_walk_widget(cx, Walk::size(bg_width, bg_height).with_abs_pos(pos));
-    }
-
-    pub fn set_path(&mut self, path: String) {
-        self.path = path;
+            .draw_walk(cx, Walk::size(bg_width, bg_height).with_abs_pos(pos));
     }
 }
-
-pub enum GalleryImageAction {}

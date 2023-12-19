@@ -73,43 +73,19 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct GreatWallHighlight {
     #[deref]
     view: View,
 }
 
-impl LiveHook for GreatWallHighlight {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, GreatWallHighlight);
-    }
-}
-
 impl Widget for GreatWallHighlight {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope)
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-        self.view.find_widgets(path, cached, results);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 
@@ -144,9 +120,6 @@ impl GreatWallHighlight {
         );
     }
 }
-
-#[derive(Clone, PartialEq, WidgetRef)]
-pub struct GreatWallHighlightRef(WidgetRef);
 
 impl GreatWallHighlightRef {
     pub fn update_values(&mut self, cx: &mut Cx, scroll: f64) {
