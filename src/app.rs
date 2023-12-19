@@ -152,8 +152,8 @@ pub struct App {
     navigation_destinations: HashMap<StackViewAction, LiveId>,
 }
 
-impl LiveHook for App {
-    fn before_live_design(cx: &mut Cx) {
+impl LiveRegister for App {
+    fn live_register(cx: &mut Cx) {
         makepad_widgets::live_design(cx);
 
         // Shared
@@ -183,20 +183,16 @@ impl LiveHook for App {
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
     }
+}
 
+impl LiveHook for App {
     fn after_new_from_doc(&mut self, _cx: &mut Cx) {
         self.init_navigation_destinations();
     }
 }
 
-impl AppMain for App {
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
-        if let Event::Draw(event) = event {
-            return self.ui.draw_widget_all(&mut Cx2d::new(cx, event));
-        }
-
-        let actions = self.ui.handle_widget_event(cx, event);
-
+impl MatchEvent for App {
+    fn handle_actions(&mut self, cx:&mut Cx, actions: &Actions) {
         self.ui
             .radio_button_set(ids!(
                 mobile_modes.tab1,
@@ -216,10 +212,17 @@ impl AppMain for App {
                 ),
             );
 
-        self.handle_mobile_menu_visibility(cx, &actions);
+        self.handle_mobile_menu_visibility(&actions);
 
         let mut navigation = self.ui.stack_navigation(id!(navigation));
         navigation.handle_stack_view_actions(cx, &actions, &self.navigation_destinations);
+    }
+}
+
+impl AppMain for App {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
+        self.match_event(cx, event);
+        self.ui.handle_event(cx, event, &mut Scope::empty());
     }
 }
 
@@ -229,12 +232,12 @@ impl App {
         // Add stack view actions here
     }
 
-    fn handle_mobile_menu_visibility(&mut self, cx: &mut Cx, actions: &WidgetActions) {
+    fn handle_mobile_menu_visibility(&mut self, actions: &Actions) {
         // hide menu on first page
         let stack_navigation = self.ui.stack_navigation(id!(navigation));
         let mobile_menu = stack_navigation.view(id!(root_view.mobile_menu));
         for action in actions {
-            if let WonderScreenAction::StateChange(state) = action.action() {
+            if let WonderScreenAction::StateChange(state) = action.as_widget_action().cast() {
                 match state {
                     WonderState::Cover => mobile_menu.set_visible(false),
                     WonderState::Content | WonderState::Title => mobile_menu.set_visible(true),

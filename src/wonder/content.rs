@@ -320,7 +320,7 @@ live_design! {
     }
 }
 
-#[derive(Debug, Clone, WidgetAction)]
+#[derive(Clone, DefaultNone, Debug)]
 pub enum WonderContentAction {
     Scrolling,
     Closed,
@@ -333,7 +333,7 @@ enum WonderContentState {
     FullContent,
 }
 
-#[derive(Live)]
+#[derive(Live, Widget)]
 pub struct WonderContent {
     #[deref]
     view: View,
@@ -346,10 +346,6 @@ pub struct WonderContent {
 }
 
 impl LiveHook for WonderContent {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, WonderContent);
-    }
-
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc() {
             // It is not possible to set this kind of programmatic calculations in DSL,
@@ -366,30 +362,12 @@ impl LiveHook for WonderContent {
 }
 
 impl Widget for WonderContent {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope)
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-        self.view.find_widgets(path, cached, results);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 
@@ -515,9 +493,6 @@ impl WonderContent {
         separator.update_animation(cx, offset);
     }
 }
-
-#[derive(Clone, PartialEq, WidgetRef)]
-pub struct WonderContentRef(WidgetRef);
 
 impl WonderContentRef {
     pub fn show(&mut self, cx: &mut Cx) {

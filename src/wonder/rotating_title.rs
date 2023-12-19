@@ -168,7 +168,7 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct RotatingTitle {
     #[deref]
     view: View,
@@ -184,47 +184,21 @@ pub struct RotatingTitle {
 
 }
 
-impl LiveHook for RotatingTitle {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, RotatingTitle);
-    }
-}
-
 impl Widget for RotatingTitle {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let animatation_state = self.animator_handle_event(cx, event);
-        
         if animatation_state.must_redraw() {
             self.redraw(cx);
         }
-
         if !animatation_state.is_animating() {
             self.check_state(cx);
         }
 
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+        self.view.handle_event(cx, event, scope);
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-        self.view.find_widgets(path, cached, results);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 
@@ -300,9 +274,6 @@ impl RotatingTitle {
         }
     }
 }
-
-#[derive(Clone, PartialEq, WidgetRef)]
-pub struct RotatingTitleRef(WidgetRef);
 
 impl RotatingTitleRef {
     pub fn set_scroll_progress(&mut self, value: f64) {

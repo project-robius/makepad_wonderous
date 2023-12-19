@@ -65,7 +65,7 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, Widget)]
 pub struct ContentHeader {
     #[deref]
     view: View,
@@ -78,10 +78,6 @@ pub struct ContentHeader {
 }
 
 impl LiveHook for ContentHeader {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, ContentHeader);
-    }
-
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc() {
             self.next_frame = cx.new_next_frame();
@@ -90,12 +86,7 @@ impl LiveHook for ContentHeader {
 }
 
 impl Widget for ContentHeader {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         if self.animator_handle_event(cx, event).must_redraw() {
             self.redraw(cx);
         }
@@ -110,24 +101,11 @@ impl Widget for ContentHeader {
             self.next_frame = cx.new_next_frame();
         }
 
-        self.view.handle_widget_event_with(cx, event, dispatch_action);
+        self.view.handle_event(cx, event, scope);
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-        self.view.find_widgets(path, cached, results);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 
@@ -141,9 +119,6 @@ impl ContentHeader {
         self.animator_play(cx, id!(header.hide));
     }
 }
-
-#[derive(Clone, PartialEq, WidgetRef)]
-pub struct ContentHeaderRef(WidgetRef);
 
 impl ContentHeaderRef {
     pub fn show(&mut self, cx: &mut Cx) {

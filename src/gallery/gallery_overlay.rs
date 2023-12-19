@@ -79,42 +79,19 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct GalleryOverlay {
     #[deref]
     view: View,
-    #[walk]
-    walk: Walk,
-    #[layout]
-    layout: Layout,
     #[animator]
     animator: Animator,
-    #[rust]
+    #[rust(true)]
     ready_to_swipe: bool,
 }
 
-impl LiveHook for GalleryOverlay {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, GalleryOverlay);
-    }
-
-    fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        self.ready_to_swipe = true;
-    }
-}
-
 impl Widget for GalleryOverlay {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        let actions = self.view.handle_widget_event(cx, event);
-
-        for action in actions.into_iter() {
-            dispatch_action(cx, action);
-        }
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope);
 
         match event.hits(cx, self.view.area()) {
             Hit::FingerMove(fe) => {
@@ -152,18 +129,8 @@ impl Widget for GalleryOverlay {
         self.update_animation(cx);
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        self.draw_walk(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 

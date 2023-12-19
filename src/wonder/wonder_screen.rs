@@ -611,7 +611,7 @@ pub enum WonderState {
     Content,
 }
 
-#[derive(Live)]
+#[derive(Live, Widget)]
 pub struct WonderScreenInner {
     #[deref]
     view: View,
@@ -632,10 +632,6 @@ pub struct WonderScreenInner {
 }
 
 impl LiveHook for WonderScreenInner {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, WonderScreenInner);
-    }
-
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
         if from.is_from_doc() {
             self.state = WonderState::Cover;
@@ -646,15 +642,12 @@ impl LiveHook for WonderScreenInner {
 }
 
 impl Widget for WonderScreenInner {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        self.handle_event_with(cx, event, &mut |cx, action| {
-            dispatch_action(cx, action);
-        });
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        let widget_uid = self.widget_uid();
+        if self.previous_state != self.state {
+            cx.widget_action(widget_uid, &scope.path, WonderScreenAction::StateChange(self.state));
+            self.previous_state = self.state;
+        }
 
         if self.animator_handle_event(cx, event).must_redraw() {
             self.redraw(cx);
@@ -662,8 +655,7 @@ impl Widget for WonderScreenInner {
 
         self.orchestrate_animations(cx, event);
 
-        self.view
-            .handle_widget_event_with(cx, event, dispatch_action);
+        self.view.handle_event(cx, event, scope);
 
         match self.state {
             WonderState::Cover => {
@@ -678,44 +670,12 @@ impl Widget for WonderScreenInner {
         }
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-    }
-
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
-        self.view.find_widgets(path, cached, results);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        WidgetDraw::done()
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
 
 impl WonderScreenInner {
-    fn handle_event_with(
-        &mut self,
-        cx: &mut Cx,
-        _event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        let widget_uid = self.widget_uid();
-        if self.previous_state != self.state {
-            dispatch_action(
-                cx,
-                WidgetActionItem::new(
-                    Box::new(WonderScreenAction::StateChange(self.state)),
-                    widget_uid,
-                ),
-            );
-            self.previous_state = self.state;
-        }
-    }
-
     fn handle_event_in_cover_state(&mut self, cx: &mut Cx, event: &Event) {
         self.touch_gesture.handle_event(cx, event, self.view.area());
 
@@ -1017,7 +977,7 @@ impl WonderScreenInner {
     }
 }
 
-#[derive(Debug, Clone, WidgetAction)]
+#[derive(Clone, DefaultNone, Debug)]
 pub enum WonderScreenAction {
     StateChange(WonderState),
     None,

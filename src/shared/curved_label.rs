@@ -96,12 +96,12 @@ live_design! {
     }
 }
 
-#[derive(Live, LiveHook)]#[repr(C)]
+#[derive(Live, LiveHook, LiveRegister)]#[repr(C)]
 struct DrawRotatedText {
     #[deref] draw_super: DrawText,
 }
 
-#[derive(Live)]
+#[derive(Live, LiveHook, Widget)]
 pub struct CurvedLabel {
     #[live]
     text: String,
@@ -124,34 +124,15 @@ pub struct CurvedLabel {
     #[rust(20.0)]
     extra_horizontal_padding: f64,
 
-    #[live] draw_bg: DrawColor,
+    #[live] #[redraw] draw_bg: DrawColor,
     #[live] draw_text: DrawRotatedText,
 }
 
-impl LiveHook for CurvedLabel {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, CurvedLabel);
-    }
-}
-
 impl Widget for CurvedLabel {
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.draw_bg.redraw(cx);
-        self.draw_text.redraw(cx);
+    fn handle_event(&mut self, _cx: &mut Cx, _event: &Event, _scope: &mut Scope) {
     }
 
-    fn walk(&mut self, _cx: &mut Cx) -> Walk {
-        self.walk
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.draw_walk(cx, walk);
-        WidgetDraw::done()
-    }
-}
-
-impl CurvedLabel {
-    pub fn draw_walk(&mut self, cx: &mut Cx2d, walk: Walk) {
+    fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         self.draw_bg.begin(cx, walk, self.layout);
         let abs_pos = cx.turtle().pos();
 
@@ -196,5 +177,6 @@ impl CurvedLabel {
         }
 
         self.draw_bg.end(cx);
+        DrawStep::done()
     }
 }

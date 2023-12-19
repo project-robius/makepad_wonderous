@@ -62,10 +62,8 @@ live_design! {
     }
 }
 
-#[derive(Live)]
+#[derive(Live, Widget)]
 pub struct Gallery {
-    #[deref]
-    view: View,
     #[walk]
     walk: Walk,
     #[layout]
@@ -73,14 +71,14 @@ pub struct Gallery {
 
     #[live]
     images_deps: Vec<LiveDependency>,
-
     #[live]
     gallery_image_template: Option<LivePtr>,
+
+    #[rust] #[redraw]
+    area: Area,
     #[rust]
     images: ComponentMap<GalleryImageId, GalleryImage>,
 
-    #[rust]
-    last_finger_abs_pos: DVec2,
     #[rust]
     grid_size: i64,
     #[rust]
@@ -92,10 +90,6 @@ pub struct Gallery {
 }
 
 impl LiveHook for Gallery {
-    fn before_live_design(cx: &mut Cx) {
-        register_widget!(cx, Gallery);
-    }
-
     fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, index: usize, nodes: &[LiveNode]) {
         for gallery_image in self.images.values_mut() {
             if let Some(index) = nodes.child_by_name(index, live_id!(gallery_image).as_field()) {
@@ -119,37 +113,14 @@ impl LiveHook for Gallery {
 }
 
 impl Widget for Gallery {
-    fn handle_widget_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        dispatch_action: &mut dyn FnMut(&mut Cx, WidgetActionItem),
-    ) {
-        let uid = self.widget_uid();
-        self.handle_event_with(cx, event, &mut |cx, action| {
-            dispatch_action(cx, WidgetActionItem::new(action.into(), uid));
-        });
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
+        // TODO handle individual images actions
         self.handle_swipe(cx, event);
     }
 
-    fn walk(&mut self, cx: &mut Cx) -> Walk {
-        self.view.walk(cx)
-        // self.walk
-    }
+    fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
+        cx.begin_turtle(walk, self.layout);
 
-    fn redraw(&mut self, cx: &mut Cx) {
-        self.view.redraw(cx);
-    }
-
-    fn draw_walk_widget(&mut self, cx: &mut Cx2d, walk: Walk) -> WidgetDraw {
-        let _ = self.view.draw_walk_widget(cx, walk);
-        self.draw_walk(cx, walk);
-        WidgetDraw::done()
-    }
-}
-
-impl Gallery {
-    pub fn draw_walk(&mut self, cx: &mut Cx2d, _walk: Walk) {
         let start_pos = cx.turtle().size() / dvec2(2., 2.);
         let padding = 20.;
         let image_offset = self.calculate_current_offset(padding, IMAGE_WIDTH, IMAGE_HEIGHT);
@@ -161,7 +132,7 @@ impl Gallery {
             let col = (image_idu64 % self.grid_size as u64) as f64;
             let row = (image_idu64 / self.grid_size as u64) as f64;
 
-            let pos = start_pos
+            let mut pos = start_pos
                 + dvec2(
                     (col * padded_image_width + image_offset.x) - IMAGE_WIDTH / 2.,
                     (row * (padded_image_height) + image_offset.y) - IMAGE_HEIGHT / 2.,
@@ -174,24 +145,15 @@ impl Gallery {
                 gallery_image.set_path(image_path.to_owned());
             }
 
-            gallery_image.draw_abs(cx, pos);
+            gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));
         }
+        cx.end_turtle_with_area(&mut self.area);
+        
+        DrawStep::done()
     }
+}
 
-    pub fn handle_event_with(
-        &mut self,
-        cx: &mut Cx,
-        event: &Event,
-        _dispatch_action: &mut dyn FnMut(&mut Cx, GalleryAction),
-    ) {
-        let mut actions = Vec::new();
-        for (image_id, gallery_image) in self.images.iter_mut() {
-            gallery_image.handle_event_with(cx, event, &mut |_, action| {
-                actions.push((*image_id, action))
-            });
-        }
-    }
-
+impl Gallery {
     fn calculate_current_offset(&self, padding: f64, width: f64, height: f64) -> DVec2 {
         let padded_image_width = width + padding;
         let padded_image_height = height + padding;
@@ -204,7 +166,7 @@ impl Gallery {
     }
 
     fn handle_swipe(&mut self, cx: &mut Cx, event: &Event) {
-        match event.hits_with_capture_overload(cx, self.view.area(), true) {
+        match event.hits_with_capture_overload(cx, self.area, true) {
             Hit::FingerMove(fe) => {
                 let mut swipe_vector = fe.abs - fe.abs_start;
                 // Negate y values because makepad's y axis grows to the south
@@ -273,20 +235,9 @@ impl Gallery {
         }
         self.current_index = value;
     }
-
-    fn gallery_images_deps_path(&self, index: u64) -> Option<&str> {
-        // last photo is the same as the first one
-        match index {
-            24 => Some(self.images_deps[0].as_str()),
-            _ => Some(self.images_deps[index as usize].as_str()),
-        }
-    }
 }
 
-#[derive(Clone, WidgetAction)]
+#[derive(Clone, DefaultNone, Debug)]
 pub enum GalleryAction {
     None,
 }
-
-#[derive(Debug, Clone, PartialEq, WidgetRef)]
-pub struct GalleryRef(WidgetRef);
