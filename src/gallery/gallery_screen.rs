@@ -74,7 +74,8 @@ pub struct Gallery {
     #[live]
     gallery_image_template: Option<LivePtr>,
 
-    #[rust] #[redraw]
+    #[rust]
+    #[redraw]
     area: Area,
     #[rust]
     images: ComponentMap<GalleryImageId, GalleryImage>,
@@ -90,10 +91,10 @@ pub struct Gallery {
 }
 
 impl LiveHook for Gallery {
-    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, index: usize, nodes: &[LiveNode]) {
+    fn after_apply(&mut self, cx: &mut Cx, apply: &mut Apply, index: usize, nodes: &[LiveNode]) {
         for gallery_image in self.images.values_mut() {
             if let Some(index) = nodes.child_by_name(index, live_id!(gallery_image).as_field()) {
-                gallery_image.apply(cx, from, index, nodes);
+                gallery_image.apply(cx, apply, index, nodes);
             }
         }
     }
@@ -148,7 +149,7 @@ impl Widget for Gallery {
             gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));
         }
         cx.end_turtle_with_area(&mut self.area);
-        
+
         DrawStep::done()
     }
 }

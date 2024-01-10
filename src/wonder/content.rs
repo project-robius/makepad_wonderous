@@ -1,12 +1,12 @@
-use makepad_widgets::widget::WidgetCache;
-use makepad_widgets::*;
-use crate::wonder::rotating_title::RotatingTitleWidgetExt;
 use crate::wonder::before_content_header::BeforeContentHeaderWidgetExt;
 use crate::wonder::content_header::ContentHeaderWidgetExt;
-use crate::wonder::great_wall_highlight::GreatWallHighlightWidgetExt;
-use crate::wonder::great_wall_construction_images::GreatWallConstructionImagesWidgetExt;
-use crate::wonder::separator::SeparatorWidgetExt;
 use crate::wonder::content_sections::ContentSections;
+use crate::wonder::great_wall_construction_images::GreatWallConstructionImagesWidgetExt;
+use crate::wonder::great_wall_highlight::GreatWallHighlightWidgetExt;
+use crate::wonder::rotating_title::RotatingTitleWidgetExt;
+use crate::wonder::separator::SeparatorWidgetExt;
+use makepad_widgets::widget::WidgetCache;
+use makepad_widgets::*;
 
 const HEADER_REACHES_TOP_OFFSET: f64 = 570.0;
 const SCROLL_LENGHT_FOR_HEADER: f64 = 380.0;
@@ -55,7 +55,7 @@ live_design! {
     ContentCallout = <View> {
         flow: Right
         width: Fill
-        
+
         //height: Fit is not working?
         padding: 20.
         spacing: 10.
@@ -346,17 +346,23 @@ pub struct WonderContent {
 }
 
 impl LiveHook for WonderContent {
-    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
-        if from.is_from_doc() {
+    fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
+        if apply.from.is_from_doc() {
             // It is not possible to set this kind of programmatic calculations in DSL,
             // so here is where we initialize those values.
 
-            self.separator(id!(separator1)).apply_over(cx, live!{
-                animate_at: (ContentSections::Construction.starts_at())
-            });
-            self.separator(id!(separator2)).apply_over(cx, live!{
-                animate_at: (ContentSections::Geography.starts_at())
-            });
+            self.separator(id!(separator1)).apply_over(
+                cx,
+                live! {
+                    animate_at: (ContentSections::Construction.starts_at())
+                },
+            );
+            self.separator(id!(separator2)).apply_over(
+                cx,
+                live! {
+                    animate_at: (ContentSections::Geography.starts_at())
+                },
+            );
         }
     }
 }
@@ -418,12 +424,7 @@ impl WonderContent {
                 let pan_factor = HEADER_REACHES_TOP_OFFSET * 3.0;
                 let vertical_pan = max(0.0, (offset - HEADER_REACHES_TOP_OFFSET) / pan_factor);
 
-                before_content_header.show(
-                    cx,
-                    scale,
-                    vertical_pan,
-                    opacity,
-                )
+                before_content_header.show(cx, scale, vertical_pan, opacity)
             }
             WonderContentState::FullContent => {
                 full_content_header.show(cx);
@@ -503,7 +504,9 @@ impl WonderContentRef {
 
     pub fn hide(&mut self, cx: &mut Cx) {
         if let Some(mut inner) = self.borrow_mut() {
-            inner.before_content_header(id!(header_before_full_content)).hide(cx);
+            inner
+                .before_content_header(id!(header_before_full_content))
+                .hide(cx);
         }
     }
 

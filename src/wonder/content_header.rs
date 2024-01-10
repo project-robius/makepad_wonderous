@@ -78,8 +78,8 @@ pub struct ContentHeader {
 }
 
 impl LiveHook for ContentHeader {
-    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
-        if from.is_from_doc() {
+    fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
+        if apply.from.is_from_doc() {
             self.next_frame = cx.new_next_frame();
         }
     }
@@ -92,10 +92,10 @@ impl Widget for ContentHeader {
         }
 
         if let Some(_ne) = self.next_frame.is_event(event) {
-            if !self.animator.is_track_animating(cx, id!(header)) &&
-                    self.animator_in_state(cx, id!(header.wait_to_show)) {
-
-                self.view.apply_over(cx, live!{visible: true});
+            if !self.animator.is_track_animating(cx, id!(header))
+                && self.animator_in_state(cx, id!(header.wait_to_show))
+            {
+                self.view.apply_over(cx, live! {visible: true});
                 self.animator_play(cx, id!(header.show));
             }
             self.next_frame = cx.new_next_frame();
@@ -115,7 +115,7 @@ impl ContentHeader {
     }
 
     fn hide(&mut self, cx: &mut Cx) {
-        self.view.apply_over(cx, live!{visible: false});
+        self.view.apply_over(cx, live! {visible: false});
         self.animator_play(cx, id!(header.hide));
     }
 }
