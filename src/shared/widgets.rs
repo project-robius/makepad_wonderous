@@ -51,6 +51,11 @@ live_design! {
             instance radius: 90.
             instance opacity: 1.0
             instance image_scale: vec2(1.0, 1.0)
+
+            fn get_opacity(self) -> float {
+                return self.opacity;
+            }
+
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                 sdf.box(
@@ -63,7 +68,7 @@ live_design! {
                 );
 
                 let color = self.get_color();
-                sdf.fill_keep(Pal::premul(vec4(color.xyz, color.w * self.opacity)));
+                sdf.fill_keep(Pal::premul(vec4(color.xyz, color.w * self.get_opacity())));
                 return sdf.result
             }
         }
