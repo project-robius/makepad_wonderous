@@ -3,7 +3,13 @@ use makepad_widgets::*;
 
 use crate::shared::stack_view_action::StackViewAction;
 
-use super::gallery_image::{GalleryImage, GalleryImageId, IMAGE_HEIGHT, IMAGE_WIDTH};
+use super::{
+    gallery_image::{GalleryImage, GalleryImageId, IMAGE_HEIGHT, IMAGE_WIDTH},
+    slider_image::{SliderImage, SliderImageId},
+};
+
+pub const SLIDER_IMAGE_WIDTH: f64 = 374.;
+pub const SLIDER_IMAGE_HEIGHT: f64 = 412.2;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -12,12 +18,13 @@ live_design! {
 
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
-    import crate::gallery::gallery_image::*;
+    // import crate::gallery::gallery_image::*;
+    import crate::gallery::slider_image::*;
     import crate::gallery::gallery_overlay::*;
 
     IMG_CONTENT = dep("crate://self/resources/images/great-wall-content-1.jpg")
 
-    Gallery = {{Gallery}} {
+    GalleryImageSlider = {{GalleryImageSlider}} {
         width: Fill, height: Fill
 
         images_deps: [
@@ -47,25 +54,15 @@ live_design! {
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
         ]
 
-        gallery_image_template: <GalleryImage> {}
+        gallery_image_template: <SliderImage> {
 
-    }
-
-    GalleryScreen = <View> {
-        width: Fill, height: Fill
-        flow: Overlay
-        show_bg: true,
-        draw_bg: {
-            color: #000
         }
 
-        <Gallery> {}
-        black_overlay = <GalleryOverlay> {}
     }
 }
 
 #[derive(Live, Widget)]
-pub struct Gallery {
+pub struct GalleryImageSlider {
     #[walk]
     walk: Walk,
     #[layout]
@@ -82,7 +79,7 @@ pub struct Gallery {
     #[redraw]
     area: Area,
     #[rust]
-    images: ComponentMap<GalleryImageId, GalleryImage>,
+    images: ComponentMap<SliderImageId, SliderImage>,
 
     #[rust]
     grid_size: i64,
@@ -94,7 +91,7 @@ pub struct Gallery {
     ready_to_swipe: bool,
 }
 
-impl LiveHook for Gallery {
+impl LiveHook for GalleryImageSlider {
     fn after_apply(&mut self, cx: &mut Cx, apply: &mut Apply, index: usize, nodes: &[LiveNode]) {
         for gallery_image in self.images.values_mut() {
             if let Some(index) = nodes.child_by_name(index, live_id!(gallery_image).as_field()) {
@@ -106,31 +103,30 @@ impl LiveHook for Gallery {
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
         self.grid_size = 5;
         self.image_count = self.grid_size.pow(2);
-        self.current_index = self.grid_size.pow(2) / 2;
         self.ready_to_swipe = true;
         for i in 0..self.grid_size.pow(2) {
             let image_id = LiveId(i as u64).into();
-            let new_image = GalleryImage::new_from_ptr(cx, self.gallery_image_template);
+            let new_image = SliderImage::new_from_ptr(cx, self.gallery_image_template);
 
             self.images.insert(image_id, new_image);
         }
     }
 }
 
-impl Widget for Gallery {
+impl Widget for GalleryImageSlider {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.handle_click_and_swipe(cx, event, scope);
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(walk, self.layout);
-
         let start_pos = cx.turtle().size() / dvec2(2., 2.);
+        let image_width = cx.turtle().size().x;
+        let image_height = cx.turtle().size().y * 0.7;
         let padding = 20.;
-        let image_offset = self.calculate_current_offset(padding, IMAGE_WIDTH, IMAGE_HEIGHT);
-        let padded_image_width = IMAGE_WIDTH + padding;
-        let padded_image_height = IMAGE_HEIGHT + padding;
-
+        let image_offset = self.calculate_current_offset(padding, image_width, image_height);
+        let padded_image_width = image_width + padding;
+        let padded_image_height = image_height + padding;
         for (image_id, gallery_image) in self.images.iter_mut() {
             let image_idu64 = image_id.0.get_value();
             let col = (image_idu64 % self.grid_size as u64) as f64;
@@ -138,8 +134,8 @@ impl Widget for Gallery {
 
             let mut pos = start_pos
                 + dvec2(
-                    (col * padded_image_width + image_offset.x) - IMAGE_WIDTH / 2.,
-                    (row * (padded_image_height) + image_offset.y) - IMAGE_HEIGHT / 2.,
+                    (image_idu64 as f64 * padded_image_width + image_offset.x) - image_width / 2.,
+                    -(image_height / 2.) + 20.,
                 );
 
             if let Some(image_path) = match image_idu64 {
@@ -157,14 +153,13 @@ impl Widget for Gallery {
     }
 }
 
-impl Gallery {
+impl GalleryImageSlider {
     fn calculate_current_offset(&self, padding: f64, width: f64, height: f64) -> DVec2 {
         let padded_image_width = width + padding;
-        let padded_image_height = height + padding;
 
         let col = (self.current_index % self.grid_size) as f64;
         let row = (self.current_index / self.grid_size) as f64;
-        let indexed_offset = dvec2((-padded_image_width) * col, (-padded_image_height) * row);
+        let indexed_offset = dvec2((-padded_image_width) * self.current_index as f64, 0.);
 
         return indexed_offset;
     }
@@ -194,73 +189,17 @@ impl Gallery {
                         new_index += if swipe_vector.x > 0. { -1 } else { 1 };
                         // play animations (shrink overlay)
                     }
-                    if swipe_vector.y.abs() > diagonal_trigger_value {
-                        new_index += self.grid_size * if swipe_vector.y > 0. { 1 } else { -1 };
-                        // play animations (shrink overlay)
-                    }
-
                     // Handle prohibited swipe cases
                     // keep the index in range
                     if new_index < 0 || new_index > self.grid_size.pow(2) - 1 {
                         return;
                     }
-                    // hitting right limit
-                    if swipe_vector.x < 0. && new_index % self.grid_size == 0 {
-                        return;
-                    }
-                    // hitting left limit
-                    if swipe_vector.x > 0. && new_index % self.grid_size == self.grid_size - 1 {
-                        return;
-                    }
-
-                    // Play animations
-                    if let Some(previous_image) = self
-                        .images
-                        .get_mut(&LiveId(self.current_index as u64).into())
-                    {
-                        previous_image.animator_play(cx, id!(zoom.off))
-                    }
-                    if let Some(new_image) = self.images.get_mut(&LiveId(new_index as u64).into()) {
-                        new_image.animator_play(cx, id!(zoom.on))
-                    }
-
-                    self.set_index(new_index);
+                    self.set_index(new_index, cx);
 
                     self.ready_to_swipe = false;
                 }
             }
             Hit::FingerUp(fe) => {
-                let mut swipe_vector = fe.abs - fe.abs_start;
-                // Negate y values because makepad's y axis grows to the south
-                swipe_vector.y = -swipe_vector.y;
-
-                // Clicked image if its the one in the center
-                let center_image = dvec2(
-                    (fe.rect.size.x - IMAGE_WIDTH) / 2.,
-                    (fe.rect.size.y - IMAGE_HEIGHT) / 2.,
-                );
-
-                let is_clicking_center_image = center_image.x <= fe.abs_start.x
-                    && fe.abs_start.x <= center_image.x + IMAGE_WIDTH
-                    && center_image.y <= fe.abs_start.y
-                    && fe.abs_start.y <= center_image.y + IMAGE_HEIGHT;
-
-                if swipe_vector.x.abs() < swipe_trigger_value
-                    && swipe_vector.y.abs() < swipe_trigger_value
-                    && is_clicking_center_image
-                {
-                    let widget_uid = self.widget_uid();
-                    cx.widget_action(
-                        widget_uid,
-                        &scope.path,
-                        GalleryAction::Selected(self.current_index),
-                    );
-                    cx.widget_action(
-                        widget_uid,
-                        &scope.path,
-                        StackViewAction::ShowGalleryImageSlider,
-                    );
-                }
                 // Reset variable for swiping
                 self.ready_to_swipe = true;
             }
@@ -269,16 +208,19 @@ impl Gallery {
         }
     }
 
-    fn set_index(&mut self, value: i64) {
+    fn set_index(&mut self, value: i64, cx: &mut Cx) {
         if value < 0 || value >= self.image_count {
             return;
         }
         self.current_index = value;
+        self.redraw(cx);
     }
 }
 
-#[derive(Clone, DefaultNone, Debug)]
-pub enum GalleryAction {
-    None,
-    Selected(i64),
+impl GalleryImageSliderRef {
+    pub fn set_image_id(&mut self, cx: &mut Cx, id: i64) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_index(id, cx);
+        }
+    }
 }
