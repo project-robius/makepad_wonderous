@@ -632,8 +632,8 @@ pub struct WonderScreenInner {
 }
 
 impl LiveHook for WonderScreenInner {
-    fn after_apply(&mut self, cx: &mut Cx, from: ApplyFrom, _index: usize, _nodes: &[LiveNode]) {
-        if from.is_from_doc() {
+    fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
+        if apply.from.is_from_doc() {
             self.state = WonderState::Cover;
             self.touch_gesture = TouchGesture::new();
             self.next_frame = cx.new_next_frame();
@@ -645,7 +645,11 @@ impl Widget for WonderScreenInner {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let widget_uid = self.widget_uid();
         if self.previous_state != self.state {
-            cx.widget_action(widget_uid, &scope.path, WonderScreenAction::StateChange(self.state));
+            cx.widget_action(
+                widget_uid,
+                &scope.path,
+                WonderScreenAction::StateChange(self.state),
+            );
             self.previous_state = self.state;
         }
 
@@ -696,9 +700,12 @@ impl WonderScreenInner {
             // TODO it is hard to access to set_visible in the "view parent" of the custom widget
             let mut content = self.wonder_content(id!(content));
             content.show(cx);
-            content.apply_over(cx, live!{
-                visible: true
-            });
+            content.apply_over(
+                cx,
+                live! {
+                    visible: true
+                },
+            );
 
             self.state = WonderState::Title;
             self.reset_all_positions(cx);
@@ -737,9 +744,12 @@ impl WonderScreenInner {
             right_image.redraw(cx);
 
             let vertical_fading_bar = self.view(id!(vertical_fading_bar));
-            vertical_fading_bar.apply_over(cx, live!{
-                draw_bg: {opacity: (delta / 60.)},
-            });
+            vertical_fading_bar.apply_over(
+                cx,
+                live! {
+                    draw_bg: {opacity: (delta / 60.)},
+                },
+            );
         }
     }
 
@@ -775,9 +785,12 @@ impl WonderScreenInner {
             // TODO it is hard to access to set_visible in the "view parent" of the custom widget
             let mut content = self.wonder_content(id!(content));
             content.hide(cx);
-            content.apply_over(cx, live!{
-                visible: false
-            });
+            content.apply_over(
+                cx,
+                live! {
+                    visible: false
+                },
+            );
 
             self.touch_gesture.stop();
             self.touch_gesture.scroll_offset = 0.0;
@@ -899,9 +912,12 @@ impl WonderScreenInner {
                 right_image.redraw(cx);
 
                 let vertical_fading_bar = self.view(id!(vertical_fading_bar));
-                vertical_fading_bar.apply_over(cx, live!{
-                    draw_bg: {opacity: 0.0},
-                });
+                vertical_fading_bar.apply_over(
+                    cx,
+                    live! {
+                        draw_bg: {opacity: 0.0},
+                    },
+                );
             }
             WonderState::Title => {
                 let subtitle_group = self.view(id!(subtitle_group));
