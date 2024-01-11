@@ -65,15 +65,15 @@ live_design! {
                 }
 
                 horizontal = {
-                    from: {all: Forward {duration: 0.1}}
+                    from: {all: Forward {duration: 0.2}}
                     apply: {image_offset: vec2(270., 0.)}
                 }
                 vertical = {
-                    from: {all: Forward {duration: 0.1}}
+                    from: {all: Forward {duration: 0.2}}
                     apply: {image_offset: vec2(0., 420.)}
                 }
                 diagonal = {
-                    from: {all: Forward {duration: 0.1}}
+                    from: {all: Forward {duration: 0.2}}
                     apply: {image_offset: vec2(270., 420.)}
                 }
 
