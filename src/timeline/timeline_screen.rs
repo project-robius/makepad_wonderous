@@ -55,9 +55,112 @@ live_design! {
         }
     }
 
+    ContentItem = <View> {
+        width: Fill,
+        height: 120,
+
+        show_bg: true,
+        draw_bg: {
+            color: #333
+        }
+
+        spacing: 10.0
+        padding: 10.0
+
+        year_wrapper = <View> {
+            width: 100,
+            height: Fit,
+
+            flow: Down,
+            spacing: 5.0
+
+            year_label = <Label> {
+                draw_text: {
+                    text_style: <INTRO_SUBTITLE>{font_size: 12},
+                    color: #fff
+                }
+            }
+            year_label_2 = <Label> {
+                draw_text: {
+                    text_style: <REGULAR_TEXT>{font_size: 8},
+                    color: #fff
+                }
+                text: "BCE"
+            }
+        }
+        <VerticalLine> {
+            height: Fill,
+            draw_bg: {
+                color: #fff
+            }
+        }
+        content_wrapper = <View> {
+            width: Fill,
+            height: Fit,
+
+            content_label = <Label> {
+                width: Fill,
+
+                draw_text: {
+                    text_style: <REGULAR_TEXT>{font_size: 9},
+                    color: #fff,
+                    wrap: Word,
+                }
+            }
+        }
+    }
+
+    Content = <View> {
+        width: Fill,
+        height: 2000,
+
+        flow: Down,
+        spacing: 20.
+
+        margin: { top: 400. }
+        padding: 20.
+
+        <ContentItem> {
+            year_wrapper = { year_label = { text: "700" }}
+            content_wrapper = { content_label = {
+                text: "First landmark of the Great Wall began originally as a square wall surrounding the state of Chu. Over the years, additional walls would be built and added to it to expand and connect territory."
+            }}
+        }
+        <ContentItem> {
+            year_wrapper = { year_label = { text: "214" }}
+            content_wrapper = { content_label = {
+                text: "The first Qin Emperor unifies China and links the wall of the surrounding states of Qin, Yan, and Zhao into the Great Wall of China, taking 10 years to build with hundreds of thousands of laborers."
+            }}
+        }
+        <ContentItem> {
+            year_wrapper = { year_label = { text: "121" }}
+            content_wrapper = { content_label = {
+                text: "A 20-year construction project was started by the Han emperor to build east and west sections of the wall, including beacons, towers, and castles. Not just for defense, but also to control trade routes like the Silk Road."
+            }}
+        }
+        <ContentItem> {
+            year_wrapper = { year_label = { text: "556" }, year_label_2 = { text: "CE" }}
+            content_wrapper = { content_label = {
+                text: "The Bei Qi kingdom also launched several construction projects, utilizing over 1.8 million workers to repair and extend sections of the wall, adding to its length and even building a second inner wall around Shanxi.."
+            }}
+        }
+        <ContentItem> {
+            year_wrapper = { year_label = { text: "618" }, year_label_2 = { text: "CE" }}
+            content_wrapper = { content_label = {
+                text: "First landmark of the Great Wall began originally as a square wall surrounding the state of Chu. Over the years, additional walls would be built and added to it to expand and connect territory."
+            }}
+        }
+        <ContentItem> {
+            year_wrapper = { year_label = { text: "1487" }, year_label_2 = { text: "CE" }}
+            content_wrapper = { content_label = {
+                text: "Hongzhi Emperor split the walls into north and south lines, eventually shaping it into how it is today. Since then, it has gradually fallen into disrepair and remains mostly unused."
+            }}
+        }
+    }
+
     TimelineScreen = <View> {
         width: Fill, height: Fill
-        flow: Right,
+        flow: Overlay,
 
         show_bg: true,
         draw_bg: {
@@ -67,5 +170,6 @@ live_design! {
         <Header> {
             margin: { top: 50. }
         }
+        <Content> {}
     }
 }
