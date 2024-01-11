@@ -54,10 +54,10 @@ live_design! {
                             margin: 0.0,
                             padding: 0.0
 
-                            tab1_frame = <WonderScreen> {visible: false}
+                            tab1_frame = <WonderScreen> {visible: true}
                             tab2_frame = <GalleryScreen> {visible: false}
                             tab3_frame = <ArtifactsScreen> {visible: false}
-                            tab4_frame = <TimelineScreen> {visible: true}
+                            tab4_frame = <TimelineScreen> {visible: false}
                         }
 
                         mobile_menu = <RoundedView> {
@@ -71,6 +71,7 @@ live_design! {
                             }
                             mobile_modes = <View> {
                                 tab1 = <AppTab> {
+                                    animator: {selected = {default: on}}
                                     draw_icon: {
                                         svg_file: (ICON_WONDER),
                                         fn get_color(self) -> vec4 {
@@ -116,7 +117,6 @@ live_design! {
                                     flow: Down, spacing: 5.0, align: {x: 0.5, y: 0.5}
                                 }
                                 tab4 = <AppTab> {
-                                    animator: {selected = {default: on}}
                                     draw_icon: {
                                         svg_file: (ICON_TIMELINE),
                                         fn get_color(self) -> vec4 {
