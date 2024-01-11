@@ -1,4 +1,7 @@
 use makepad_widgets::*;
+use crate::shared::touch_gesture::*;
+
+const CONTENT_LENGTH: f64 = 800.;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -57,7 +60,7 @@ live_design! {
 
     ContentItem = <View> {
         width: Fill,
-        height: 120,
+        height: 140,
 
         show_bg: true,
         draw_bg: {
@@ -120,6 +123,23 @@ live_design! {
         margin: { top: 400. }
         padding: 20.
 
+        show_bg: true,
+        draw_bg: {
+            color: #222
+        }
+
+        align: { x: 0.5, y: 0 }
+
+        <RoundedView> {
+            width: 40,
+            height: 6,
+
+            draw_bg: {
+                color: #aaa
+                radius: 2.
+            }
+        }
+
         <ContentItem> {
             year_wrapper = { year_label = { text: "700" }}
             content_wrapper = { content_label = {
@@ -158,7 +178,7 @@ live_design! {
         }
     }
 
-    TimelineScreen = <View> {
+    TimelineScreen = {{TimelineScreen}} {
         width: Fill, height: Fill
         flow: Overlay,
 
@@ -170,6 +190,42 @@ live_design! {
         <Header> {
             margin: { top: 50. }
         }
-        <Content> {}
+        content = <Content> {}
+    }
+}
+
+#[derive(Live, Widget)]
+pub struct TimelineScreen {
+    #[deref]
+    view: View,
+
+    #[rust]
+    touch_gesture: TouchGesture,
+}
+
+impl LiveHook for TimelineScreen {
+    fn after_apply_from(&mut self, _cx: &mut Cx, apply: &mut Apply) {
+        if apply.from.is_from_doc() {
+            self.touch_gesture = TouchGesture::new();
+            self.touch_gesture.reset(0.0, 0.0, CONTENT_LENGTH, ScrollMode::Swipe);
+        }
+    }
+}
+
+impl Widget for TimelineScreen {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope);
+
+        self.touch_gesture.handle_event(cx, event, self.view.area());
+
+        let content_margin = 400. - self.touch_gesture.scroll_offset;
+        self.apply_over(cx, live! { content = { margin: { top: (content_margin) }}});
+
+        // TODO avoid calling redraw all the time
+        self.redraw(cx);
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
     }
 }
