@@ -12,6 +12,10 @@ live_design! {
 
     IMG_HEADER = dep("crate://self/resources/images/great-wall-flattened.jpg")
 
+    BACKGROUND_COLOR = #222
+    BACKGROUND_ITEM_COLOR = #333
+
+
     Header = <FadeView> {
         flow: Overlay,
         width: Fill,
@@ -68,7 +72,7 @@ live_design! {
 
         show_bg: true,
         draw_bg: {
-            color: #333
+            color: (BACKGROUND_ITEM_COLOR)
         }
 
         spacing: 10.0
@@ -129,7 +133,7 @@ live_design! {
 
         show_bg: true,
         draw_bg: {
-            color: #222
+            color: (BACKGROUND_COLOR)
         }
 
         align: { x: 0.5, y: 0 }
@@ -254,23 +258,57 @@ live_design! {
         <ChartBottom> {}
     }
 
-    TimelineScreen = {{TimelineScreen}} {
+    TimelineScreenInner = {{TimelineScreenInner}} {
         width: Fill, height: Fill
         flow: Overlay,
 
         show_bg: true,
         draw_bg: {
-            color: #222
+            color: (BACKGROUND_COLOR)
         }
 
         header = <Header> { margin: { top: 50. } }
         <Chart> { margin: { top: 320. }}
         content = <Content> {}
+
+    }
+
+    TimelineScreen = <View> {
+        width: Fill, height: Fill
+        flow: Down,
+
+        show_bg: true,
+        draw_bg: {
+            color: (BACKGROUND_COLOR)
+        }
+
+        <TimelineScreenInner> {}
+        <View> {
+            height: Fit,
+            margin: 20,
+
+            <Button> {
+                width: Fill,
+                height: 50,
+                text: "OPEN GLOBAL TIMELINE",
+                draw_text: {
+                    text_style: {
+                        font_size: 9.0
+                    }
+
+                    fn get_color(self) -> vec4 {
+                        return #fff
+                    }
+                }
+
+                draw_bg: { bodytop: (BACKGROUND_ITEM_COLOR), bodybottom: (BACKGROUND_ITEM_COLOR) }
+            }
+        }
     }
 }
 
 #[derive(Live, Widget)]
-pub struct TimelineScreen {
+pub struct TimelineScreenInner {
     #[deref]
     view: View,
 
@@ -278,7 +316,7 @@ pub struct TimelineScreen {
     touch_gesture: TouchGesture,
 }
 
-impl LiveHook for TimelineScreen {
+impl LiveHook for TimelineScreenInner {
     fn after_apply_from(&mut self, _cx: &mut Cx, apply: &mut Apply) {
         if apply.from.is_from_doc() {
             self.touch_gesture = TouchGesture::new();
@@ -287,7 +325,7 @@ impl LiveHook for TimelineScreen {
     }
 }
 
-impl Widget for TimelineScreen {
+impl Widget for TimelineScreenInner {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
 
