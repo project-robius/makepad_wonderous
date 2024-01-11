@@ -6,81 +6,18 @@ const CONTENT_LENGTH: f64 = 800.;
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
-    import makepad_draw::shader::std::*;
 
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
 
     IMG_HEADER = dep("crate://self/resources/images/great-wall-flattened.jpg")
 
-    Header = <CachedView> {
+    Header = <View> {
         flow: Overlay,
         width: Fill,
         height: 340,
 
         align: { x: 0.5, y: 0 }
-
-        draw_bg: {
-            instance blur_radius: 0.0
-
-            varying radius: float
-            varying initial_offset: vec2
-            varying step_delta: vec2
-
-            fn get_color_pos(self, pos: vec2) -> vec4 {
-                let color = sample2d_rt(self.image, pos);
-                return Pal::premul(vec4(color.xyz, color.w))
-            }
-
-            fn coeffs(i: float) -> float {
-                if i - 0.1 < 0.0 { return 0.0369543295325685 }
-                else if i - 0.1 < 1.0 { return 0.05707225834646017 }
-                else if i - 0.1 < 2.0 { return 0.08056214824901288 }
-                else if i - 0.1 < 3.0 { return 0.10394046353380644 }
-                else if i - 0.1 < 4.0 { return 0.1279319631769404 }
-                else if i - 0.1 < 5.0 { return 0.14953785857076586 }
-                else if i - 0.1 < 6.0 { return 0.13014234492770832 }
-                else if i - 0.1 < 7.0 { return 0.11718098483901983 }
-                else if i - 0.1 < 8.0 { return 0.10394046353380644 }
-                else if i - 0.1 < 9.0 { return 0.0885838874611158 }
-                else if i - 0.1 < 10.0 { return 0.07253844158670234 }
-                else if i - 0.1 < 11.0 { return 0.04987059658718462 }
-                else { return 0.0; }
-            }
-
-            fn vertex(self) -> vec4 {
-                self.radius = self.blur_radius / 10000.0 * self.rect_size.x;
-                self.initial_offset = vec2(-16.0 / self.rect_size.x, -16.0 / self.rect_size.y);
-                self.step_delta = vec2(3.0 / self.rect_size.x, 3.0 / self.rect_size.y);
-
-                return self.clip_and_transform_vertex(self.rect_pos, self.rect_size * 2.0)
-            }
-
-            fn pixel(self) -> vec4 {
-                let color = vec4(0.0, 0.0, 0.0, 0.0);
-                let pos = self.pos;
-                let i = 0.0;
-                let j = 0.0;
-
-                let posx = self.initial_offset.x;
-                let posy = self.initial_offset.y;
-                for step in 0..11 {
-                    j = 0.0;
-                    posy = self.initial_offset.y;
-                    for b in 0..11 {
-                        pos = self.pos + vec2(posx, posy) * self.radius;
-                        color += self.get_color_pos(pos) * coeffs(i) * coeffs(j);
-
-                        posy += self.step_delta.x;
-                        j += 1.0;
-                    }
-                    posx += self.step_delta.y;
-                    i += 1.0;
-                }
-
-                return color;
-            }
-        }
 
         <CenteredOnTop> {
             source: (IMG_HEADER),
@@ -123,7 +60,7 @@ live_design! {
 
     ContentItem = <View> {
         width: Fill,
-        height: 120,
+        height: 140,
 
         show_bg: true,
         draw_bg: {
@@ -134,7 +71,7 @@ live_design! {
         padding: 10.0
 
         year_wrapper = <View> {
-            width: 70,
+            width: 100,
             height: Fit,
 
             flow: Down,
@@ -250,7 +187,9 @@ live_design! {
             color: #222
         }
 
-        header = <Header> { margin: { top: 50. }}
+        <Header> {
+            margin: { top: 50. }
+        }
         content = <Content> {}
     }
 }
@@ -279,13 +218,8 @@ impl Widget for TimelineScreen {
 
         self.touch_gesture.handle_event(cx, event, self.view.area());
 
-        let header_blur = min(6.0, self.touch_gesture.scroll_offset / 30.);
         let content_margin = 400. - self.touch_gesture.scroll_offset;
-
-        self.apply_over(cx, live! {
-            header = { draw_bg: { blur_radius: (header_blur)} }
-            content = { margin: { top: (content_margin) }}
-        });
+        self.apply_over(cx, live! { content = { margin: { top: (content_margin) }}});
 
         // TODO avoid calling redraw all the time
         self.redraw(cx);
