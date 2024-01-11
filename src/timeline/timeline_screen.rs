@@ -182,6 +182,78 @@ live_design! {
         }
     }
 
+    ChartItem = <RoundedView> {
+        width: 10,
+        height: 11,
+
+        draw_bg: {
+            border_color: #aaa
+            border_width: 1.
+            radius: 2.
+        }
+    }
+
+    ChartRow = <View> {
+        width: Fill,
+        height: Fit,
+        spacing: 2.0
+    }
+
+    ChartBottom = <View> {
+        width: Fill,
+        height: Fit,
+        margin: { top: 10. }
+        align: { x: 0.5, y: 0 }
+
+        <Label> {
+            draw_text: {
+                text_style: <REGULAR_TEXT>{font_size: 10},
+                color: #ccc
+            }
+            text: "700 BCE to 1487   •  CE Prehistory"
+        }
+    }
+
+    Chart = <View> {
+        width: Fill,
+        height: Fit,
+        flow: Down,
+        padding: 10,
+        spacing: 5,
+
+        <ChartRow> {
+            <View> { width: 170, height: 1 }
+            <ChartItem> {}
+            <View> { width: 30, height: 1 }
+            <ChartItem> { width: 80 }
+            <ChartItem> {}
+        }
+        <ChartRow> {
+            <View> { width: 148, height: 1 }
+            <ChartItem> { width: 30 }
+            <View> { width: 110, height: 1 }
+            <ChartItem> {}
+        }
+        <ChartRow> {
+            <View> { width: 10, height: 1 }
+            <ChartItem> {}
+            <View> { width: 130, height: 1 }
+            <ChartItem> {
+                width: 170
+                draw_bg: {
+                    color: #6dc26e
+                    border_color: #6dc26e
+                    border_width: 1.
+                    radius: 2.
+                }
+            }
+            <View> { width: 10, height: 1 }
+            <ChartItem> {}
+        }
+
+        <ChartBottom> {}
+    }
+
     TimelineScreen = {{TimelineScreen}} {
         width: Fill, height: Fill
         flow: Overlay,
@@ -192,6 +264,7 @@ live_design! {
         }
 
         header = <Header> { margin: { top: 50. } }
+        <Chart> { margin: { top: 320. }}
         content = <Content> {}
     }
 }
