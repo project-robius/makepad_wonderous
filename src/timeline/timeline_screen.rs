@@ -12,12 +12,16 @@ live_design! {
 
     IMG_HEADER = dep("crate://self/resources/images/great-wall-flattened.jpg")
 
-    Header = <View> {
+    Header = <FadeView> {
         flow: Overlay,
         width: Fill,
         height: 340,
 
         align: { x: 0.5, y: 0 }
+
+        draw_bg: {
+            opacity: 1.0,
+        }
 
         <CenteredOnTop> {
             source: (IMG_HEADER),
@@ -187,9 +191,7 @@ live_design! {
             color: #222
         }
 
-        <Header> {
-            margin: { top: 50. }
-        }
+        header = <Header> { margin: { top: 50. } }
         content = <Content> {}
     }
 }
@@ -218,8 +220,13 @@ impl Widget for TimelineScreen {
 
         self.touch_gesture.handle_event(cx, event, self.view.area());
 
+        let header_opacity = clamp(1.0 - self.touch_gesture.scroll_offset / 200.0, 0.5, 1.0);
         let content_margin = 400. - self.touch_gesture.scroll_offset;
-        self.apply_over(cx, live! { content = { margin: { top: (content_margin) }}});
+
+        self.apply_over(cx, live! {
+            header = { draw_bg: { opacity: (header_opacity) }}
+            content = { margin: { top: (content_margin) }}
+        });
 
         // TODO avoid calling redraw all the time
         self.redraw(cx);
