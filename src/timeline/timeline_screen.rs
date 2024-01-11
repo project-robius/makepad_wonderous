@@ -329,18 +329,17 @@ impl Widget for TimelineScreenInner {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
 
-        self.touch_gesture.handle_event(cx, event, self.view.area());
+        if self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
+            let header_opacity = clamp(1.0 - self.touch_gesture.scroll_offset / 200.0, 0.5, 1.0);
+            let content_margin = 400. - self.touch_gesture.scroll_offset;
 
-        let header_opacity = clamp(1.0 - self.touch_gesture.scroll_offset / 200.0, 0.5, 1.0);
-        let content_margin = 400. - self.touch_gesture.scroll_offset;
+            self.apply_over(cx, live! {
+                header = { draw_bg: { opacity: (header_opacity) }}
+                content = { margin: { top: (content_margin) }}
+            });
 
-        self.apply_over(cx, live! {
-            header = { draw_bg: { opacity: (header_opacity) }}
-            content = { margin: { top: (content_margin) }}
-        });
-
-        // TODO avoid calling redraw all the time
-        self.redraw(cx);
+            self.redraw(cx);
+        }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
