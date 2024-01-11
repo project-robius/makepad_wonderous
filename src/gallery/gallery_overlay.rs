@@ -92,6 +92,7 @@ pub struct GalleryOverlay {
 impl Widget for GalleryOverlay {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
+        self.animator_handle_event(cx, event);
 
         match event.hits(cx, self.view.area()) {
             Hit::FingerMove(fe) => {
@@ -125,7 +126,7 @@ impl Widget for GalleryOverlay {
             Hit::FingerUp(_fe) => self.ready_to_swipe = true,
             _ => {}
         }
-        self.animator_handle_event(cx, event);
+
         self.update_animation(cx);
     }
 

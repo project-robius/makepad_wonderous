@@ -1,15 +1,7 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
-use crate::shared::stack_view_action::StackViewAction;
-
-use super::{
-    gallery_image::{GalleryImage, GalleryImageId, IMAGE_HEIGHT, IMAGE_WIDTH},
-    slider_image::{SliderImage, SliderImageId},
-};
-
-pub const SLIDER_IMAGE_WIDTH: f64 = 374.;
-pub const SLIDER_IMAGE_HEIGHT: f64 = 412.2;
+use super::gallery_image::{GalleryImage, GalleryImageId};
 
 live_design! {
     import makepad_widgets::base::*;
@@ -18,11 +10,7 @@ live_design! {
 
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
-    // import crate::gallery::gallery_image::*;
-    import crate::gallery::slider_image::*;
-    import crate::gallery::gallery_overlay::*;
-
-    IMG_CONTENT = dep("crate://self/resources/images/great-wall-content-1.jpg")
+    import crate::gallery::gallery_image::*;
 
     GalleryImageSlider = {{GalleryImageSlider}} {
         width: Fill, height: Fill
@@ -54,8 +42,12 @@ live_design! {
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
         ]
 
-        gallery_image_template: <SliderImage> {
-
+        gallery_image_template: <GalleryImage> {
+            image: {
+                draw_bg: {
+                    instance radius: 0.
+                }
+            }
         }
 
     }
@@ -79,10 +71,8 @@ pub struct GalleryImageSlider {
     #[redraw]
     area: Area,
     #[rust]
-    images: ComponentMap<SliderImageId, SliderImage>,
+    images: ComponentMap<GalleryImageId, GalleryImage>,
 
-    #[rust]
-    grid_size: i64,
     #[rust]
     current_index: i64,
     #[rust]
@@ -101,12 +91,11 @@ impl LiveHook for GalleryImageSlider {
     }
 
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        self.grid_size = 5;
-        self.image_count = self.grid_size.pow(2);
+        self.image_count = self.images_deps.len() as i64;
         self.ready_to_swipe = true;
-        for i in 0..self.grid_size.pow(2) {
+        for i in 0..self.image_count {
             let image_id = LiveId(i as u64).into();
-            let new_image = SliderImage::new_from_ptr(cx, self.gallery_image_template);
+            let new_image = GalleryImage::new_from_ptr(cx, self.gallery_image_template);
 
             self.images.insert(image_id, new_image);
         }
@@ -115,22 +104,31 @@ impl LiveHook for GalleryImageSlider {
 
 impl Widget for GalleryImageSlider {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.handle_click_and_swipe(cx, event, scope);
+        self.handle_swipe(cx, event, scope);
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(walk, self.layout);
         let start_pos = cx.turtle().size() / dvec2(2., 2.);
-        let image_width = cx.turtle().size().x;
-        let image_height = cx.turtle().size().y * 0.7;
-        let padding = 20.;
-        let image_offset = self.calculate_current_offset(padding, image_width, image_height);
+
+        // Set image size to fit screen if it small enough, else set it fixed
+
+        let image_width = if cx.turtle().size().x < 450. {
+            cx.turtle().size().x
+        } else {
+            450.
+        };
+        let image_height = if cx.turtle().size().y * 0.7 < 520. {
+            cx.turtle().size().y * 0.7
+        } else {
+            520.
+        };
+
+        let padding = 0.;
+        let image_offset = self.calculate_current_offset(padding, image_width);
         let padded_image_width = image_width + padding;
-        let padded_image_height = image_height + padding;
         for (image_id, gallery_image) in self.images.iter_mut() {
             let image_idu64 = image_id.0.get_value();
-            let col = (image_idu64 % self.grid_size as u64) as f64;
-            let row = (image_idu64 / self.grid_size as u64) as f64;
 
             let mut pos = start_pos
                 + dvec2(
@@ -143,6 +141,7 @@ impl Widget for GalleryImageSlider {
                 _ => Some(self.images_deps[image_idu64 as usize].as_str()),
             } {
                 gallery_image.set_path(image_path.to_owned());
+                gallery_image.set_size(dvec2(image_width, image_height));
             }
 
             gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));
@@ -154,19 +153,16 @@ impl Widget for GalleryImageSlider {
 }
 
 impl GalleryImageSlider {
-    fn calculate_current_offset(&self, padding: f64, width: f64, height: f64) -> DVec2 {
+    fn calculate_current_offset(&self, padding: f64, width: f64) -> DVec2 {
         let padded_image_width = width + padding;
 
-        let col = (self.current_index % self.grid_size) as f64;
-        let row = (self.current_index / self.grid_size) as f64;
         let indexed_offset = dvec2((-padded_image_width) * self.current_index as f64, 0.);
 
         return indexed_offset;
     }
 
-    fn handle_click_and_swipe(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let swipe_trigger_value = 60.;
-        let diagonal_trigger_value = swipe_trigger_value / 2.;
         match event.hits_with_capture_overload(cx, self.area, true) {
             Hit::FingerMove(fe) => {
                 let mut swipe_vector = fe.abs - fe.abs_start;
@@ -184,14 +180,12 @@ impl GalleryImageSlider {
 
                     let mut new_index = self.current_index;
 
-                    // compensate diagonal swipe case (both trigger the diagonal value)
-                    if swipe_vector.x.abs() > diagonal_trigger_value {
+                    if swipe_vector.x.abs() > swipe_trigger_value {
                         new_index += if swipe_vector.x > 0. { -1 } else { 1 };
-                        // play animations (shrink overlay)
                     }
                     // Handle prohibited swipe cases
                     // keep the index in range
-                    if new_index < 0 || new_index > self.grid_size.pow(2) - 1 {
+                    if new_index < 0 || new_index > self.image_count - 1 {
                         return;
                     }
                     self.set_index(new_index, cx);

@@ -185,7 +185,6 @@ impl LiveRegister for App {
         crate::gallery::gallery_image::live_design(cx);
         crate::gallery::gallery_overlay::live_design(cx);
         crate::gallery::gallery_image_slider::live_design(cx);
-        crate::gallery::slider_image::live_design(cx);
 
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);

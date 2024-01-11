@@ -59,23 +59,7 @@ live_design! {
                         color: #fff;
                     }
                 }
-                divider = <View> {
-                    width: Fill, height: Fit
-                    right_button = <Button> {
-                        width: Fit, height: 68
-                        icon_walk: {width: 20, height: 68}
-                        draw_bg: {
-                            fn pixel(self) -> vec4 {
-                                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                                return sdf.result
-                            }
-                        }
-                        draw_icon: {
-                            color: #000;
-                            brightness: 0.8;
-                        }
-                    }
-                }
+
             }
         }
     }

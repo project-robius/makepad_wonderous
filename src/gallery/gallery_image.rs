@@ -1,15 +1,16 @@
 use makepad_widgets::{image_cache::ImageCacheImpl, *};
-pub const IMAGE_WIDTH: f64 = 250.;
-pub const IMAGE_HEIGHT: f64 = 400.;
 
 live_design! {
-    import makepad_draw::shader::std::*;
     import makepad_widgets::base::*;
+    import makepad_widgets::theme_desktop_dark::*;
+    import makepad_draw::shader::std::*;
 
     GalleryImage = {{GalleryImage}} {
-        image: <RotatedImage> {
+        image: <Image> {
             draw_bg: {
                 instance radius: 3.
+                instance scale: 0.0
+                instance down: 0.0
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                     sdf.box(
@@ -19,7 +20,11 @@ live_design! {
                         self.rect_size.y - 2.0,
                         max(1.0, self.radius)
                     )
-                    sdf.fill_keep(self.get_color())
+                    let max_scale = vec2(1.1);
+                    let scale = mix(vec2(1.0), max_scale, self.scale);
+                    let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.scale);
+                    let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
+                    sdf.fill_keep(color);
                     return sdf.result
                 }
             }
@@ -28,14 +33,18 @@ live_design! {
         animator: {
             zoom = {
                 default: off
-                on = {
-                    from: {all: Forward {duration: 0.3}}
+                off = {
+                    from: {
+                        all: Forward {duration: 0.3}
+                    }
                     apply: {
-                        image: { draw_bg: {scale: 1.1} }
+                        image: {draw_bg: {scale: 0.0}}
                     }
                 }
-                off = {
-                    from: {all: Forward {duration: 0.3}}
+                on = {
+                    from: {
+                        all: Forward {duration: 0.3}
+                    }
                     apply: {
                         image: { draw_bg: {scale: 1.0} }
                     }
@@ -47,7 +56,8 @@ live_design! {
 
 #[derive(Live, LiveHook, Widget)]
 pub struct GalleryImage {
-    #[live] #[redraw]
+    #[live]
+    #[redraw]
     draw_bg: DrawQuad,
     #[live]
     image: Image,
@@ -61,6 +71,8 @@ pub struct GalleryImage {
     animator: Animator,
     #[rust]
     path: String,
+    #[rust]
+    size: DVec2,
 }
 
 #[derive(Clone, Debug, Default, Eq, Hash, Copy, PartialEq, FromLiveId)]
@@ -84,9 +96,13 @@ impl GalleryImage {
         self.path = path;
     }
 
+    pub fn set_size(&mut self, size: DVec2) {
+        self.size = size;
+    }
+
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
-        let bg_width = Size::Fixed(IMAGE_WIDTH);
-        let bg_height = Size::Fixed(IMAGE_HEIGHT);
+        let bg_width = Size::Fixed(self.size.x);
+        let bg_height = Size::Fixed(self.size.y);
         self.image.load_image_dep_by_path(cx, &self.path);
         _ = self
             .image
