@@ -17,8 +17,8 @@ live_design! {
         show_bg: true
         draw_bg: {
             instance radius: 3.;
-            instance crop_width: 250.;
-            instance crop_height: 400.;
+            instance crop_width: 270.;
+            instance crop_height: 430.;
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                 sdf.box(
@@ -48,30 +48,30 @@ live_design! {
             shrink_horizontally = {
                 default: off
                 on = {
-                    from: {all: Forward {duration: 0.1}}
+                    from: {all: Forward {duration: 0.075}}
                     apply: {
                         draw_bg: {crop_width: 170}
                     }
                 }
                 off = {
-                    from: {all: Forward {duration: 0.1}}
+                    from: {all: Forward {duration: 0.075}}
                     apply: {
-                        draw_bg: {crop_width: 250}
+                        draw_bg: {crop_width: 270}
                     }
                 }
             }
             shrink_vertically = {
                 default: off
                 on = {
-                    from: {all: Forward {duration: 0.1}}
+                    from: {all: Forward {duration: 0.075}}
                     apply: {
                         draw_bg: {crop_height: 320}
                     }
                 }
                 off = {
-                    from: {all: Forward {duration: 0.1}}
+                    from: {all: Forward {duration: 0.075}}
                     apply: {
-                        draw_bg: {crop_height: 400}
+                        draw_bg: {crop_height: 430}
                     }
                 }
             }
@@ -105,11 +105,15 @@ impl Widget for GalleryOverlay {
                 swipe_vector.y = -swipe_vector.y;
 
                 // only trigger swipe if it is larger than some pixels
-                let swipe_trigger_value = 60.;
+                let swipe_trigger_value = 40.;
                 let diagonal_trigger_value = swipe_trigger_value / 2.;
+
                 if (swipe_vector.x.abs() > swipe_trigger_value)
                     || (swipe_vector.y.abs() > swipe_trigger_value)
                 {
+                    if !self.ready_to_swipe {
+                        return;
+                    }
                     // compensate diagonal swipe case (both trigger the diagonal value)
                     if swipe_vector.x.abs() > diagonal_trigger_value {
                         // play animations (shrink overlay)

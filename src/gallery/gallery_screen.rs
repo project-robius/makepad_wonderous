@@ -5,8 +5,8 @@ use crate::shared::stack_view_action::StackViewAction;
 
 use super::gallery_image::{GalleryImage, GalleryImageId};
 
-pub const IMAGE_WIDTH: f64 = 250.;
-pub const IMAGE_HEIGHT: f64 = 400.;
+pub const IMAGE_WIDTH: f64 = 270.;
+pub const IMAGE_HEIGHT: f64 = 430.;
 pub const IMAGE_PADDING: f64 = 20.;
 
 live_design! {
@@ -54,7 +54,7 @@ live_design! {
         gallery_image_template: <GalleryImage> {}
 
         // This values are hardcoded from the width and height of the image
-        image_offset = dvec2(270., 420.)
+        image_offset = vec2(290., 450.)
 
         animator: {
             swipe = {
@@ -65,16 +65,16 @@ live_design! {
                 }
 
                 horizontal = {
-                    from: {all: Forward {duration: 0.2}}
-                    apply: {image_offset: vec2(270., 0.)}
+                    from: {all: Forward {duration: 0.15}}
+                    apply: {image_offset: vec2(290., 0.)}
                 }
                 vertical = {
-                    from: {all: Forward {duration: 0.2}}
-                    apply: {image_offset: vec2(0., 420.)}
+                    from: {all: Forward {duration: 0.15}}
+                    apply: {image_offset: vec2(0., 450.)}
                 }
                 diagonal = {
-                    from: {all: Forward {duration: 0.2}}
-                    apply: {image_offset: vec2(270., 420.)}
+                    from: {all: Forward {duration: 0.15}}
+                    apply: {image_offset: vec2(290., 450.)}
                 }
 
                 reset = {
@@ -232,10 +232,7 @@ impl Gallery {
             -(IMAGE_HEIGHT + IMAGE_PADDING) * previous_row,
         );
 
-        let padded_size = dvec2(
-            (IMAGE_WIDTH + IMAGE_PADDING),
-            (IMAGE_HEIGHT + IMAGE_PADDING),
-        );
+        let padded_size = dvec2(IMAGE_WIDTH + IMAGE_PADDING, IMAGE_HEIGHT + IMAGE_PADDING);
 
         let progress = self.image_offset / padded_size;
 
@@ -261,10 +258,10 @@ impl Gallery {
 
     // TODO: Abstract this in a wrapper, so we keep the logic in one place for this and the overlay
     fn handle_click_and_swipe(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        let swipe_trigger_value = 60.;
-        let diagonal_trigger_value = swipe_trigger_value / 2.;
         match event.hits_with_capture_overload(cx, self.area, true) {
             Hit::FingerMove(fe) => {
+                let swipe_trigger_value = 40.;
+                let diagonal_trigger_value = swipe_trigger_value / 2.;
                 let mut swipe_vector = fe.abs - fe.abs_start;
                 // Negate y values because makepad's y axis grows to the south
                 swipe_vector.y = -swipe_vector.y;
@@ -332,6 +329,7 @@ impl Gallery {
             }
             Hit::FingerUp(fe) => {
                 let mut swipe_vector = fe.abs - fe.abs_start;
+                let click_trigger_value = 10.;
                 // Negate y values because makepad's y axis grows to the south
                 swipe_vector.y = -swipe_vector.y;
 
@@ -346,8 +344,8 @@ impl Gallery {
                     && center_image.y <= fe.abs_start.y
                     && fe.abs_start.y <= center_image.y + IMAGE_HEIGHT;
 
-                if swipe_vector.x.abs() < swipe_trigger_value
-                    && swipe_vector.y.abs() < swipe_trigger_value
+                if swipe_vector.x.abs() < click_trigger_value
+                    && swipe_vector.y.abs() < click_trigger_value
                     && is_clicking_center_image
                 {
                     let widget_uid = self.widget_uid();

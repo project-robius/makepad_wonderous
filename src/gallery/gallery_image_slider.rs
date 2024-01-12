@@ -161,7 +161,7 @@ impl GalleryImageSlider {
         return indexed_offset;
     }
 
-    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
         let swipe_trigger_value = 60.;
         match event.hits_with_capture_overload(cx, self.area, true) {
             Hit::FingerMove(fe) => {
@@ -193,7 +193,7 @@ impl GalleryImageSlider {
                     self.ready_to_swipe = false;
                 }
             }
-            Hit::FingerUp(fe) => {
+            Hit::FingerUp(_fe) => {
                 // Reset variable for swiping
                 self.ready_to_swipe = true;
             }
