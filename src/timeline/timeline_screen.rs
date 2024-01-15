@@ -1,4 +1,3 @@
-use crate::shared::touch_gesture::*;
 use makepad_widgets::*;
 
 const CONTENT_LENGTH: f64 = 800.;
@@ -10,6 +9,8 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
 
+    import crate::shared::scrolleable_panel::*;
+
     IMG_HEADER = dep("crate://self/resources/images/great-wall-flattened.jpg")
 
     BACKGROUND_COLOR = #222
@@ -19,7 +20,7 @@ live_design! {
     Header = <FadeView> {
         flow: Overlay,
         width: Fill,
-        height: 340,
+        height: 254,
 
         align: { x: 0.5, y: 0 }
 
@@ -122,31 +123,11 @@ live_design! {
     }
 
     Content = <View> {
+        flow: Down,
+        spacing: 20,
+
         width: Fill,
         height: 2000,
-
-        flow: Down,
-        spacing: 20.
-
-        margin: { top: 400. }
-        padding: 20.
-
-        show_bg: true,
-        draw_bg: {
-            color: (BACKGROUND_COLOR)
-        }
-
-        align: { x: 0.5, y: 0 }
-
-        <RoundedView> {
-            width: 40,
-            height: 6,
-
-            draw_bg: {
-                color: #aaa
-                radius: 2.
-            }
-        }
 
         <ContentItem> {
             year_wrapper = { year_label = { text: "700" }}
@@ -267,9 +248,29 @@ live_design! {
             color: (BACKGROUND_COLOR)
         }
 
-        header = <Header> { margin: { top: 50. } }
-        <Chart> { margin: { top: 320. }}
-        content = <Content> {}
+       scrolleable_panel = <ScrolleablePanel> {
+            body = {
+                flow: Down,
+                spacing: 10,
+                header = <Header> { margin: { top: 50. } }
+                <Chart> {}
+            }
+
+            panel = {
+                draw_bg: {
+                    color: (BACKGROUND_COLOR)
+                }
+
+                scroll_handler = {
+                    draw_bg: {
+                        color: #aaa
+                        radius: 2.
+                    }
+                }
+
+                <Content> {}
+            }
+        }
 
     }
 
