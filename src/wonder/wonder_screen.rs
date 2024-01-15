@@ -681,7 +681,9 @@ impl Widget for WonderScreenInner {
 
 impl WonderScreenInner {
     fn handle_event_in_cover_state(&mut self, cx: &mut Cx, event: &Event) {
-        self.touch_gesture.handle_event(cx, event, self.view.area());
+        if !self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
+            return;
+        }
 
         if self.touch_gesture.is_stopped() {
             self.reset_all_positions(cx);
@@ -754,7 +756,9 @@ impl WonderScreenInner {
     }
 
     fn handle_event_in_title_state(&mut self, cx: &mut Cx, event: &Event) {
-        self.touch_gesture.handle_event(cx, event, self.view.area());
+        if !self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
+            return;
+        }
 
         if self.touch_gesture.is_stopped() {
             // TODO rename this!
@@ -822,25 +826,25 @@ impl WonderScreenInner {
     }
 
     fn handle_event_in_content_state(&mut self, cx: &mut Cx, event: &Event) {
-        self.touch_gesture.handle_event(cx, event, self.view.area());
-        let delta = self.touch_gesture.scroll_offset;
-        let is_dragging = self.touch_gesture.is_dragging();
-
-        let action = self
+        if self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
+            let delta = self.touch_gesture.scroll_offset;
+            let is_dragging = self.touch_gesture.is_dragging();
+            let action = self
             .wonder_content(id!(content))
             .scroll(cx, delta, is_dragging);
-        match action {
-            WonderContentAction::Scrolling => {
-                self.update_title_position_on_into_content(cx, delta);
-            }
-            WonderContentAction::Closed => {
-                self.state = WonderState::Title;
-                self.update_title_position_on_into_content(cx, 0.0);
+            match action {
+                WonderContentAction::Scrolling => {
+                    self.update_title_position_on_into_content(cx, delta);
+                }
+                WonderContentAction::Closed => {
+                    self.state = WonderState::Title;
+                    self.update_title_position_on_into_content(cx, 0.0);
 
-                self.touch_gesture
+                    self.touch_gesture
                     .reset(0.0, f64::MIN, f64::MAX, ScrollMode::DragAndDrop);
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 
