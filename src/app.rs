@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
+    gallery::{
+        gallery_image_slider::GalleryImageSliderWidgetRefExt, gallery_screen::GalleryAction,
+    },
     shared::{stack_navigation::StackNavigationWidgetRefExt, stack_view_action::StackViewAction},
     wonder::wonder_screen::{WonderScreenAction, WonderState},
 };
@@ -13,6 +16,7 @@ live_design! {
     import crate::shared::styles::*;
     import crate::wonder::wonder_screen::*;
     import crate::gallery::gallery_screen::*;
+    import crate::gallery::gallery_image_slider::*;
     import crate::artifacts::artifacts_screen::*;
     import crate::timeline::timeline_screen::*;
     import crate::shared::stack_navigation::*;
@@ -136,6 +140,9 @@ live_design! {
                     }
 
                     // Add stack navigations here
+                    gallery_image_slider_stack_view = <StackNavigationView> {
+                        image_slider = <GalleryImageSlider> {}
+                    }
                 }
             }
         }
@@ -161,6 +168,7 @@ impl LiveRegister for App {
         crate::shared::widgets::live_design(cx);
         crate::shared::stack_navigation::live_design(cx);
         crate::shared::curved_label::live_design(cx);
+        crate::shared::helpers::live_design(cx);
 
         // Wonder
         crate::wonder::rotating_title::live_design(cx);
@@ -176,6 +184,7 @@ impl LiveRegister for App {
         crate::gallery::gallery_screen::live_design(cx);
         crate::gallery::gallery_image::live_design(cx);
         crate::gallery::gallery_overlay::live_design(cx);
+        crate::gallery::gallery_image_slider::live_design(cx);
 
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
@@ -192,7 +201,7 @@ impl LiveHook for App {
 }
 
 impl MatchEvent for App {
-    fn handle_actions(&mut self, cx:&mut Cx, actions: &Actions) {
+    fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
         self.ui
             .radio_button_set(ids!(
                 mobile_modes.tab1,
@@ -213,6 +222,7 @@ impl MatchEvent for App {
             );
 
         self.handle_mobile_menu_visibility(&actions);
+        self.handle_selected_gallery_image(cx, &actions);
 
         let mut navigation = self.ui.stack_navigation(id!(navigation));
         navigation.handle_stack_view_actions(cx, &actions, &self.navigation_destinations);
@@ -229,6 +239,10 @@ impl AppMain for App {
 impl App {
     fn init_navigation_destinations(&mut self) {
         self.navigation_destinations = HashMap::new();
+        self.navigation_destinations.insert(
+            StackViewAction::ShowGalleryImageSlider,
+            live_id!(gallery_image_slider_stack_view),
+        );
         // Add stack view actions here
     }
 
@@ -246,12 +260,16 @@ impl App {
         }
 
         // Make background transperent on gallery
-        if self
-            .ui
-            .widget(id!(application_pages.tab2_frame))
-            .is_visible()
-        {
-            // TODO
+    }
+
+    fn handle_selected_gallery_image(&mut self, cx: &mut Cx, actions: &Actions) {
+        for action in actions {
+            if let GalleryAction::Selected(id) = action.as_widget_action().cast() {
+                let stack_navigation = self.ui.stack_navigation(id!(navigation));
+                let mut slider_ref = stack_navigation
+                    .gallery_image_slider(id!(gallery_image_slider_stack_view.image_slider));
+                slider_ref.set_image_id(cx, id);
+            }
         }
     }
 }

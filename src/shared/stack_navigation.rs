@@ -1,11 +1,88 @@
+use crate::shared::stack_view_action::StackViewAction;
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
-use crate::shared::stack_view_action::StackViewAction;
 use std::collections::HashMap;
 
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
+
+    import crate::shared::styles::*;
+    import crate::shared::helpers::FillerX;
+
+    SimpleHeaderContent = <View> {
+        width: Fill, height: Fit
+        flow: Right, align: {x: 0.5, y: 0.5}
+
+        <FillerX> {}
+
+        title_container = <View> {
+            width: Fill, height: Fit
+            align: {x: 0.5, y: 0.5}
+
+            title = <Label> {
+                width: Fit, height: Fit
+                draw_text: {
+                    color: #1f1b18,
+                    text_style: <REGULAR_TEXT>{},
+                },
+                text: ""
+            }
+        }
+    }
+
+    SimpleHeader = <View> {
+        width: Fill , height: Fit, margin: 0
+        padding: {bottom: 7., top: 50.}, align: {x: 0.5, y: 0.0}, spacing: 0.0, flow: Overlay
+        show_bg: true
+        draw_bg: {
+            color: #1f1b18
+        }
+
+        content = <SimpleHeaderContent> {}
+    }
+
+    HeaderWithLeftActionButton = <SimpleHeader> {
+        content = {
+            flow: Overlay
+
+            button_container = <View> {
+                left_button = <Button> {
+                    width: Fit, height: 68
+                    icon_walk: {width: 20, height: 68}
+                    draw_bg: {
+                        fn pixel(self) -> vec4 {
+                            return #1f1b18
+                        }
+                    }
+                    draw_icon: {
+                        color: #fff;
+                    }
+                }
+
+            }
+        }
+    }
+
+    Header = <HeaderWithLeftActionButton> {
+        content = {
+            title_container = {
+                title = {
+                    text: "s"
+                }
+            }
+
+            button_container = {
+                left_button = {
+                    width: Fit
+                    icon_walk: {width: 10}
+                    draw_icon: {
+                        svg_file: dep("crate://self/resources/icons/back.svg")
+                    }
+                }
+            }
+        }
+    }
 
     StackNavigationView = {{StackNavigationView}} {
         visible: false
@@ -13,8 +90,10 @@ live_design! {
         flow: Down
         show_bg: true
         draw_bg: {
-            color: #fff
+            color: #1f1b18
         }
+
+        header = <Header> {}
 
         // TBD Adjust this based on actual screen size
         offset: 400.0
@@ -49,7 +128,7 @@ live_design! {
 #[derive(Live, LiveHook, Widget)]
 pub struct StackNavigationView {
     #[deref]
-    view:View,
+    view: View,
 
     #[live]
     offset: f64,
@@ -59,7 +138,7 @@ pub struct StackNavigationView {
 }
 
 impl Widget for StackNavigationView {
-    fn handle_event(&mut self, cx:&mut Cx, event:&Event, scope:&mut Scope) {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         if self.animator_handle_event(cx, event).is_animating() {
             self.view.redraw(cx);
         }
@@ -76,7 +155,7 @@ impl Widget for StackNavigationView {
         }
     }
 
-    fn draw_walk(&mut self, cx:&mut Cx2d, scope:&mut Scope, walk:Walk) -> DrawStep{
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         self.view.draw_walk(
             cx,
             scope,
@@ -143,16 +222,16 @@ impl Widget for StackNavigation {
         }
     }
 
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep  {
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         for widget_ref in self.get_active_views(cx.cx).iter() {
-            widget_ref.draw_walk(cx, scope, walk) ?;
+            widget_ref.draw_walk(cx, scope, walk)?;
         }
         DrawStep::done()
     }
 }
 
 impl WidgetNode for StackNavigation {
-    fn walk(&mut self, cx:&mut Cx) -> Walk{
+    fn walk(&mut self, cx: &mut Cx) -> Walk {
         self.view.walk(cx)
     }
 
@@ -161,12 +240,11 @@ impl WidgetNode for StackNavigation {
             widget_ref.redraw(cx);
         }
     }
-    
+
     fn find_widgets(&mut self, path: &[LiveId], cached: WidgetCache, results: &mut WidgetSet) {
         self.view.find_widgets(path, cached, results);
     }
 }
-
 
 impl StackNavigation {
     pub fn show_stack_view_by_id(&mut self, stack_view_id: LiveId, cx: &mut Cx) {
@@ -182,7 +260,7 @@ impl StackNavigation {
         match self.active_stack_view {
             ActiveStackView::None => {
                 vec![self.view.widget(id!(root_view))]
-            },
+            }
             ActiveStackView::Active(stack_view_id) => {
                 let stack_view_ref = self.stack_navigation_view(&[stack_view_id]);
                 let mut views = vec![];
@@ -209,7 +287,12 @@ impl StackNavigationRef {
         }
     }
 
-    pub fn handle_stack_view_actions(&mut self, cx: &mut Cx, actions: &Actions, destinations: &HashMap<StackViewAction, LiveId>) {
+    pub fn handle_stack_view_actions(
+        &mut self,
+        cx: &mut Cx,
+        actions: &Actions,
+        destinations: &HashMap<StackViewAction, LiveId>,
+    ) {
         for action in actions {
             let stack_view_action = action.as_widget_action().cast();
             if let Some(stack_view_id) = destinations.get(&stack_view_action) {

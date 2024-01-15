@@ -1,7 +1,13 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
-use super::gallery_image::{GalleryImage, GalleryImageId, IMAGE_HEIGHT, IMAGE_WIDTH};
+use crate::shared::stack_view_action::StackViewAction;
+
+use super::gallery_image::{GalleryImage, GalleryImageId};
+
+pub const IMAGE_WIDTH: f64 = 270.;
+pub const IMAGE_HEIGHT: f64 = 430.;
+pub const IMAGE_PADDING: f64 = 20.;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -47,6 +53,38 @@ live_design! {
 
         gallery_image_template: <GalleryImage> {}
 
+        // This values are hardcoded from the width and height of the image
+        image_offset = vec2(290., 450.)
+
+        animator: {
+            swipe = {
+                default: idle,
+                idle = {
+                    from: {all: Snap}
+                    apply: {image_offset: vec2(0., 0.)}
+                }
+
+                horizontal = {
+                    from: {all: Forward {duration: 0.15}}
+                    apply: {image_offset: vec2(290., 0.)}
+                }
+                vertical = {
+                    from: {all: Forward {duration: 0.15}}
+                    apply: {image_offset: vec2(0., 450.)}
+                }
+                diagonal = {
+                    from: {all: Forward {duration: 0.15}}
+                    apply: {image_offset: vec2(290., 450.)}
+                }
+
+                reset = {
+                    from: {all: Snap}
+                    apply: {image_offset: vec2(0., 0.)}
+                }
+            }
+        }
+
+
     }
 
     GalleryScreen = <View> {
@@ -68,15 +106,23 @@ pub struct Gallery {
     walk: Walk,
     #[layout]
     layout: Layout,
+    #[deref]
+    view: View,
 
     #[live]
     images_deps: Vec<LiveDependency>,
     #[live]
     gallery_image_template: Option<LivePtr>,
 
+    #[animator]
+    animator: Animator,
+
     #[rust]
     #[redraw]
     area: Area,
+    #[live]
+    image_offset: DVec2,
+
     #[rust]
     images: ComponentMap<GalleryImageId, GalleryImage>,
 
@@ -84,6 +130,8 @@ pub struct Gallery {
     grid_size: i64,
     #[rust]
     current_index: i64,
+    #[rust]
+    previous_index: i64,
     #[rust]
     image_count: i64,
     #[rust]
@@ -103,7 +151,9 @@ impl LiveHook for Gallery {
         self.grid_size = 5;
         self.image_count = self.grid_size.pow(2);
         self.current_index = self.grid_size.pow(2) / 2;
+        self.previous_index = self.current_index;
         self.ready_to_swipe = true;
+
         for i in 0..self.grid_size.pow(2) {
             let image_id = LiveId(i as u64).into();
             let new_image = GalleryImage::new_from_ptr(cx, self.gallery_image_template);
@@ -114,9 +164,19 @@ impl LiveHook for Gallery {
 }
 
 impl Widget for Gallery {
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
-        // TODO handle individual images actions
-        self.handle_swipe(cx, event);
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.animator_handle_event(cx, event);
+
+        if !self.animator.is_track_animating(cx, id!(swipe)) {
+            if self.animator.animator_in_state(cx, id!(swipe.vertical))
+                || self.animator.animator_in_state(cx, id!(swipe.horizontal))
+                || self.animator.animator_in_state(cx, id!(swipe.diagonal))
+            {
+                self.animator_play(cx, id!(swipe.idle));
+            }
+        }
+
+        self.handle_click_and_swipe(cx, event, scope);
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
@@ -124,7 +184,7 @@ impl Widget for Gallery {
 
         let start_pos = cx.turtle().size() / dvec2(2., 2.);
         let padding = 20.;
-        let image_offset = self.calculate_current_offset(padding, IMAGE_WIDTH, IMAGE_HEIGHT);
+        let indexed_offset = self.calculate_indexed_offset(cx);
         let padded_image_width = IMAGE_WIDTH + padding;
         let padded_image_height = IMAGE_HEIGHT + padding;
 
@@ -135,8 +195,8 @@ impl Widget for Gallery {
 
             let mut pos = start_pos
                 + dvec2(
-                    (col * padded_image_width + image_offset.x) - IMAGE_WIDTH / 2.,
-                    (row * (padded_image_height) + image_offset.y) - IMAGE_HEIGHT / 2.,
+                    (col * padded_image_width + indexed_offset.x) - IMAGE_WIDTH / 2.,
+                    (row * (padded_image_height) + indexed_offset.y) - IMAGE_HEIGHT / 2.,
                 );
 
             if let Some(image_path) = match image_idu64 {
@@ -144,6 +204,7 @@ impl Widget for Gallery {
                 _ => Some(self.images_deps[image_idu64 as usize].as_str()),
             } {
                 gallery_image.set_path(image_path.to_owned());
+                gallery_image.set_size(dvec2(IMAGE_WIDTH, IMAGE_HEIGHT));
             }
 
             gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));
@@ -155,27 +216,58 @@ impl Widget for Gallery {
 }
 
 impl Gallery {
-    fn calculate_current_offset(&self, padding: f64, width: f64, height: f64) -> DVec2 {
-        let padded_image_width = width + padding;
-        let padded_image_height = height + padding;
+    fn calculate_indexed_offset(&mut self, cx: &mut Cx) -> DVec2 {
+        let current_col = (self.current_index % self.grid_size) as f64;
+        let current_row = (self.current_index / self.grid_size) as f64;
 
-        let col = (self.current_index % self.grid_size) as f64;
-        let row = (self.current_index / self.grid_size) as f64;
-        let indexed_offset = dvec2((-padded_image_width) * col, (-padded_image_height) * row);
+        let previous_col = (self.previous_index % self.grid_size) as f64;
+        let previous_row = (self.previous_index / self.grid_size) as f64;
 
-        return indexed_offset;
+        let current_offset = dvec2(
+            -(IMAGE_WIDTH + IMAGE_PADDING) * current_col,
+            -(IMAGE_HEIGHT + IMAGE_PADDING) * current_row,
+        );
+        let previous_offset = dvec2(
+            -(IMAGE_WIDTH + IMAGE_PADDING) * previous_col,
+            -(IMAGE_HEIGHT + IMAGE_PADDING) * previous_row,
+        );
+
+        let padded_size = dvec2(IMAGE_WIDTH + IMAGE_PADDING, IMAGE_HEIGHT + IMAGE_PADDING);
+
+        let progress = self.image_offset / padded_size;
+
+        // Check if the animation is complete
+        if !self.animator.is_track_animating(cx, id!(swipe)) {
+            if self.animator.animator_in_state(cx, id!(swipe.vertical))
+                || self.animator.animator_in_state(cx, id!(swipe.horizontal))
+                || self.animator.animator_in_state(cx, id!(swipe.diagonal))
+            {
+                self.previous_index = self.current_index;
+                return current_offset;
+            }
+        }
+
+        // Interpolate between the previous and current offsets
+        let interpolated_offset = dvec2(
+            previous_offset.x + (current_offset.x - previous_offset.x) * progress.x,
+            previous_offset.y + (current_offset.y - previous_offset.y) * progress.y,
+        );
+
+        interpolated_offset
     }
 
-    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event) {
+    // TODO: Abstract this in a wrapper, so we keep the logic in one place for this and the overlay
+    fn handle_click_and_swipe(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         match event.hits_with_capture_overload(cx, self.area, true) {
             Hit::FingerMove(fe) => {
+                let swipe_trigger_value = 40.;
+                let diagonal_trigger_value = swipe_trigger_value / 2.;
                 let mut swipe_vector = fe.abs - fe.abs_start;
                 // Negate y values because makepad's y axis grows to the south
                 swipe_vector.y = -swipe_vector.y;
 
                 // only trigger swipe if it is larger than some pixels
-                let swipe_trigger_value = 60.;
-                let diagonal_trigger_value = swipe_trigger_value / 2.;
+
                 if (swipe_vector.x.abs() > swipe_trigger_value)
                     || (swipe_vector.y.abs() > swipe_trigger_value)
                 {
@@ -189,10 +281,20 @@ impl Gallery {
                     if swipe_vector.x.abs() > diagonal_trigger_value {
                         new_index += if swipe_vector.x > 0. { -1 } else { 1 };
                         // play animations (shrink overlay)
+                        self.animator_play(cx, id!(swipe.horizontal));
                     }
                     if swipe_vector.y.abs() > diagonal_trigger_value {
                         new_index += self.grid_size * if swipe_vector.y > 0. { 1 } else { -1 };
                         // play animations (shrink overlay)
+                        // self.animator_play(cx, id!(swipe.reset));
+
+                        self.animator_play(cx, id!(swipe.vertical));
+                    }
+                    // play animation on diagonal swipe
+                    if swipe_vector.y.abs() > diagonal_trigger_value
+                        && swipe_vector.x.abs() > diagonal_trigger_value
+                    {
+                        self.animator_play(cx, id!(swipe.diagonal));
                     }
 
                     // Handle prohibited swipe cases
@@ -214,10 +316,10 @@ impl Gallery {
                         .images
                         .get_mut(&LiveId(self.current_index as u64).into())
                     {
-                        previous_image.animator_play(cx, id!(zoom.off))
+                        previous_image.animator_play(cx, id!(zoom.off));
                     }
                     if let Some(new_image) = self.images.get_mut(&LiveId(new_index as u64).into()) {
-                        new_image.animator_play(cx, id!(zoom.on))
+                        new_image.animator_play(cx, id!(zoom.on));
                     }
 
                     self.set_index(new_index);
@@ -225,7 +327,43 @@ impl Gallery {
                     self.ready_to_swipe = false;
                 }
             }
-            Hit::FingerUp(_fe) => self.ready_to_swipe = true,
+            Hit::FingerUp(fe) => {
+                let mut swipe_vector = fe.abs - fe.abs_start;
+                let click_trigger_value = 10.;
+                // Negate y values because makepad's y axis grows to the south
+                swipe_vector.y = -swipe_vector.y;
+
+                // Clicked image if its the one in the center
+                let center_image = dvec2(
+                    (fe.rect.size.x - IMAGE_WIDTH) / 2.,
+                    (fe.rect.size.y - IMAGE_HEIGHT) / 2.,
+                );
+
+                let is_clicking_center_image = center_image.x <= fe.abs_start.x
+                    && fe.abs_start.x <= center_image.x + IMAGE_WIDTH
+                    && center_image.y <= fe.abs_start.y
+                    && fe.abs_start.y <= center_image.y + IMAGE_HEIGHT;
+
+                if swipe_vector.x.abs() < click_trigger_value
+                    && swipe_vector.y.abs() < click_trigger_value
+                    && is_clicking_center_image
+                {
+                    let widget_uid = self.widget_uid();
+                    cx.widget_action(
+                        widget_uid,
+                        &scope.path,
+                        GalleryAction::Selected(self.current_index),
+                    );
+                    cx.widget_action(
+                        widget_uid,
+                        &scope.path,
+                        StackViewAction::ShowGalleryImageSlider,
+                    );
+                }
+                // Reset variable for swiping
+                self.ready_to_swipe = true;
+            }
+
             _ => {}
         }
     }
@@ -241,4 +379,5 @@ impl Gallery {
 #[derive(Clone, DefaultNone, Debug)]
 pub enum GalleryAction {
     None,
+    Selected(i64),
 }
