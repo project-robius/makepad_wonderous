@@ -54,7 +54,7 @@ live_design! {
         gallery_image_template: <GalleryImage> {}
 
         // This values are hardcoded from the width and height of the image
-        image_offset = vec2(290., 450.)
+        image_offset: vec2(290., 450.)
 
         animator: {
             swipe = {
