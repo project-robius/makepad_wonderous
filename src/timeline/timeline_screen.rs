@@ -240,15 +240,7 @@ live_design! {
     }
 
     TimelineScreenInner = {{TimelineScreenInner}} {
-        width: Fill, height: Fill
-        flow: Overlay,
-
-        show_bg: true,
-        draw_bg: {
-            color: (BACKGROUND_COLOR)
-        }
-
-       expandable_panel = <ExpandablePanel> {
+        expandable_panel: <ExpandablePanel> {
             body = {
                 flow: Down,
                 spacing: 10,
@@ -271,7 +263,6 @@ live_design! {
                 <Content> {}
             }
         }
-
     }
 
     TimelineScreenWrapper = {{TimelineScreenWrapper}} {
@@ -315,33 +306,20 @@ live_design! {
     }
 }
 
-#[derive(Live, Widget)]
+#[derive(Live, LiveHook, Widget)]
 pub struct TimelineScreenInner {
-    #[deref]
-    view: View,
-
-    #[rust]
-    touch_gesture: TouchGesture,
-}
-
-impl LiveHook for TimelineScreenInner {
-    fn after_apply_from(&mut self, _cx: &mut Cx, apply: &mut Apply) {
-        if apply.from.is_from_doc() {
-            self.touch_gesture = TouchGesture::new();
-            self.touch_gesture
-                .reset(0.0, 0.0, CONTENT_LENGTH, ScrollMode::Swipe);
-        }
-    }
+    #[live] #[wrap]
+    expandable_panel: ExpandablePanel,
 }
 
 impl Widget for TimelineScreenInner {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope);
+        self.expandable_panel.handle_event(cx, event, scope);
         self.widget_match_event(cx, event, scope);
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        self.view.draw_walk(cx, scope, walk)
+        self.expandable_panel.draw_walk(cx, scope, walk)
     }
 }
 
@@ -351,8 +329,7 @@ impl WidgetMatchEvent for TimelineScreenInner {
             match action.as_widget_action().cast() {
                 ExpandablePanelAction::ScrolledAt(scroll_offset) => {
                     let header_opacity = clamp(1.0 - scroll_offset / 200.0, 0.5, 1.0);
-                    let panel = self.expandable_panel(id!(expandable_panel));
-                    panel.apply_over(cx, live! {
+                    self.expandable_panel.apply_over(cx, live! {
                         body = { header = { draw_bg: { opacity: (header_opacity) }}}
                     });
 
