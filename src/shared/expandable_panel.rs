@@ -5,7 +5,7 @@ live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
 
-    ScrolleablePanel = {{ScrolleablePanel}} {
+    ExpandablePanel = {{ExpandablePanel}} {
         flow: Overlay,
         width: Fill,
         height: Fill,
@@ -44,14 +44,20 @@ live_design! {
     }
 }
 
+#[derive(Clone, DefaultNone, Debug)]
+pub enum ExpandablePanelAction {
+    ScrolledAt(f64),
+    None,
+}
+
 #[derive(Live, Widget)]
-pub struct ScrolleablePanel {
+pub struct ExpandablePanel {
     #[deref] view: View,
     #[rust] touch_gesture: TouchGesture,
     #[live] scroll_max: f64,
 }
 
-impl LiveHook for ScrolleablePanel {
+impl LiveHook for ExpandablePanel {
     fn after_apply_from(&mut self, _cx: &mut Cx, apply: &mut Apply) {
         if apply.from.is_from_doc() {
             self.touch_gesture = TouchGesture::new();
@@ -60,18 +66,22 @@ impl LiveHook for ScrolleablePanel {
     }
 }
 
-impl Widget for ScrolleablePanel {
+impl Widget for ExpandablePanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
 
         if self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
             let panel_margin = 400. - self.touch_gesture.scroll_offset;
-
             self.apply_over(cx, live! {
                 panel = { margin: { top: (panel_margin) }}
             });
-
             self.redraw(cx);
+
+            cx.widget_action(
+                self.widget_uid(),
+                &scope.path,
+                ExpandablePanelAction::ScrolledAt(self.touch_gesture.scroll_offset),
+            );
         }
     }
 

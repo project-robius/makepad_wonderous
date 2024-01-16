@@ -201,7 +201,7 @@ impl LiveRegister for App {
         crate::shared::widgets::live_design(cx);
         crate::shared::curved_label::live_design(cx);
         crate::shared::helpers::live_design(cx);
-        crate::shared::scrolleable_panel::live_design(cx);
+        crate::shared::expandable_panel::live_design(cx);
 
         // Wonder
         crate::wonder::rotating_title::live_design(cx);
