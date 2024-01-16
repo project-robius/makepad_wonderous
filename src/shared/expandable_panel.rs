@@ -10,7 +10,7 @@ live_design! {
         width: Fill,
         height: Fill,
 
-        scroll_max: 1000.0,
+        initial_offset: 400.0;
 
         body = <View> {}
 
@@ -27,8 +27,6 @@ live_design! {
             align: { x: 0.5, y: 0 }
             padding: 20,
             spacing: 10,
-
-            margin: { top: 400.0 }
 
             scroll_handler = <RoundedView> {
                 width: 40,
@@ -53,15 +51,16 @@ pub enum ExpandablePanelAction {
 #[derive(Live, Widget)]
 pub struct ExpandablePanel {
     #[deref] view: View,
-    #[rust] touch_gesture: TouchGesture,
-    #[live] scroll_max: f64,
+    #[rust] touch_gesture: Option<TouchGesture>,
+    #[live] initial_offset: f64,
 }
 
 impl LiveHook for ExpandablePanel {
-    fn after_apply_from(&mut self, _cx: &mut Cx, apply: &mut Apply) {
+    fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
         if apply.from.is_from_doc() {
-            self.touch_gesture = TouchGesture::new();
-            self.touch_gesture.reset(0.0, 0.0, self.scroll_max, ScrollMode::Swipe);
+            self.apply_over(cx, live! {
+                panel = { margin: { top: (self.initial_offset) }}
+            });
         }
     }
 }
@@ -70,22 +69,38 @@ impl Widget for ExpandablePanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
 
-        if self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
-            let panel_margin = 400. - self.touch_gesture.scroll_offset;
-            self.apply_over(cx, live! {
-                panel = { margin: { top: (panel_margin) }}
-            });
-            self.redraw(cx);
+        if let Some(touch_gesture) = self.touch_gesture.as_mut() {
+            if touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
+                let scroll_offset = touch_gesture.scroll_offset;
+                let panel_margin = self.initial_offset - scroll_offset;
+                self.apply_over(cx, live! {
+                    panel = { margin: { top: (panel_margin) }}
+                });
+                self.redraw(cx);
 
-            cx.widget_action(
-                self.widget_uid(),
-                &scope.path,
-                ExpandablePanelAction::ScrolledAt(self.touch_gesture.scroll_offset),
-            );
+                cx.widget_action(
+                    self.widget_uid(),
+                    &scope.path,
+                    ExpandablePanelAction::ScrolledAt(scroll_offset),
+                );
+            }
         }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        self.view.draw_walk(cx, scope, walk)
+        let result = self.view.draw_walk(cx, scope, walk);
+
+        if self.touch_gesture.is_none() {
+            let mut touch_gesture = TouchGesture::new();
+            touch_gesture.set_scroll_mode(ScrollMode::Swipe);
+
+            // Limit the amount of dragging allowed for the panel
+            let panel_height = self.view(id!(panel)).area().rect(cx).size.y;
+            touch_gesture.set_scroll_range(0.0, panel_height - self.initial_offset);
+
+            self.touch_gesture = Some(touch_gesture);
+        }
+
+        result
     }
 }

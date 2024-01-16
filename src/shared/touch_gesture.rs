@@ -6,14 +6,14 @@ struct ScrollSample{
     time: f64,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 pub enum ScrollMode {
     #[default]
     DragAndDrop,
     Swipe,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Clone, Debug)]
 enum ScrollState {
     #[default]
     Stopped,
@@ -30,7 +30,7 @@ pub enum TouchMotionChange {
     ScrollOffsetChanged,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct TouchGesture {
     flick_scroll_minimum: f64,
     flick_scroll_maximum: f64,
@@ -72,7 +72,21 @@ impl TouchGesture {
             self.min_scroll_offset - self.pulldown_maximum,
             self.max_scroll_offset + self.pulldown_maximum
         );
+        self.set_scroll_range(min_offset, max_offset);
         self.scroll_mode = scroll_mode;
+    }
+
+    pub fn set_scroll_mode(&mut self, scroll_mode: ScrollMode) {
+        self.scroll_mode = scroll_mode;
+    }
+
+    pub fn set_scroll_range(&mut self, min_offset: f64, max_offset: f64) {
+        self.min_scroll_offset = min_offset;
+        self.max_scroll_offset = max_offset;
+        self.scroll_offset = self.scroll_offset.clamp(
+            self.min_scroll_offset - self.pulldown_maximum,
+            self.max_scroll_offset + self.pulldown_maximum
+        );
     }
 
     // Current motion is stopped so dragging is from now ignored, until a new finger down event

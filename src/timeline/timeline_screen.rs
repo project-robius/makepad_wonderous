@@ -1,7 +1,5 @@
 use makepad_widgets::*;
 
-const CONTENT_LENGTH: f64 = 800.;
-
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
@@ -127,7 +125,7 @@ live_design! {
         spacing: 20,
 
         width: Fill,
-        height: 2000,
+        height: Fit,
 
         <ContentItem> {
             year_wrapper = { year_label = { text: "700" }}
@@ -165,6 +163,9 @@ live_design! {
                 text: "Hongzhi Emperor split the walls into north and south lines, eventually shaping it into how it is today. Since then, it has gradually fallen into disrepair and remains mostly unused."
             }}
         }
+
+        // Add some free space at the bottom
+        <View> { width: 1, height: 250 }
     }
 
     ChartItem = <RoundedView> {
