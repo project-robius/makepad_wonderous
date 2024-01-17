@@ -71,8 +71,8 @@ impl Widget for ExpandablePanel {
 
         if let Some(touch_gesture) = self.touch_gesture.as_mut() {
             if touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
-                let scroll_offset = touch_gesture.scroll_offset;
-                let panel_margin = self.initial_offset - scroll_offset;
+                let scrolled_at = touch_gesture.scrolled_at;
+                let panel_margin = self.initial_offset - scrolled_at;
                 self.apply_over(cx, live! {
                     panel = { margin: { top: (panel_margin) }}
                 });
@@ -81,7 +81,7 @@ impl Widget for ExpandablePanel {
                 cx.widget_action(
                     self.widget_uid(),
                     &scope.path,
-                    ExpandablePanelAction::ScrolledAt(scroll_offset),
+                    ExpandablePanelAction::ScrolledAt(scrolled_at),
                 );
             }
         }
@@ -92,12 +92,13 @@ impl Widget for ExpandablePanel {
 
         if self.touch_gesture.is_none() {
             let mut touch_gesture = TouchGesture::new();
-            touch_gesture.set_scroll_mode(ScrollMode::Swipe);
+            touch_gesture.set_mode(ScrollMode::Swipe);
 
             // Limit the amount of dragging allowed for the panel
             let panel_height = self.view(id!(panel)).area().rect(cx).size.y;
-            touch_gesture.set_scroll_range(0.0, panel_height - self.initial_offset);
+            touch_gesture.set_range(0.0, panel_height - self.initial_offset);
 
+            touch_gesture.reset_scrolled_at();
             self.touch_gesture = Some(touch_gesture);
         }
 

@@ -27,7 +27,7 @@ pub enum TouchMotionChange {
     #[default]
     None,
     ScrollStateChanged,
-    ScrollOffsetChanged,
+    ScrolledAtChanged,
 }
 
 #[derive(Default, Clone)]
@@ -40,11 +40,11 @@ pub struct TouchGesture {
     scroll_mode: ScrollMode,
     scroll_state: ScrollState,
 
-    min_scroll_offset: f64,
-    max_scroll_offset: f64,
+    min_scrolled_at: f64,
+    max_scrolled_at: f64,
     pulldown_maximum: f64,
 
-    pub scroll_offset: f64,
+    pub scrolled_at: f64,
 }
 
 impl TouchGesture {
@@ -58,40 +58,33 @@ impl TouchGesture {
             scroll_state: ScrollState::Stopped,
             scroll_mode: ScrollMode::DragAndDrop,
 
-            scroll_offset: 0.0,
-            min_scroll_offset: f64::MIN,
-            max_scroll_offset: f64::MAX,
+            scrolled_at: 0.0,
+            min_scrolled_at: f64::MIN,
+            max_scrolled_at: f64::MAX,
             pulldown_maximum: 60.0,
         }
     }
 
-    pub fn reset(&mut self, initial_offset: f64, min_offset: f64, max_offset: f64, scroll_mode: ScrollMode) {
-        self.min_scroll_offset = min_offset;
-        self.max_scroll_offset = max_offset;
-        self.scroll_offset = initial_offset.clamp(
-            self.min_scroll_offset - self.pulldown_maximum,
-            self.max_scroll_offset + self.pulldown_maximum
-        );
-        self.set_scroll_range(min_offset, max_offset);
+    pub fn reset_scrolled_at(&mut self) {
+        self.scrolled_at = 0.0;
+    }
+
+    pub fn set_mode(&mut self, scroll_mode: ScrollMode) {
         self.scroll_mode = scroll_mode;
     }
 
-    pub fn set_scroll_mode(&mut self, scroll_mode: ScrollMode) {
-        self.scroll_mode = scroll_mode;
-    }
-
-    pub fn set_scroll_range(&mut self, min_offset: f64, max_offset: f64) {
-        self.min_scroll_offset = min_offset;
-        self.max_scroll_offset = max_offset;
-        self.scroll_offset = self.scroll_offset.clamp(
-            self.min_scroll_offset - self.pulldown_maximum,
-            self.max_scroll_offset + self.pulldown_maximum
+    pub fn set_range(&mut self, min_offset: f64, max_offset: f64) {
+        self.min_scrolled_at = min_offset;
+        self.max_scrolled_at = max_offset;
+        self.scrolled_at = self.scrolled_at.clamp(
+            self.min_scrolled_at - self.pulldown_maximum,
+            self.max_scrolled_at + self.pulldown_maximum
         );
     }
 
     // Current motion is stopped so dragging is from now ignored, until a new finger down event
     pub fn stop(&mut self) {
-        self.scroll_offset = 0.0;
+        self.scrolled_at = 0.0;
         self.scroll_state = ScrollState::Stopped;
     }
 
@@ -124,13 +117,13 @@ impl TouchGesture {
                         *next_frame = cx.new_next_frame();
                         let delta = *delta;
 
-                        let new_offset = self.scroll_offset - delta;
-                        self.scroll_offset = new_offset.clamp(
-                            self.min_scroll_offset - self.pulldown_maximum,
-                            self.max_scroll_offset + self.pulldown_maximum
+                        let new_offset = self.scrolled_at - delta;
+                        self.scrolled_at = new_offset.clamp(
+                            self.min_scrolled_at - self.pulldown_maximum,
+                            self.max_scrolled_at + self.pulldown_maximum
                         );
 
-                        return TouchMotionChange::ScrollOffsetChanged
+                        return TouchMotionChange::ScrolledAtChanged
                     } else {
                         if needs_pulldown {
                             self.scroll_state = ScrollState::Pulldown {next_frame: cx.new_next_frame()};
@@ -144,29 +137,29 @@ impl TouchGesture {
             }
             ScrollState::Pulldown {next_frame} => {
                 if let Some(_) = next_frame.is_event(event) {
-                    if self.scroll_offset < self.min_scroll_offset {
-                        self.scroll_offset += (self.min_scroll_offset - self.scroll_offset) * 0.1;
-                        if self.min_scroll_offset - self.scroll_offset < 1.0 {
-                            self.scroll_offset = self.min_scroll_offset + 0.5;
+                    if self.scrolled_at < self.min_scrolled_at {
+                        self.scrolled_at += (self.min_scrolled_at - self.scrolled_at) * 0.1;
+                        if self.min_scrolled_at - self.scrolled_at < 1.0 {
+                            self.scrolled_at = self.min_scrolled_at + 0.5;
                         }
                         else {
                             *next_frame = cx.new_next_frame();
                         }
 
-                        return TouchMotionChange::ScrollOffsetChanged
+                        return TouchMotionChange::ScrolledAtChanged
                     }
-                    else if self.scroll_offset > self.max_scroll_offset {
-                        self.scroll_offset -= (self.scroll_offset - self.max_scroll_offset) * 0.1;
-                        if self.scroll_offset - self.max_scroll_offset < 1.0 {
-                            self.scroll_offset = self.max_scroll_offset - 0.5;
+                    else if self.scrolled_at > self.max_scrolled_at {
+                        self.scrolled_at -= (self.scrolled_at - self.max_scrolled_at) * 0.1;
+                        if self.scrolled_at - self.max_scrolled_at < 1.0 {
+                            self.scrolled_at = self.max_scrolled_at - 0.5;
 
-                            return TouchMotionChange::ScrollOffsetChanged
+                            return TouchMotionChange::ScrolledAtChanged
                         }
                         else {
                             *next_frame = cx.new_next_frame();
                         }
 
-                        return TouchMotionChange::ScrollOffsetChanged
+                        return TouchMotionChange::ScrolledAtChanged
                     }
                     else {
                         self.scroll_state = ScrollState::Stopped;
@@ -195,13 +188,13 @@ impl TouchGesture {
                         if samples.len() > 4 {
                             samples.remove(0);
                         }
-                        let new_offset = self.scroll_offset + old_sample.abs - new_abs;
-                        self.scroll_offset = new_offset.clamp(
-                            self.min_scroll_offset - self.pulldown_maximum,
-                            self.max_scroll_offset + self.pulldown_maximum
+                        let new_offset = self.scrolled_at + old_sample.abs - new_abs;
+                        self.scrolled_at = new_offset.clamp(
+                            self.min_scrolled_at - self.pulldown_maximum,
+                            self.max_scrolled_at + self.pulldown_maximum
                         );
 
-                        return TouchMotionChange::ScrollOffsetChanged
+                        return TouchMotionChange::ScrolledAtChanged
                     }
                     _=>()
                 }
@@ -255,12 +248,12 @@ impl TouchGesture {
     }
 
     fn needs_pulldown(&self) -> bool {
-        self.scroll_offset < self.min_scroll_offset || self.scroll_offset > self.max_scroll_offset
+        self.scrolled_at < self.min_scrolled_at || self.scrolled_at > self.max_scrolled_at
     }
 
     fn needs_pulldown_when_flicking(&self) -> bool {
-        self.scroll_offset - 0.5 < self.min_scroll_offset - self.pulldown_maximum ||
-            self.scroll_offset + 0.5 > self.max_scroll_offset + self.pulldown_maximum
+        self.scrolled_at - 0.5 < self.min_scrolled_at - self.pulldown_maximum ||
+            self.scrolled_at + 0.5 > self.max_scrolled_at + self.pulldown_maximum
     }
 }
 
