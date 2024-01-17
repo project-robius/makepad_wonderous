@@ -8,19 +8,8 @@ live_design! {
     import crate::shared::widgets::*;
 
     DrawRotatedText = {{DrawRotatedText}} {
-        color: #fff
-        
-        uniform brightness: float
-        uniform curve: float
         uniform rotation: float
         uniform rotation_origin_inside_char: vec2
-        
-        texture tex: texture2d
-        
-        varying tex_coord1: vec2
-        varying tex_coord2: vec2
-        varying tex_coord3: vec2
-        varying pos: vec2
         
         fn vertex(self) -> vec4 {
             let min_pos = vec2(self.rect_pos.x, self.rect_pos.y)
@@ -35,8 +24,8 @@ live_design! {
             let normalized: vec2 = (self.clipped - min_pos) / vec2(self.rect_size.x, -self.rect_size.y)
             
             self.tex_coord1 = mix(
-                self.font_t1.xy,
-                self.font_t2.xy,
+                vec2(self.font_t1.x, 1.0-self.font_t1.y),
+                vec2(self.font_t2.x, 1.0-self.font_t2.y),
                 normalized.xy
             )
             self.pos = normalized;
@@ -66,19 +55,6 @@ live_design! {
                 self.char_depth + self.draw_zbias,
                 1.
             )));
-        }
-        
-        fn get_color(self) -> vec4 {
-            return self.color;
-        }
-        fn blend_color(self, incol:vec4)->vec4{
-            return incol
-        }
-        fn pixel(self) -> vec4 {
-            let s = sample2d_rt(self.tex, self.tex_coord1.xy).x;
-            s = pow(s, self.curve);
-            let col = self.get_color();
-            return self.blend_color(vec4(s * col.rgb * self.brightness * col.a, s * col.a));
         }
     }
 
