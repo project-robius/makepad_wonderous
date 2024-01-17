@@ -1,6 +1,6 @@
-use crate::shared::touch_gesture::*;
 use crate::wonder::content::*;
 use makepad_widgets::widget::WidgetCache;
+use makepad_widgets::touch_gesture::*;
 use makepad_widgets::*;
 
 live_design! {

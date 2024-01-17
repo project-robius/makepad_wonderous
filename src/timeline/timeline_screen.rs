@@ -7,8 +7,6 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
 
-    import crate::shared::expandable_panel::*;
-
     IMG_HEADER = dep("crate://self/resources/images/great-wall-flattened.jpg")
 
     BACKGROUND_COLOR = #222
