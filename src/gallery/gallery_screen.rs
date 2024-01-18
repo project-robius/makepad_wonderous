@@ -165,8 +165,10 @@ impl LiveHook for Gallery {
 
 impl Widget for Gallery {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.animator_handle_event(cx, event);
-
+        self.view.handle_event(cx, event, scope);
+        if self.animator_handle_event(cx, event).is_animating() {
+            self.redraw(cx);
+        }
         if !self.animator.is_track_animating(cx, id!(swipe)) {
             if self.animator.animator_in_state(cx, id!(swipe.vertical))
                 || self.animator.animator_in_state(cx, id!(swipe.horizontal))
@@ -235,7 +237,6 @@ impl Gallery {
         let padded_size = dvec2(IMAGE_WIDTH + IMAGE_PADDING, IMAGE_HEIGHT + IMAGE_PADDING);
 
         let progress = self.image_offset / padded_size;
-
         // Check if the animation is complete
         if !self.animator.is_track_animating(cx, id!(swipe)) {
             if self.animator.animator_in_state(cx, id!(swipe.vertical))
