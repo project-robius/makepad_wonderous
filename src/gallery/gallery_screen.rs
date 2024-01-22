@@ -323,7 +323,7 @@ impl Gallery {
                         new_image.animator_play(cx, id!(zoom.on));
                     }
 
-                    self.set_index(new_index);
+                    self.set_index(new_index, cx);
 
                     self.ready_to_swipe = false;
                 }
@@ -353,7 +353,7 @@ impl Gallery {
                     cx.widget_action(
                         widget_uid,
                         &scope.path,
-                        GalleryAction::Selected(self.current_index),
+                        GalleryGridAction::Selected(self.current_index),
                     );
                     cx.widget_action(
                         widget_uid,
@@ -369,16 +369,25 @@ impl Gallery {
         }
     }
 
-    fn set_index(&mut self, value: i64) {
+    fn set_index(&mut self, value: i64, cx: &mut Cx) {
         if value < 0 || value >= self.image_count {
             return;
         }
         self.current_index = value;
+        self.redraw(cx);
+    }
+}
+
+impl GalleryRef {
+    pub fn set_image_id(&mut self, id: i64, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_index(id, cx);
+        }
     }
 }
 
 #[derive(Clone, DefaultNone, Debug)]
-pub enum GalleryAction {
+pub enum GalleryGridAction {
     None,
     Selected(i64),
 }
