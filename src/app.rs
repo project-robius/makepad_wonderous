@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     gallery::{
-        gallery_image_slider::GalleryImageSliderWidgetRefExt,
+        gallery_image_slider::{GalleryImageSliderWidgetRefExt, GallerySliderAction},
         gallery_screen::{GalleryGridAction, GalleryWidgetRefExt},
     },
     shared::{stack_navigation::StackNavigationWidgetRefExt, stack_view_action::StackViewAction},
@@ -269,6 +269,11 @@ impl App {
     fn handle_selected_gallery_image(&mut self, cx: &mut Cx, actions: &Actions) {
         let stack_navigation = self.ui.stack_navigation(id!(navigation));
         for action in actions {
+            if let GallerySliderAction::Selected(id) = action.as_widget_action().cast() {
+                let mut gallery_ref =
+                    stack_navigation.gallery(id!(root_view.application_pages.tab2_frame));
+                gallery_ref.set_image_id(id, cx);
+            }
             if let GalleryGridAction::Selected(id) = action.as_widget_action().cast() {
                 let mut slider_ref = stack_navigation
                     .gallery_image_slider(id!(gallery_image_slider_stack_view.image_slider));
