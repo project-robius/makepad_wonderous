@@ -19,6 +19,7 @@ live_design! {
     import crate::gallery::gallery_image_slider::*;
     import crate::artifacts::artifacts_screen::*;
     import crate::timeline::timeline_screen::*;
+    import crate::timeline::global_timeline::*;
     import crate::shared::stack_navigation::*;
 
     ICON_WONDER = dep("crate://self/resources/icons/test.svg")
@@ -143,6 +144,9 @@ live_design! {
                     gallery_image_slider_stack_view = <StackNavigationView> {
                         image_slider = <GalleryImageSlider> {}
                     }
+                    global_timeline_stack_view = <StackNavigationView> {
+                        global_timeline = <GlobalTimeline> {}
+                    }
                 }
             }
         }
@@ -191,6 +195,7 @@ impl LiveRegister for App {
 
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
+        crate::timeline::global_timeline::live_design(cx);
     }
 }
 
@@ -242,6 +247,10 @@ impl App {
         self.navigation_destinations.insert(
             StackViewAction::ShowGalleryImageSlider,
             live_id!(gallery_image_slider_stack_view),
+        );
+        self.navigation_destinations.insert(
+            StackViewAction::ShowGlobalTimeLine,
+            live_id!(global_timeline_stack_view),
         );
         // Add stack view actions here
     }
