@@ -1,5 +1,5 @@
+use crate::shared::{stack_view_action::StackViewAction, touch_gesture::*};
 use makepad_widgets::*;
-use crate::shared::touch_gesture::*;
 
 const CONTENT_LENGTH: f64 = 800.;
 
@@ -273,7 +273,7 @@ live_design! {
 
     }
 
-    TimelineScreen = <View> {
+    TimelineScreenWrapper = {{TimelineScreenWrapper}} {
         width: Fill, height: Fill
         flow: Down,
 
@@ -287,7 +287,7 @@ live_design! {
             height: Fit,
             margin: 20,
 
-            <Button> {
+            open_global_timeline_button = <Button> {
                 width: Fill,
                 height: 50,
                 text: "OPEN GLOBAL TIMELINE",
@@ -305,6 +305,13 @@ live_design! {
             }
         }
     }
+
+    TimelineScreen = <View> {
+        width: Fill, height: Fill
+        flow: Down,
+
+        <TimelineScreenWrapper> {}
+    }
 }
 
 #[derive(Live, Widget)]
@@ -320,7 +327,8 @@ impl LiveHook for TimelineScreenInner {
     fn after_apply_from(&mut self, _cx: &mut Cx, apply: &mut Apply) {
         if apply.from.is_from_doc() {
             self.touch_gesture = TouchGesture::new();
-            self.touch_gesture.reset(0.0, 0.0, CONTENT_LENGTH, ScrollMode::Swipe);
+            self.touch_gesture
+                .reset(0.0, 0.0, CONTENT_LENGTH, ScrollMode::Swipe);
         }
     }
 }
@@ -329,14 +337,21 @@ impl Widget for TimelineScreenInner {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
 
-        if self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
+        if self
+            .touch_gesture
+            .handle_event(cx, event, self.view.area())
+            .has_changed()
+        {
             let header_opacity = clamp(1.0 - self.touch_gesture.scroll_offset / 200.0, 0.5, 1.0);
             let content_margin = 400. - self.touch_gesture.scroll_offset;
 
-            self.apply_over(cx, live! {
-                header = { draw_bg: { opacity: (header_opacity) }}
-                content = { margin: { top: (content_margin) }}
-            });
+            self.apply_over(
+                cx,
+                live! {
+                    header = { draw_bg: { opacity: (header_opacity) }}
+                    content = { margin: { top: (content_margin) }}
+                },
+            );
 
             self.redraw(cx);
         }
@@ -344,5 +359,32 @@ impl Widget for TimelineScreenInner {
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         self.view.draw_walk(cx, scope, walk)
+    }
+}
+
+#[derive(Live, LiveHook, Widget)]
+pub struct TimelineScreenWrapper {
+    #[deref]
+    view: View,
+}
+impl Widget for TimelineScreenWrapper {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.view.handle_event(cx, event, scope);
+        self.widget_match_event(cx, event, scope);
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
+    }
+}
+impl WidgetMatchEvent for TimelineScreenWrapper {
+    fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions, scope: &mut Scope) {
+        if self
+            .button(id!(open_global_timeline_button))
+            .clicked(&actions)
+        {
+            let widget_uid = self.widget_uid();
+            cx.widget_action(widget_uid, &scope.path, StackViewAction::ShowGlobalTimeLine);
+        }
     }
 }
