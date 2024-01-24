@@ -42,11 +42,28 @@ live_design! {
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
         ]
 
+        offset: 0.
+
         gallery_image_template: <GalleryImage> {
             image: {
                 draw_bg: {
                     instance radius: 0.
                 }
+            }
+        }
+
+        animator: {
+            swipe = {
+                default: reset,
+                reset = {
+                    from: {all: Snap}
+                    apply: {offset: 0.}
+                }
+                horizontal = {
+                    from: {all: Forward {duration: 0.2}}
+                    apply: {offset: 1.}
+                }
+
             }
         }
 
@@ -61,12 +78,20 @@ pub struct GalleryImageSlider {
     layout: Layout,
     #[deref]
     view: View,
-
+    #[animator]
+    animator: Animator,
     #[live]
     images_deps: Vec<LiveDependency>,
     #[live]
     gallery_image_template: Option<LivePtr>,
-
+    #[live]
+    offset: f64,
+    #[rust]
+    is_dragging: bool,
+    #[rust]
+    swipe_vector_x: f64,
+    #[rust]
+    last_swipe_vector_x: f64,
     #[rust]
     #[redraw]
     area: Area,
@@ -75,6 +100,8 @@ pub struct GalleryImageSlider {
 
     #[rust]
     current_index: i64,
+    #[rust]
+    previous_index: i64,
     #[rust]
     image_count: i64,
     #[rust]
@@ -93,6 +120,9 @@ impl LiveHook for GalleryImageSlider {
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
         self.image_count = self.images_deps.len() as i64;
         self.ready_to_swipe = true;
+        self.is_dragging = true;
+        self.swipe_vector_x = 0.;
+        self.last_swipe_vector_x = 0.;
         for i in 0..self.image_count {
             let image_id = LiveId(i as u64).into();
             let new_image = GalleryImage::new_from_ptr(cx, self.gallery_image_template);
@@ -104,6 +134,14 @@ impl LiveHook for GalleryImageSlider {
 
 impl Widget for GalleryImageSlider {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        if self.animator_handle_event(cx, event).is_animating() {
+            self.redraw(cx);
+        }
+        if !self.animator.is_track_animating(cx, id!(swipe)) {
+            if self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+                self.animator_play(cx, id!(swipe.reset));
+            }
+        }
         self.handle_swipe(cx, event, scope);
     }
 
@@ -125,7 +163,7 @@ impl Widget for GalleryImageSlider {
         };
 
         let padding = 0.;
-        let image_offset = self.calculate_current_offset(padding, image_width);
+        let image_offset = self.calculate_current_offset(padding, image_width, cx);
         let padded_image_width = image_width + padding;
         for (image_id, gallery_image) in self.images.iter_mut() {
             let image_idu64 = image_id.0.get_value();
@@ -153,49 +191,93 @@ impl Widget for GalleryImageSlider {
 }
 
 impl GalleryImageSlider {
-    fn calculate_current_offset(&self, padding: f64, width: f64) -> DVec2 {
+    fn calculate_current_offset(&mut self, padding: f64, width: f64, cx: &mut Cx) -> DVec2 {
         let padded_image_width = width + padding;
 
-        let indexed_offset = dvec2((-padded_image_width) * self.current_index as f64, 0.);
+        if self.is_dragging {
+            let current_offset =
+                (-padded_image_width) * self.current_index as f64 + self.swipe_vector_x;
+            return dvec2(current_offset, 0.);
+        }
+        // Stays in same index
+        if !self.animator.is_track_animating(cx, id!(swipe)) {
+            if self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+                self.last_swipe_vector_x = 0.;
+                self.previous_index = self.current_index;
+                self.redraw(cx);
+            }
+        }
+        if self.current_index == self.previous_index {
+            let last_offset =
+                (-padded_image_width) * self.current_index as f64 + self.last_swipe_vector_x;
 
-        return indexed_offset;
+            let current_offset = (-padded_image_width) * self.current_index as f64;
+
+            let interpolated_offset = dvec2(
+                last_offset
+                    + (current_offset - last_offset)
+                    + self.last_swipe_vector_x * (1. - self.offset),
+                0.,
+            );
+            return interpolated_offset;
+        } else {
+            let last_offset =
+                (-padded_image_width) * self.previous_index as f64 + self.last_swipe_vector_x;
+
+            let current_offset = (-padded_image_width) * self.current_index as f64;
+
+            let interpolated_offset = dvec2(
+                last_offset + (current_offset - last_offset) * self.offset,
+                0.,
+            );
+
+            return interpolated_offset;
+        }
     }
 
-    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
+    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let swipe_trigger_value = 60.;
         match event.hits_with_capture_overload(cx, self.area, true) {
             Hit::FingerMove(fe) => {
-                let mut swipe_vector = fe.abs - fe.abs_start;
-                // Negate y values because makepad's y axis grows to the south
-                swipe_vector.y = -swipe_vector.y;
-
+                self.swipe_vector_x = fe.abs.x - fe.abs_start.x;
+                self.last_swipe_vector_x = self.swipe_vector_x;
+                self.redraw(cx);
+                self.is_dragging = true;
                 // only trigger swipe if it is larger than some pixels
+            }
+            Hit::FingerUp(_fe) => {
+                // Reset variable for swiping
+                self.ready_to_swipe = true;
+                self.is_dragging = false;
 
-                if (swipe_vector.x.abs() > swipe_trigger_value)
-                    || (swipe_vector.y.abs() > swipe_trigger_value)
-                {
+                self.last_swipe_vector_x = self.swipe_vector_x;
+                if self.swipe_vector_x.abs() > swipe_trigger_value {
                     if !self.ready_to_swipe {
                         return;
                     }
 
+                    // self.last_swipe_direction = if self.swipe_vector_x > 0. { 1. } else { -1. };
+
                     let mut new_index = self.current_index;
 
-                    if swipe_vector.x.abs() > swipe_trigger_value {
-                        new_index += if swipe_vector.x > 0. { -1 } else { 1 };
+                    if self.swipe_vector_x.abs() > swipe_trigger_value {
+                        new_index += if self.swipe_vector_x > 0. { -1 } else { 1 };
+                        self.offset = self.swipe_vector_x.abs();
                     }
                     // Handle prohibited swipe cases
                     // keep the index in range
                     if new_index < 0 || new_index > self.image_count - 1 {
                         return;
                     }
+
                     self.set_index(new_index, cx);
 
                     self.ready_to_swipe = false;
                 }
-            }
-            Hit::FingerUp(_fe) => {
-                // Reset variable for swiping
-                self.ready_to_swipe = true;
+                self.animator_play(cx, id!(swipe.horizontal));
+                self.last_swipe_vector_x = self.swipe_vector_x;
+                self.redraw(cx);
+                self.swipe_vector_x = 0.;
             }
 
             _ => {}
@@ -212,9 +294,10 @@ impl GalleryImageSlider {
 }
 
 impl GalleryImageSliderRef {
-    pub fn set_image_id(&mut self, cx: &mut Cx, id: i64) {
+    pub fn set_image_id(&mut self, id: i64, cx: &mut Cx) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.set_index(id, cx);
+            inner.previous_index = id;
         }
     }
 }
