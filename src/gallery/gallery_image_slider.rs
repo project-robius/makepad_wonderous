@@ -133,7 +133,7 @@ impl LiveHook for GalleryImageSlider {
 }
 
 impl Widget for GalleryImageSlider {
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
         }
@@ -142,7 +142,7 @@ impl Widget for GalleryImageSlider {
                 self.animator_play(cx, id!(swipe.reset));
             }
         }
-        self.handle_swipe(cx, event, scope);
+        self.handle_swipe(cx, event);
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
@@ -235,7 +235,7 @@ impl GalleryImageSlider {
         }
     }
 
-    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+    fn handle_swipe(&mut self, cx: &mut Cx, event: &Event) {
         let swipe_trigger_value = 60.;
         match event.hits_with_capture_overload(cx, self.area, true) {
             Hit::FingerMove(fe) => {

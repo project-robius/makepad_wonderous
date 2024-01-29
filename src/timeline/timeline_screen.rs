@@ -1,4 +1,4 @@
-use crate::shared::{stack_view_action::StackViewAction, touch_gesture::*};
+use crate::shared::touch_gesture::*;
 use makepad_widgets::*;
 
 const CONTENT_LENGTH: f64 = 800.;
@@ -384,7 +384,11 @@ impl WidgetMatchEvent for TimelineScreenWrapper {
             .clicked(&actions)
         {
             let widget_uid = self.widget_uid();
-            cx.widget_action(widget_uid, &scope.path, StackViewAction::ShowGlobalTimeLine);
+            cx.widget_action(
+                widget_uid,
+                &scope.path,
+                StackNavigationAction::NavigateTo(live_id!(global_timeline_stack_view))
+            );
         }
     }
 }
