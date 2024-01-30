@@ -1,7 +1,4 @@
-use crate::shared::touch_gesture::*;
 use makepad_widgets::*;
-
-const CONTENT_LENGTH: f64 = 800.;
 
 live_design! {
     import makepad_widgets::base::*;
@@ -19,7 +16,7 @@ live_design! {
     Header = <FadeView> {
         flow: Overlay,
         width: Fill,
-        height: 340,
+        height: 254,
 
         align: { x: 0.5, y: 0 }
 
@@ -122,31 +119,11 @@ live_design! {
     }
 
     Content = <View> {
-        width: Fill,
-        height: 2000,
-
         flow: Down,
-        spacing: 20.
+        spacing: 20,
 
-        margin: { top: 400. }
-        padding: 20.
-
-        show_bg: true,
-        draw_bg: {
-            color: (BACKGROUND_COLOR)
-        }
-
-        align: { x: 0.5, y: 0 }
-
-        <RoundedView> {
-            width: 40,
-            height: 6,
-
-            draw_bg: {
-                color: #aaa
-                radius: 2.
-            }
-        }
+        width: Fill,
+        height: Fit,
 
         <ContentItem> {
             year_wrapper = { year_label = { text: "700" }}
@@ -184,6 +161,9 @@ live_design! {
                 text: "Hongzhi Emperor split the walls into north and south lines, eventually shaping it into how it is today. Since then, it has gradually fallen into disrepair and remains mostly unused."
             }}
         }
+
+        // Add some free space at the bottom
+        <View> { width: 1, height: 250 }
     }
 
     ChartItem = <RoundedView> {
@@ -259,18 +239,29 @@ live_design! {
     }
 
     TimelineScreenInner = {{TimelineScreenInner}} {
-        width: Fill, height: Fill
-        flow: Overlay,
+        expandable_panel: <ExpandablePanel> {
+            body = {
+                flow: Down,
+                spacing: 10,
+                header = <Header> { margin: { top: 50. } }
+                <Chart> {}
+            }
 
-        show_bg: true,
-        draw_bg: {
-            color: (BACKGROUND_COLOR)
+            panel = {
+                draw_bg: {
+                    color: (BACKGROUND_COLOR)
+                }
+
+                scroll_handler = {
+                    draw_bg: {
+                        color: #aaa
+                        radius: 2.
+                    }
+                }
+
+                <Content> {}
+            }
         }
-
-        header = <Header> { margin: { top: 50. } }
-        <Chart> { margin: { top: 320. }}
-        content = <Content> {}
-
     }
 
     TimelineScreenWrapper = {{TimelineScreenWrapper}} {
@@ -314,51 +305,38 @@ live_design! {
     }
 }
 
-#[derive(Live, Widget)]
+#[derive(Live, LiveHook, Widget)]
 pub struct TimelineScreenInner {
-    #[deref]
-    view: View,
-
-    #[rust]
-    touch_gesture: TouchGesture,
-}
-
-impl LiveHook for TimelineScreenInner {
-    fn after_apply_from(&mut self, _cx: &mut Cx, apply: &mut Apply) {
-        if apply.from.is_from_doc() {
-            self.touch_gesture = TouchGesture::new();
-            self.touch_gesture
-                .reset(0.0, 0.0, CONTENT_LENGTH, ScrollMode::Swipe);
-        }
-    }
+    #[live] #[wrap]
+    expandable_panel: ExpandablePanel,
 }
 
 impl Widget for TimelineScreenInner {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope);
-
-        if self
-            .touch_gesture
-            .handle_event(cx, event, self.view.area())
-            .has_changed()
-        {
-            let header_opacity = clamp(1.0 - self.touch_gesture.scroll_offset / 200.0, 0.5, 1.0);
-            let content_margin = 400. - self.touch_gesture.scroll_offset;
-
-            self.apply_over(
-                cx,
-                live! {
-                    header = { draw_bg: { opacity: (header_opacity) }}
-                    content = { margin: { top: (content_margin) }}
-                },
-            );
-
-            self.redraw(cx);
-        }
+        self.expandable_panel.handle_event(cx, event, scope);
+        self.widget_match_event(cx, event, scope);
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        self.view.draw_walk(cx, scope, walk)
+        self.expandable_panel.draw_walk(cx, scope, walk)
+    }
+}
+
+impl WidgetMatchEvent for TimelineScreenInner {
+    fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions, _scope: &mut Scope) {
+        for action in actions {
+            match action.as_widget_action().cast() {
+                ExpandablePanelAction::ScrolledAt(scroll_offset) => {
+                    let header_opacity = clamp(1.0 - scroll_offset / 200.0, 0.5, 1.0);
+                    self.expandable_panel.apply_over(cx, live! {
+                        body = { header = { draw_bg: { opacity: (header_opacity) }}}
+                    });
+
+                    self.redraw(cx);
+                }
+                _ => ()
+            }
+        }
     }
 }
 

@@ -1,6 +1,6 @@
-use crate::shared::touch_gesture::*;
 use crate::wonder::content::*;
 use makepad_widgets::widget::WidgetCache;
+use makepad_widgets::touch_gesture::*;
 use makepad_widgets::*;
 
 live_design! {
@@ -687,12 +687,12 @@ impl WonderScreenInner {
 
         if self.touch_gesture.is_stopped() {
             self.reset_all_positions(cx);
-            self.touch_gesture.scroll_offset = 0.0;
+            self.touch_gesture.scrolled_at = 0.0;
             return;
         }
 
         const COVER_STATE_SCROLL_FACTOR: f64 = 0.6;
-        let delta = self.touch_gesture.scroll_offset * COVER_STATE_SCROLL_FACTOR;
+        let delta = self.touch_gesture.scrolled_at * COVER_STATE_SCROLL_FACTOR;
 
         const SHOW_TITLE_THRESHOLD: f64 = 60.0;
         if delta > SHOW_TITLE_THRESHOLD {
@@ -719,7 +719,7 @@ impl WonderScreenInner {
             self.animator_play(cx, id!(compass.show));
 
             self.touch_gesture.stop();
-            self.touch_gesture.scroll_offset = 0.0;
+            self.touch_gesture.scrolled_at = 0.0;
         } else if delta > 0. {
             // Animate the great wall left and right images
 
@@ -763,11 +763,11 @@ impl WonderScreenInner {
         if self.touch_gesture.is_stopped() {
             // TODO rename this!
             self.reset_all_positions(cx);
-            self.touch_gesture.scroll_offset = 0.0;
+            self.touch_gesture.scrolled_at = 0.0;
             return;
         }
 
-        let delta = self.touch_gesture.scroll_offset;
+        let delta = self.touch_gesture.scrolled_at;
 
         const SHOW_COVER_THRESHOLD: f64 = -60.0;
         const SHOW_CONTENT_THRESHOLD: f64 = 20.0;
@@ -797,7 +797,7 @@ impl WonderScreenInner {
             );
 
             self.touch_gesture.stop();
-            self.touch_gesture.scroll_offset = 0.0;
+            self.touch_gesture.scrolled_at = 0.0;
         } else if delta < 0. {
             let subtitle_group = self.view(id!(subtitle_group));
             subtitle_group.apply_over(
@@ -820,14 +820,15 @@ impl WonderScreenInner {
             self.state = WonderState::Content;
 
             // Note this is NOT reseting current dragging state
-            self.touch_gesture
-                .reset(0.0, 0.0, MAIN_CONTENT_LENGTH, ScrollMode::Swipe);
+            self.touch_gesture.set_mode(ScrollMode::Swipe);
+            self.touch_gesture.set_range(0.0, MAIN_CONTENT_LENGTH);
+            self.touch_gesture.reset_scrolled_at();
         }
     }
 
     fn handle_event_in_content_state(&mut self, cx: &mut Cx, event: &Event) {
         if self.touch_gesture.handle_event(cx, event, self.view.area()).has_changed() {
-            let delta = self.touch_gesture.scroll_offset;
+            let delta = self.touch_gesture.scrolled_at;
             let is_dragging = self.touch_gesture.is_dragging();
             let action = self
             .wonder_content(id!(content))
@@ -840,8 +841,9 @@ impl WonderScreenInner {
                     self.state = WonderState::Title;
                     self.update_title_position_on_into_content(cx, 0.0);
 
-                    self.touch_gesture
-                    .reset(0.0, f64::MIN, f64::MAX, ScrollMode::DragAndDrop);
+                    self.touch_gesture.set_mode(ScrollMode::DragAndDrop);
+                    self.touch_gesture.set_range(f64::MIN, f64::MAX);
+                    self.touch_gesture.reset_scrolled_at();
                 }
                 _ => {}
             }
