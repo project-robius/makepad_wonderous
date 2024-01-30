@@ -1,8 +1,6 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
-use crate::shared::stack_view_action::StackViewAction;
-
 use super::gallery_image::{GalleryImage, GalleryImageId};
 
 pub const IMAGE_WIDTH: f64 = 270.;
@@ -358,7 +356,7 @@ impl Gallery {
                     cx.widget_action(
                         widget_uid,
                         &scope.path,
-                        StackViewAction::ShowGalleryImageSlider,
+                        StackNavigationAction::NavigateTo(live_id!(gallery_image_slider_stack_view))
                     );
                 }
                 // Reset variable for swiping

@@ -1,11 +1,8 @@
-use std::collections::HashMap;
-
 use crate::{
     gallery::{
         gallery_image_slider::GalleryImageSliderWidgetRefExt,
         gallery_screen::{GalleryGridAction, GalleryWidgetRefExt},
     },
-    shared::{stack_navigation::StackNavigationWidgetRefExt, stack_view_action::StackViewAction},
     wonder::wonder_screen::{WonderScreenAction, WonderState},
 };
 use makepad_widgets::*;
@@ -21,7 +18,6 @@ live_design! {
     import crate::artifacts::artifacts_screen::*;
     import crate::timeline::timeline_screen::*;
     import crate::timeline::global_timeline::*;
-    import crate::shared::stack_navigation::*;
 
     ICON_WONDER = dep("crate://self/resources/icons/test.svg")
     ICON_GALLERY = dep("crate://self/resources/icons/test.svg")
@@ -143,10 +139,44 @@ live_design! {
 
                     // Add stack navigations here
                     gallery_image_slider_stack_view = <StackNavigationView> {
-                        image_slider = <GalleryImageSlider> {}
+                        show_bg: true
+                        draw_bg: {
+                            color: #1f1b18
+                        }
+                        header = {
+                            show_bg: false,
+                            content = {
+                                title_container = {
+                                    title = {
+                                        text: " "
+                                    }
+                                }
+                            }
+                        }
+                        body = {
+                            show_bg: false,
+                            image_slider = <GalleryImageSlider> {}
+                        }
                     }
                     global_timeline_stack_view = <StackNavigationView> {
-                        global_timeline = <GlobalTimeline> {}
+                        show_bg: true
+                        draw_bg: {
+                            color: #1f1b18
+                        }
+                        header = {
+                            show_bg: false,
+                            content = {
+                                title_container = {
+                                    title = {
+                                        text: " "
+                                    }
+                                }
+                            }
+                        }
+                        body = {
+                            show_bg: false,
+                            global_timeline = <GlobalTimeline> {}
+                        }
                     }
                 }
             }
@@ -156,12 +186,10 @@ live_design! {
 
 app_main!(App);
 
-#[derive(Live)]
+#[derive(Live, LiveHook)]
 pub struct App {
     #[live]
-    ui: WidgetRef,
-    #[rust]
-    navigation_destinations: HashMap<StackViewAction, LiveId>,
+    ui: WidgetRef
 }
 
 impl LiveRegister for App {
@@ -171,7 +199,6 @@ impl LiveRegister for App {
         // Shared
         crate::shared::styles::live_design(cx);
         crate::shared::widgets::live_design(cx);
-        crate::shared::stack_navigation::live_design(cx);
         crate::shared::curved_label::live_design(cx);
         crate::shared::helpers::live_design(cx);
 
@@ -200,12 +227,6 @@ impl LiveRegister for App {
     }
 }
 
-impl LiveHook for App {
-    fn after_new_from_doc(&mut self, _cx: &mut Cx) {
-        self.init_navigation_destinations();
-    }
-}
-
 impl MatchEvent for App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions) {
         self.ui
@@ -228,7 +249,7 @@ impl MatchEvent for App {
             );
 
         let mut navigation = self.ui.stack_navigation(id!(navigation));
-        navigation.handle_stack_view_actions(cx, &actions, &self.navigation_destinations);
+        navigation.handle_stack_view_actions(cx, &actions);
 
         self.handle_mobile_menu_visibility(&actions);
         self.handle_selected_gallery_image(cx, &actions);
@@ -246,19 +267,6 @@ impl AppMain for App {
 }
 
 impl App {
-    fn init_navigation_destinations(&mut self) {
-        self.navigation_destinations = HashMap::new();
-        self.navigation_destinations.insert(
-            StackViewAction::ShowGalleryImageSlider,
-            live_id!(gallery_image_slider_stack_view),
-        );
-        self.navigation_destinations.insert(
-            StackViewAction::ShowGlobalTimeLine,
-            live_id!(global_timeline_stack_view),
-        );
-        // Add stack view actions here
-    }
-
     fn handle_mobile_menu_visibility(&mut self, actions: &Actions) {
         // hide menu on first page
         let stack_navigation = self.ui.stack_navigation(id!(navigation));
