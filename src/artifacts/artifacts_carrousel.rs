@@ -22,7 +22,7 @@ live_design! {
             border_color: #fff
         }
 
-        <Image> {
+        image = <Image> {
             source: (IMG_GREAT_WALL_ARTIFACT_1),
             width: Fill,
             height: Fill,
@@ -53,8 +53,48 @@ live_design! {
         spacing: 10.0,
         padding: 10.0,
         align: {x: 0.5, y: 0.0},
+        
+        <View> {
+            flow: Overlay,
+            width: Fill,
+            height: 360,
 
-        <CarrouselItem> {}
+            main_item = <CarrouselItem> {
+                margin: { left: 75.0 }
+            }
+
+            previous_item = <CarrouselItem> {
+                margin: { left: -90.0, top: 170.0 }
+                width: 160,
+                height: 160,
+
+                draw_bg: {
+                    radius: 36.
+                }
+
+                image = {
+                    draw_bg: {
+                        radius: 36.
+                    }
+                }
+            }
+
+            next_item = <CarrouselItem> {
+                margin: { left: 280.0, top: 170.0 }
+                width: 160,
+                height: 160,
+
+                draw_bg: {
+                    radius: 36.
+                }
+
+                image = {
+                    draw_bg: {
+                        radius: 36.
+                    }
+                }
+            }
+        }
 
         <Label> {
             draw_text:{
