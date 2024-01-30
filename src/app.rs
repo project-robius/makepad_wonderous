@@ -56,9 +56,9 @@ live_design! {
                             margin: 0.0,
                             padding: 0.0
 
-                            tab1_frame = <WonderScreen> {visible: true}
+                            tab1_frame = <WonderScreen> {visible: false}
                             tab2_frame = <GalleryScreen> {visible: false}
-                            tab3_frame = <ArtifactsScreen> {visible: false}
+                            tab3_frame = <ArtifactsScreen> {visible: true}
                             tab4_frame = <TimelineScreen> {visible: false}
                         }
 
@@ -236,6 +236,7 @@ impl LiveRegister for App {
 
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
+        crate::artifacts::artifacts_carrousel::live_design(cx);
 
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
