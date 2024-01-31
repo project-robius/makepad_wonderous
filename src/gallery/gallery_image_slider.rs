@@ -180,7 +180,7 @@ impl Widget for GalleryImageSlider {
                 _ => Some(self.images_deps[image_idu64 as usize].as_str()),
             } {
                 gallery_image.set_path(image_path.to_owned());
-                gallery_image.set_size(dvec2(image_width, image_height));
+                gallery_image.set_size(cx, dvec2(image_width, image_height));
             }
 
             gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));

@@ -6,6 +6,7 @@ live_design! {
     import makepad_draw::shader::std::*;
 
     GalleryImage = {{GalleryImage}} {
+        align: {x: 0.5, y: 0.5}
         image: <Image> {
             draw_bg: {
                 instance radius: 3.
@@ -98,7 +99,7 @@ impl GalleryImage {
         self.path = path;
     }
 
-    pub fn set_size(&mut self, size: DVec2) {
+    pub fn set_size(&mut self, cx: &mut Cx, size: DVec2) {
         self.size = size;
     }
 

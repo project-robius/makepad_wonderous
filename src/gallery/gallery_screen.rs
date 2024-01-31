@@ -49,7 +49,35 @@ live_design! {
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
         ]
 
-        gallery_image_template: <GalleryImage> {}
+        gallery_image_template: <GalleryImage> {
+            image: <Image> {
+                fit: Biggest
+                draw_bg: {
+                    instance radius: 3.
+                    instance scale: 0.0
+                    instance down: 0.0
+                    instance size: vec2(270., 430.)
+
+                    fn pixel(self) -> vec4 {
+                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                        sdf.box(
+                            1,
+                            1,
+                            self.size.x - 2.0,
+                            self.size.y - 2.0,
+                            max(1.0, self.radius)
+                        )
+                        let max_scale = vec2(0.9);
+                        let scale = mix(vec2(1.0), max_scale, self.scale);
+                        let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.scale);
+
+                        let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), 0);
+                        sdf.fill_keep(color);
+                        return sdf.result
+                    }
+                }
+            }
+        }
 
         // This values are hardcoded from the width and height of the image
         image_offset: vec2(290., 450.)
@@ -205,7 +233,7 @@ impl Widget for Gallery {
                 _ => Some(self.images_deps[image_idu64 as usize].as_str()),
             } {
                 gallery_image.set_path(image_path.to_owned());
-                gallery_image.set_size(dvec2(IMAGE_WIDTH, IMAGE_HEIGHT));
+                gallery_image.set_size(cx, dvec2(IMAGE_WIDTH, IMAGE_HEIGHT));
             }
 
             gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));
