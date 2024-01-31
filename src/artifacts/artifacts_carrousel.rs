@@ -99,6 +99,21 @@ live_design! {
                     }
                 }
             }
+
+            aux_item = <CarrouselItem> {
+                width: 160,
+                height: 160,
+
+                draw_bg: {
+                    radius: 36.
+                }
+
+                image = {
+                    draw_bg: {
+                        radius: 36.
+                    }
+                }
+            }
         }
 
         <Label> {
@@ -116,6 +131,95 @@ live_design! {
             }
             text: "second half 16th century"
         }
+
+        animator: {
+            move_next = {
+                default: init
+                init = {
+                    from: {all: Snap}
+                    apply: {
+                        container = {
+                            main_item = {
+                                margin: {left: 75.0, top: 0.0}
+                                width: 200,
+                                height: 280,
+                            }
+                            next_item = {
+                                margin: {left: 280.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            previous_item = {
+                                margin: {left: -90.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            aux_item = {
+                                margin: {left: -295.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                        }
+                    }
+                }
+                before_go = {
+                    from: {all: Snap}
+                    redraw: true
+                    apply: {
+                        container = {
+                            main_item = {
+                                margin: {left: 280.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            next_item = {
+                                margin: {left: 485.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            previous_item = {
+                                margin: {left: 75.0, top: 0.0}
+                                width: 200,
+                                height: 280,
+                            }
+                            aux_item = {
+                                margin: {left: -90.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                        }
+                    }
+                }
+                go = {
+                    from: {all: Forward {duration: 0.3}}
+                    redraw: true
+                    apply: {
+                        container = {
+                            main_item = {
+                                margin: {left: 75.0, top: 0.0}
+                                width: 200,
+                                height: 280,
+                            }
+                            next_item = {
+                                margin: {left: 280.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            previous_item = {
+                                margin: {left: -90.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            aux_item = {
+                                margin: {left: -295.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -132,6 +236,9 @@ pub struct ArtifactsCarrousel {
 
     #[rust(true)]
     ready_to_swipe: bool,
+
+    #[animator]
+    animator: Animator,
 }
 
 impl LiveHook for ArtifactsCarrousel {
@@ -145,6 +252,12 @@ impl LiveHook for ArtifactsCarrousel {
 impl Widget for ArtifactsCarrousel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         self.view.handle_event(cx, event, scope);
+        if self.animator_handle_event(cx, event).is_animating() {
+            self.redraw(cx);
+        }
+        if self.animator.animator_in_state(cx, id!(move_next.before_go)) {
+            self.animator_play(cx, id!(move_next.go));
+        }
 
         match event.hits(cx, self.view.area()) {
             Hit::FingerMove(fe) => {
@@ -153,16 +266,16 @@ impl Widget for ArtifactsCarrousel {
                 }
 
                 let swipe_vector = fe.abs - fe.abs_start;
-                dbg!(swipe_vector);
 
                 // only trigger swipe if it is larger than some pixels
                 let swipe_trigger_value = 40.;
 
                 if swipe_vector.x.abs() > swipe_trigger_value {
                     if swipe_vector.x > 0. {
-                        self.current_index = (self.current_index + 1).rem_euclid(self.items.len() as i8);
-                    } else {
                         self.current_index = (self.current_index - 1).rem_euclid(self.items.len() as i8);
+                    } else {
+                        self.current_index = (self.current_index + 1).rem_euclid(self.items.len() as i8);
+                        self.animator_play(cx, id!(move_next.before_go));
                     };
 
                     self.update_images(cx);
@@ -197,6 +310,12 @@ impl ArtifactsCarrousel {
         image = self.view.image(id!(container.next_item.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
 
-        self.view.redraw(cx);
+        // TODO hardcoded for going next
+        let aux_index = (index as i8 + 2).rem_euclid(self.items.len() as i8) as usize;
+        dep_path = self.items[aux_index].as_str();
+        image = self.view.image(id!(container.aux_item.image));
+        let _ = image.load_image_dep_by_path(cx, dep_path);
+
+        //self.view.redraw(cx);
     }
 }
