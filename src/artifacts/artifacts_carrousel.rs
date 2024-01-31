@@ -125,20 +125,53 @@ pub struct ArtifactsCarrousel {
     view: View,
 
     #[live]
-    items: Vec<LiveDependency>
+    items: Vec<LiveDependency>,
+
+    #[rust(0)]
+    current_index: i8,
+
+    #[rust(true)]
+    ready_to_swipe: bool,
 }
 
 impl LiveHook for ArtifactsCarrousel {
     fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
         if apply.from.is_from_doc() {
-            self.set_current_image(cx, 0);
+            self.update_images(cx);
         }
     }
 }
 
 impl Widget for ArtifactsCarrousel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope)
+        self.view.handle_event(cx, event, scope);
+
+        match event.hits(cx, self.view.area()) {
+            Hit::FingerMove(fe) => {
+                if !self.ready_to_swipe {
+                    return;
+                }
+
+                let swipe_vector = fe.abs - fe.abs_start;
+                dbg!(swipe_vector);
+
+                // only trigger swipe if it is larger than some pixels
+                let swipe_trigger_value = 40.;
+
+                if swipe_vector.x.abs() > swipe_trigger_value {
+                    if swipe_vector.x > 0. {
+                        self.current_index = (self.current_index + 1).rem_euclid(self.items.len() as i8);
+                    } else {
+                        self.current_index = (self.current_index - 1).rem_euclid(self.items.len() as i8);
+                    };
+
+                    self.update_images(cx);
+                    self.ready_to_swipe = false;
+                }
+            }
+            Hit::FingerUp(_fe) => self.ready_to_swipe = true,
+            _ => {}
+        }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
@@ -147,7 +180,9 @@ impl Widget for ArtifactsCarrousel {
 }
 
 impl ArtifactsCarrousel {
-    fn set_current_image(&mut self, cx: &mut Cx, index: usize) {
+    fn update_images(&mut self, cx: &mut Cx) {
+        let index = self.current_index as usize;
+
         let mut dep_path = self.items[index].as_str();
         let mut image = self.view.image(id!(container.main_item.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
@@ -161,5 +196,7 @@ impl ArtifactsCarrousel {
         dep_path = self.items[next_index].as_str();
         image = self.view.image(id!(container.next_item.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
+
+        self.view.redraw(cx);
     }
 }
