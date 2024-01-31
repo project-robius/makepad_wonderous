@@ -161,6 +161,9 @@ impl LiveHook for Gallery {
 
 impl Widget for Gallery {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        for image in self.images.values_mut() {
+            image.handle_event(cx, event, scope);
+        }
         self.view.handle_event(cx, event, scope);
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
