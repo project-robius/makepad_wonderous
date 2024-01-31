@@ -9,8 +9,6 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::widgets::*;
 
-    IMG_GREAT_WALL_ARTIFACT_1 = dep("crate://self/resources/images/artifacts/great-wall-1.jpg")
-
     CarrouselItem = <RoundedView> {
         width: 200,
         height: 280,
@@ -23,7 +21,6 @@ live_design! {
         }
 
         image = <Image> {
-            source: (IMG_GREAT_WALL_ARTIFACT_1),
             width: Fill,
             height: Fill,
 
@@ -53,8 +50,16 @@ live_design! {
         spacing: 10.0,
         padding: 10.0,
         align: {x: 0.5, y: 0.0},
+
+        items: [
+            dep("crate://self/resources/images/artifacts/great-wall-1.jpg"),
+            dep("crate://self/resources/images/artifacts/great-wall-2.jpg"),
+            dep("crate://self/resources/images/artifacts/great-wall-3.jpg"),
+            dep("crate://self/resources/images/artifacts/great-wall-4.jpg"),
+            dep("crate://self/resources/images/artifacts/great-wall-5.jpg"),
+        ]
         
-        <View> {
+        container = <View> {
             flow: Overlay,
             width: Fill,
             height: 360,
@@ -114,10 +119,21 @@ live_design! {
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Live, Widget)]
 pub struct ArtifactsCarrousel {
     #[deref]
     view: View,
+
+    #[live]
+    items: Vec<LiveDependency>
+}
+
+impl LiveHook for ArtifactsCarrousel {
+    fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
+        if apply.from.is_from_doc() {
+            self.set_current_image(cx, 0);
+        }
+    }
 }
 
 impl Widget for ArtifactsCarrousel {
@@ -131,4 +147,19 @@ impl Widget for ArtifactsCarrousel {
 }
 
 impl ArtifactsCarrousel {
+    fn set_current_image(&mut self, cx: &mut Cx, index: usize) {
+        let mut dep_path = self.items[index].as_str();
+        let mut image = self.view.image(id!(container.main_item.image));
+        let _ = image.load_image_dep_by_path(cx, dep_path);
+
+        let previous_index = (index as i8 - 1).rem_euclid(self.items.len() as i8) as usize;
+        dep_path = self.items[previous_index].as_str();
+        image = self.view.image(id!(container.previous_item.image));
+        let _ = image.load_image_dep_by_path(cx, dep_path);
+
+        let next_index = (index as i8 + 1).rem_euclid(self.items.len() as i8) as usize;
+        dep_path = self.items[next_index].as_str();
+        image = self.view.image(id!(container.next_item.image));
+        let _ = image.load_image_dep_by_path(cx, dep_path);
+    }
 }

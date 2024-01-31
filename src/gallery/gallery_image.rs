@@ -103,6 +103,7 @@ impl GalleryImage {
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
         let bg_width = Size::Fixed(self.size.x);
         let bg_height = Size::Fixed(self.size.y);
+        // TODO check if we can load this in another place
         let _ = self.image.load_image_dep_by_path(cx, &self.path);
         _ = self
             .image
