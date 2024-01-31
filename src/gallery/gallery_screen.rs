@@ -81,8 +81,6 @@ live_design! {
                 }
             }
         }
-
-
     }
 
     GalleryScreen = <View> {
@@ -356,7 +354,9 @@ impl Gallery {
                     cx.widget_action(
                         widget_uid,
                         &scope.path,
-                        StackNavigationAction::NavigateTo(live_id!(gallery_image_slider_stack_view))
+                        StackNavigationAction::NavigateTo(live_id!(
+                            gallery_image_slider_stack_view
+                        )),
                     );
                 }
                 // Reset variable for swiping

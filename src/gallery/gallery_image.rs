@@ -20,21 +20,22 @@ live_design! {
                         self.rect_size.y - 2.0,
                         max(1.0, self.radius)
                     )
-                    let max_scale = vec2(1.1);
+                    let max_scale = vec2(0.9);
                     let scale = mix(vec2(1.0), max_scale, self.scale);
                     let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.scale);
-                    let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
+
+                    let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), 0);
                     sdf.fill_keep(color);
                     return sdf.result
                 }
             }
         }
-
         animator: {
             zoom = {
                 default: off
                 off = {
                     from: {
+                        ease: OutExp,
                         all: Forward {duration: 0.3}
                     }
                     apply: {
@@ -43,6 +44,7 @@ live_design! {
                 }
                 on = {
                     from: {
+                        ease: OutExp,
                         all: Forward {duration: 0.3}
                     }
                     apply: {

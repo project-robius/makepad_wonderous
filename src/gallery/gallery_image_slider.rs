@@ -14,7 +14,7 @@ live_design! {
 
     GalleryImageSlider = {{GalleryImageSlider}} {
         width: Fill, height: Fill
-
+        align: {y: 0.5}
         images_deps: [
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-0.jpg"),
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-1.jpg"),
@@ -46,6 +46,7 @@ live_design! {
 
         gallery_image_template: <GalleryImage> {
             image: {
+                fit: Horizontal,
                 draw_bg: {
                     instance radius: 0.
                 }
@@ -171,7 +172,7 @@ impl Widget for GalleryImageSlider {
             let mut pos = start_pos
                 + dvec2(
                     (image_idu64 as f64 * padded_image_width + image_offset.x) - image_width / 2.,
-                    -(image_height / 2.) + 20.,
+                    -(image_height / 2.) - 60.,
                 );
 
             if let Some(image_path) = match image_idu64 {
