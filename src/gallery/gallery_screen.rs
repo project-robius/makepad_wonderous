@@ -79,33 +79,32 @@ live_design! {
             }
         }
 
-        // This values are hardcoded from the width and height of the image
-        image_offset: vec2(290., 450.)
+        swipe_progress: vec2(1., 1.)
 
         animator: {
             swipe = {
                 default: idle,
                 idle = {
                     from: {all: Snap}
-                    apply: {image_offset: vec2(0., 0.)}
+                    apply: {swipe_progress: vec2(0., 0.)}
                 }
 
                 horizontal = {
                     from: {all: Forward {duration: 0.15}}
-                    apply: {image_offset: vec2(290., 0.)}
+                    apply: {swipe_progress: vec2(1., 0.)}
                 }
                 vertical = {
                     from: {all: Forward {duration: 0.15}}
-                    apply: {image_offset: vec2(0., 450.)}
+                    apply: {swipe_progress: vec2(0., 1.)}
                 }
                 diagonal = {
                     from: {all: Forward {duration: 0.15}}
-                    apply: {image_offset: vec2(290., 450.)}
+                    apply: {swipe_progress: vec2(1., 1.)}
                 }
 
                 reset = {
                     from: {all: Snap}
-                    apply: {image_offset: vec2(0., 0.)}
+                    apply: {swipe_progress: vec2(0., 0.)}
                 }
             }
         }
@@ -145,7 +144,7 @@ pub struct Gallery {
     #[redraw]
     area: Area,
     #[live]
-    image_offset: DVec2,
+    swipe_progress: DVec2,
 
     #[rust]
     images: ComponentMap<GalleryImageId, GalleryImage>,
@@ -261,9 +260,6 @@ impl Gallery {
             -(IMAGE_HEIGHT + IMAGE_PADDING) * previous_row,
         );
 
-        let padded_size = dvec2(IMAGE_WIDTH + IMAGE_PADDING, IMAGE_HEIGHT + IMAGE_PADDING);
-
-        let progress = self.image_offset / padded_size;
         // Check if the animation is complete
         if !self.animator.is_track_animating(cx, id!(swipe)) {
             if self.animator.animator_in_state(cx, id!(swipe.vertical))
@@ -277,8 +273,8 @@ impl Gallery {
 
         // Interpolate between the previous and current offsets
         let interpolated_offset = dvec2(
-            previous_offset.x + (current_offset.x - previous_offset.x) * progress.x,
-            previous_offset.y + (current_offset.y - previous_offset.y) * progress.y,
+            previous_offset.x + (current_offset.x - previous_offset.x) * self.swipe_progress.x,
+            previous_offset.y + (current_offset.y - previous_offset.y) * self.swipe_progress.y,
         );
 
         interpolated_offset
