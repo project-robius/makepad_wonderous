@@ -42,14 +42,12 @@ live_design! {
         }
     }
 
-    ArtifactsCarrousel = {{ArtifactsCarrousel}} {
-        width: Fill,
-        height: Fit,
+    IMG_CONTENT = dep("crate://self/resources/images/great-wall-content-1.jpg")
 
-        flow: Down,
-        spacing: 10.0,
-        padding: 10.0,
-        align: {x: 0.5, y: 0.0},
+    ArtifactsCarrousel = {{ArtifactsCarrousel}} {
+        flow: Overlay,
+        width: Fill,
+        height: Fill,
 
         items: [
             dep("crate://self/resources/images/artifacts/great-wall-1.jpg"),
@@ -58,87 +56,128 @@ live_design! {
             dep("crate://self/resources/images/artifacts/great-wall-4.jpg"),
             dep("crate://self/resources/images/artifacts/great-wall-5.jpg"),
         ]
-        
-        container = <View> {
-            flow: Overlay,
+
+        background = <FadeView> {
             width: Fill,
-            height: 360,
+            height: Fill,
 
-            main_item = <CarrouselItem> {
-                margin: { left: 75.0 }
+            draw_bg: {
+                opacity: 0.3,
             }
 
-            previous_item = <CarrouselItem> {
-                margin: { left: -90.0, top: 170.0 }
-                width: 160,
-                height: 160,
+            image = <Image> {
+                width: Fill,
+                height: Fill,
 
                 draw_bg: {
-                    radius: 36.
-                }
-
-                image = {
-                    draw_bg: {
-                        radius: 36.
-                    }
-                }
-            }
-
-            next_item = <CarrouselItem> {
-                margin: { left: 280.0, top: 170.0 }
-                width: 160,
-                height: 160,
-
-                draw_bg: {
-                    radius: 36.
-                }
-
-                image = {
-                    draw_bg: {
-                        radius: 36.
-                    }
-                }
-            }
-
-            aux_item = <CarrouselItem> {
-                width: 160,
-                height: 160,
-
-                draw_bg: {
-                    radius: 36.
-                }
-
-                image = {
-                    draw_bg: {
-                        radius: 36.
-                    }
+                    image_scale: 0.7
+                    image_pan: vec2(0.15, 0.2)
                 }
             }
         }
 
-        <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 16},
-                color: #fff
+        <RoundedView> {
+            margin: { top: 300, bottom: -200, left: -200, right: -200 }
+
+            width: Fill,
+            height: Fill,
+            draw_bg: {
+                color: #fffd
+                radius: 160.
             }
-            text: "Cape"
         }
 
-        <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                color: #fff
+        body = <View> {
+            width: Fill,
+            height: Fit,
+
+            flow: Down,
+            spacing: 10.0,
+            padding: { top: 100.0 }
+            align: {x: 0.5, y: 0.0},
+            
+            container = <View> {
+                flow: Overlay,
+                width: Fill,
+                height: 360,
+
+                main_item = <CarrouselItem> {
+                    margin: { left: 75.0 }
+                }
+
+                previous_item = <CarrouselItem> {
+                    margin: { left: -90.0, top: 170.0 }
+                    width: 160,
+                    height: 160,
+
+                    draw_bg: {
+                        radius: 36.
+                    }
+
+                    image = {
+                        draw_bg: {
+                            radius: 36.
+                        }
+                    }
+                }
+
+                next_item = <CarrouselItem> {
+                    margin: { left: 280.0, top: 170.0 }
+                    width: 160,
+                    height: 160,
+
+                    draw_bg: {
+                        radius: 36.
+                    }
+
+                    image = {
+                        draw_bg: {
+                            radius: 36.
+                        }
+                    }
+                }
+
+                aux_item = <CarrouselItem> {
+                    visible: false
+                    width: 160,
+                    height: 160,
+
+                    draw_bg: {
+                        radius: 36.
+                    }
+
+                    image = {
+                        draw_bg: {
+                            radius: 36.
+                        }
+                    }
+                }
             }
-            text: "second half 16th century"
+
+            <Label> {
+                draw_text:{
+                    text_style: <INTRO_SUBTITLE>{font_size: 20},
+                    color: #333
+                }
+                text: "Cape"
+            }
+
+            <Label> {
+                draw_text:{
+                    text_style: <INTRO_SUBTITLE>{font_size: 10},
+                    color: #333
+                }
+                text: "second half 16th century"
+            }
         }
 
         animator: {
-            move_next = {
+            transition = {
                 default: init
                 init = {
                     from: {all: Snap}
                     apply: {
-                        container = {
+                        body = { container = {
                             main_item = {
                                 margin: {left: 75.0, top: 0.0}
                                 width: 200,
@@ -160,13 +199,13 @@ live_design! {
                                 height: 160,
                             }
                         }
-                    }
+                    }}
                 }
-                before_go = {
+                before_next = {
                     from: {all: Snap}
                     redraw: true
                     apply: {
-                        container = {
+                        body = { container = {
                             main_item = {
                                 margin: {left: 280.0, top: 170.0}
                                 width: 160,
@@ -188,13 +227,13 @@ live_design! {
                                 height: 160,
                             }
                         }
-                    }
+                    }}
                 }
-                go = {
+                go_next = {
                     from: {all: Forward {duration: 0.3}}
                     redraw: true
                     apply: {
-                        container = {
+                        body = { container = {
                             main_item = {
                                 margin: {left: 75.0, top: 0.0}
                                 width: 200,
@@ -216,7 +255,63 @@ live_design! {
                                 height: 160,
                             }
                         }
-                    }
+                    }}
+                }
+                before_previous = {
+                    from: {all: Snap}
+                    redraw: true
+                    apply: {
+                        body = { container = {
+                            main_item = {
+                                margin: {left: -90.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            next_item = {
+                                margin: {left: 75.0, top: 0.0}
+                                width: 200,
+                                height: 280,
+                            }
+                            previous_item = {
+                                margin: {left: -295.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            aux_item = {
+                                margin: {left: 280.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                        }
+                    }}
+                }
+                go_previous = {
+                    from: {all: Forward {duration: 0.3}}
+                    redraw: true
+                    apply: {
+                        body = { container = {
+                            main_item = {
+                                margin: {left: 75.0, top: 0.0}
+                                width: 200,
+                                height: 280,
+                            }
+                            next_item = {
+                                margin: {left: 280.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            previous_item = {
+                                margin: {left: -90.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                            aux_item = {
+                                margin: {left: 485.0, top: 170.0}
+                                width: 160,
+                                height: 160,
+                            }
+                        }
+                    }}
                 }
             }
         }
@@ -244,7 +339,7 @@ pub struct ArtifactsCarrousel {
 impl LiveHook for ArtifactsCarrousel {
     fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
         if apply.from.is_from_doc() {
-            self.update_images(cx);
+            self.update_images(cx, true);
         }
     }
 }
@@ -255,8 +350,15 @@ impl Widget for ArtifactsCarrousel {
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
         }
-        if self.animator.animator_in_state(cx, id!(move_next.before_go)) {
-            self.animator_play(cx, id!(move_next.go));
+        if self.animator.animator_in_state(cx, id!(transition.before_next)) {
+            self.animator_play(cx, id!(transition.go_next));
+            let carrousel_item = self.view.view(id!(container.aux_item));
+            carrousel_item.set_visible(true);
+
+        } else if self.animator.animator_in_state(cx, id!(transition.before_previous)) {
+            self.animator_play(cx, id!(transition.go_previous));
+            let carrousel_item = self.view.view(id!(container.aux_item));
+            carrousel_item.set_visible(true);
         }
 
         match event.hits(cx, self.view.area()) {
@@ -273,12 +375,13 @@ impl Widget for ArtifactsCarrousel {
                 if swipe_vector.x.abs() > swipe_trigger_value {
                     if swipe_vector.x > 0. {
                         self.current_index = (self.current_index - 1).rem_euclid(self.items.len() as i8);
+                        self.animator_play(cx, id!(transition.before_previous));
                     } else {
                         self.current_index = (self.current_index + 1).rem_euclid(self.items.len() as i8);
-                        self.animator_play(cx, id!(move_next.before_go));
+                        self.animator_play(cx, id!(transition.before_next));
                     };
 
-                    self.update_images(cx);
+                    self.update_images(cx, swipe_vector.x < 0.);
                     self.ready_to_swipe = false;
                 }
             }
@@ -293,11 +396,14 @@ impl Widget for ArtifactsCarrousel {
 }
 
 impl ArtifactsCarrousel {
-    fn update_images(&mut self, cx: &mut Cx) {
+    fn update_images(&mut self, cx: &mut Cx, move_next: bool) {
         let index = self.current_index as usize;
 
         let mut dep_path = self.items[index].as_str();
         let mut image = self.view.image(id!(container.main_item.image));
+        let _ = image.load_image_dep_by_path(cx, dep_path);
+
+        image = self.view.image(id!(background.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
 
         let previous_index = (index as i8 - 1).rem_euclid(self.items.len() as i8) as usize;
@@ -310,12 +416,19 @@ impl ArtifactsCarrousel {
         image = self.view.image(id!(container.next_item.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
 
-        // TODO hardcoded for going next
-        let aux_index = (index as i8 + 2).rem_euclid(self.items.len() as i8) as usize;
-        dep_path = self.items[aux_index].as_str();
+        if move_next {
+            let aux_index = (index as i8 - 2).rem_euclid(self.items.len() as i8) as usize;
+            dep_path = self.items[aux_index].as_str();
+        } else {
+            let aux_index = (index as i8 + 2).rem_euclid(self.items.len() as i8) as usize;
+            dep_path = self.items[aux_index].as_str();
+        }
         image = self.view.image(id!(container.aux_item.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
 
-        //self.view.redraw(cx);
+        let carrousel_item = self.view.view(id!(container.aux_item));
+        carrousel_item.set_visible(false);
+
+        self.view.redraw(cx);
     }
 }

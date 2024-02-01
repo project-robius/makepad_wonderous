@@ -12,7 +12,6 @@ live_design! {
     BACKGROUND_COLOR = #222
     BACKGROUND_ITEM_COLOR = #333
 
-
     Header = <FadeView> {
         flow: Overlay,
         width: Fill,
