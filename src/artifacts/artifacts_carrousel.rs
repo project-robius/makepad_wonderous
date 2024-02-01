@@ -23,6 +23,7 @@ live_design! {
         image = <Image> {
             width: Fill,
             height: Fill,
+            //fit: Smallest,
 
             draw_bg: {
                 instance radius: 46.
@@ -42,7 +43,7 @@ live_design! {
         }
     }
 
-    IMG_CONTENT = dep("crate://self/resources/images/great-wall-content-1.jpg")
+    IMG_CONTENT = dep("crate://self/resources/images/artifacts/great-wall-1.jpg")
 
     ArtifactsCarrousel = {{ArtifactsCarrousel}} {
         flow: Overlay,
@@ -57,23 +58,38 @@ live_design! {
             dep("crate://self/resources/images/artifacts/great-wall-5.jpg"),
         ]
 
-        background = <FadeView> {
+        background = <BlurStage>{
             width: Fill,
             height: Fill,
-
-            draw_bg: {
-                opacity: 0.3,
-            }
-
-            image = <Image> {
+            draw_bg:{blury: 0.0, blurx: 10.0, blursize: 0.1}
+            step3 = <BlurStage>{
                 width: Fill,
                 height: Fill,
+                draw_bg:{blury: 10.0, blurx: 0.0, blursize: 0.1}
+                step2 = <BlurStage>{
+                    width: Fill,
+                    height: Fill,
+                    draw_bg:{blury: 7.07, blurx: 7.07, blursize: 0.1}
+                    step1 = <BlurStage>{
+                        width: Fill,
+                        height: Fill,
+                        draw_bg:{blury: -7.07, blurx: 7.07, blursize: 0.1}
 
-                draw_bg: {
-                    image_scale: 0.7
-                    image_pan: vec2(0.15, 0.2)
+                        image = <Image> {
+                            width: Fill,
+                            height: Fill,
+                            fit: Biggest,
+
+                            source: (IMG_CONTENT)
+
+                            draw_bg: {
+                                image_scale: 20.0
+                                image_pan: vec2(0.15, 0.2)
+                            }
+                        }
+                    }
                 }
-            }
+            }  
         }
 
         <RoundedView> {
@@ -403,7 +419,7 @@ impl ArtifactsCarrousel {
         let mut image = self.view.image(id!(container.main_item.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
 
-        image = self.view.image(id!(background.image));
+        image = self.view.image(id!(background.step3.step2.step1.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
 
         let previous_index = (index as i8 - 1).rem_euclid(self.items.len() as i8) as usize;
