@@ -37,7 +37,7 @@ live_design! {
                 off = {
                     from: {
                         ease: OutExp,
-                        all: Forward {duration: 0.5}
+                        all: Forward {duration: 0.4}
                     }
                     apply: {
                         image: {draw_bg: {scale: 0.0}}
@@ -46,7 +46,7 @@ live_design! {
                 on = {
                     from: {
                         ease: OutExp,
-                        all: Forward {duration: 0.5}
+                        all: Forward {duration: 0.4}
                     }
                     apply: {
                         image: { draw_bg: {scale: 1.0} }
