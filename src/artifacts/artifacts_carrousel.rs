@@ -374,6 +374,7 @@ pub struct ArtifactsCarrousel {
 impl LiveHook for ArtifactsCarrousel {
     fn after_apply_from(&mut self, cx: &mut Cx, apply: &mut Apply) {
         if apply.from.is_from_doc() {
+            self.preload_images(cx);
             self.update_images(cx, true);
         }
     }
@@ -433,42 +434,44 @@ impl Widget for ArtifactsCarrousel {
 impl ArtifactsCarrousel {
     fn update_images(&mut self, cx: &mut Cx, move_next: bool) {
         let index = self.current_index as usize;
+        self.set_image(cx, index, id!(container.main_item.image_wrapper.image));
 
-        let mut dep_path = self.items[index].as_str();
-        let mut image = self.view.image(id!(container.main_item.image_wrapper.image));
-        let _ = image.load_image_dep_by_path(cx, dep_path);
-        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[index])}});
-
-        image = self.view.image(id!(background.step3.step2.step1.image));
-        let _ = image.load_image_dep_by_path(cx, dep_path);
+        let background_image = self.view.image(id!(background.step3.step2.step1.image));
+        let dep_path = self.items[index].as_str();
+        let _ = background_image.load_image_dep_by_path(cx, dep_path);
 
         let previous_index = (index as i8 - 1).rem_euclid(self.items.len() as i8) as usize;
-        dep_path = self.items[previous_index].as_str();
-        image = self.view.image(id!(container.previous_item.image_wrapper.image));
-        let _ = image.load_image_dep_by_path(cx, dep_path);
-        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[previous_index])}});
+        self.set_image(cx, previous_index, id!(container.previous_item.image_wrapper.image));
 
         let next_index = (index as i8 + 1).rem_euclid(self.items.len() as i8) as usize;
-        dep_path = self.items[next_index].as_str();
-        image = self.view.image(id!(container.next_item.image_wrapper.image));
-        let _ = image.load_image_dep_by_path(cx, dep_path);
-        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[next_index] * 1.0)}});
+        self.set_image(cx, next_index, id!(container.next_item.image_wrapper.image));
 
         let aux_index;
         if move_next {
             aux_index = (index as i8 - 2).rem_euclid(self.items.len() as i8) as usize;
-            dep_path = self.items[aux_index].as_str();
         } else {
             aux_index = (index as i8 + 2).rem_euclid(self.items.len() as i8) as usize;
-            dep_path = self.items[aux_index].as_str();
         }
-        image = self.view.image(id!(container.aux_item.image_wrapper.image));
-        let _ = image.load_image_dep_by_path(cx, dep_path);
-        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[aux_index])}});
+        self.set_image(cx, aux_index, id!(container.aux_item.image_wrapper.image));
 
         let carrousel_item = self.view.view(id!(container.aux_item));
         carrousel_item.set_visible(false);
 
         self.view.redraw(cx);
+    }
+
+    fn set_image(&mut self, cx: &mut Cx, index: usize, live_id: &[LiveId]) {
+        let dep_path = self.items[index].as_str();
+        let image = self.view.image(live_id);
+        let _ = image.load_image_dep_by_path(cx, dep_path);
+        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[index])}});
+    }
+
+    // This is not meant to be displayed at all, it is just to force images to load in advanced
+    // Otherwise, the animation could be choppy
+    fn preload_images(&mut self, cx: &mut Cx) {
+        for index in 0..self.items.len() {
+            self.set_image(cx, index, id!(container.main_item.image_wrapper.image));
+        }
     }
 }
