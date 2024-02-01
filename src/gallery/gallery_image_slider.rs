@@ -172,7 +172,7 @@ impl Widget for GalleryImageSlider {
             let mut pos = start_pos
                 + dvec2(
                     (image_idu64 as f64 * padded_image_width + image_offset.x) - image_width / 2.,
-                    -(image_height / 2.) - 60.,
+                    -(image_height / 2.) - 80.,
                 );
 
             if let Some(image_path) = match image_idu64 {
