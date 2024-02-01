@@ -260,15 +260,15 @@ impl GalleryImageSlider {
                     // self.last_swipe_direction = if self.swipe_vector_x > 0. { 1. } else { -1. };
 
                     let mut new_index = self.current_index;
-
-                    if self.swipe_vector_x.abs() > swipe_trigger_value {
-                        new_index += if self.swipe_vector_x > 0. { -1 } else { 1 };
-                        self.offset = self.swipe_vector_x.abs();
-                    }
                     // Handle prohibited swipe cases
                     // keep the index in range
                     if new_index < 0 || new_index > self.image_count - 1 {
                         return;
+                    }
+
+                    if self.swipe_vector_x.abs() > swipe_trigger_value {
+                        new_index += if self.swipe_vector_x > 0. { -1 } else { 1 };
+                        self.offset = self.swipe_vector_x.abs();
                     }
 
                     self.set_index(new_index, cx);
