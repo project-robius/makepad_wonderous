@@ -14,7 +14,7 @@ live_design! {
 
     GalleryImageSlider = {{GalleryImageSlider}} {
         width: Fill, height: Fill
-
+        align: {y: 0.5}
         images_deps: [
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-0.jpg"),
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-1.jpg"),
@@ -46,6 +46,7 @@ live_design! {
 
         gallery_image_template: <GalleryImage> {
             image: {
+                fit: Horizontal,
                 draw_bg: {
                     instance radius: 0.
                 }
@@ -171,7 +172,7 @@ impl Widget for GalleryImageSlider {
             let mut pos = start_pos
                 + dvec2(
                     (image_idu64 as f64 * padded_image_width + image_offset.x) - image_width / 2.,
-                    -(image_height / 2.) + 20.,
+                    -(image_height / 2.) - 80.,
                 );
 
             if let Some(image_path) = match image_idu64 {
@@ -179,7 +180,7 @@ impl Widget for GalleryImageSlider {
                 _ => Some(self.images_deps[image_idu64 as usize].as_str()),
             } {
                 gallery_image.set_path(image_path.to_owned());
-                gallery_image.set_size(dvec2(image_width, image_height));
+                gallery_image.set_size(cx, dvec2(image_width, image_height));
             }
 
             gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));
@@ -259,15 +260,15 @@ impl GalleryImageSlider {
                     // self.last_swipe_direction = if self.swipe_vector_x > 0. { 1. } else { -1. };
 
                     let mut new_index = self.current_index;
-
-                    if self.swipe_vector_x.abs() > swipe_trigger_value {
-                        new_index += if self.swipe_vector_x > 0. { -1 } else { 1 };
-                        self.offset = self.swipe_vector_x.abs();
-                    }
                     // Handle prohibited swipe cases
                     // keep the index in range
                     if new_index < 0 || new_index > self.image_count - 1 {
                         return;
+                    }
+
+                    if self.swipe_vector_x.abs() > swipe_trigger_value {
+                        new_index += if self.swipe_vector_x > 0. { -1 } else { 1 };
+                        self.offset = self.swipe_vector_x.abs();
                     }
 
                     self.set_index(new_index, cx);

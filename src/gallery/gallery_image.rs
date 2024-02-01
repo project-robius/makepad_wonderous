@@ -6,6 +6,7 @@ live_design! {
     import makepad_draw::shader::std::*;
 
     GalleryImage = {{GalleryImage}} {
+        align: {x: 0.5, y: 0.5}
         image: <Image> {
             draw_bg: {
                 instance radius: 3.
@@ -20,22 +21,23 @@ live_design! {
                         self.rect_size.y - 2.0,
                         max(1.0, self.radius)
                     )
-                    let max_scale = vec2(1.1);
+                    let max_scale = vec2(0.9);
                     let scale = mix(vec2(1.0), max_scale, self.scale);
                     let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.scale);
-                    let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
+
+                    let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), 0);
                     sdf.fill_keep(color);
                     return sdf.result
                 }
             }
         }
-
         animator: {
             zoom = {
                 default: off
                 off = {
                     from: {
-                        all: Forward {duration: 0.3}
+                        ease: OutExp,
+                        all: Forward {duration: 0.4}
                     }
                     apply: {
                         image: {draw_bg: {scale: 0.0}}
@@ -43,7 +45,8 @@ live_design! {
                 }
                 on = {
                     from: {
-                        all: Forward {duration: 0.3}
+                        ease: OutExp,
+                        all: Forward {duration: 0.4}
                     }
                     apply: {
                         image: { draw_bg: {scale: 1.0} }
@@ -96,7 +99,7 @@ impl GalleryImage {
         self.path = path;
     }
 
-    pub fn set_size(&mut self, size: DVec2) {
+    pub fn set_size(&mut self, cx: &mut Cx, size: DVec2) {
         self.size = size;
     }
 

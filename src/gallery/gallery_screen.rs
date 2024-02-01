@@ -49,40 +49,65 @@ live_design! {
             dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
         ]
 
-        gallery_image_template: <GalleryImage> {}
+        gallery_image_template: <GalleryImage> {
+            image: <Image> {
+                fit: Biggest
+                draw_bg: {
+                    instance radius: 3.
+                    instance scale: 0.0
+                    instance down: 0.0
+                    instance size: vec2(270., 430.)
 
-        // This values are hardcoded from the width and height of the image
-        image_offset: vec2(290., 450.)
+                    fn pixel(self) -> vec4 {
+                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                        sdf.box(
+                            1,
+                            1,
+                            self.size.x - 2.0,
+                            self.size.y - 2.0,
+                            max(1.0, self.radius)
+                        )
+                        let max_scale = vec2(0.9);
+                        let scale = mix(vec2(1.0), max_scale, self.scale);
+                        let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.scale);
+
+                        let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), 0);
+                        sdf.fill_keep(color);
+                        return sdf.result
+                    }
+                }
+            }
+        }
+
+        swipe_progress: vec2(1., 1.)
 
         animator: {
             swipe = {
                 default: idle,
                 idle = {
                     from: {all: Snap}
-                    apply: {image_offset: vec2(0., 0.)}
+                    apply: {swipe_progress: vec2(0., 0.)}
                 }
 
                 horizontal = {
                     from: {all: Forward {duration: 0.15}}
-                    apply: {image_offset: vec2(290., 0.)}
+                    apply: {swipe_progress: vec2(1., 0.)}
                 }
                 vertical = {
                     from: {all: Forward {duration: 0.15}}
-                    apply: {image_offset: vec2(0., 450.)}
+                    apply: {swipe_progress: vec2(0., 1.)}
                 }
                 diagonal = {
                     from: {all: Forward {duration: 0.15}}
-                    apply: {image_offset: vec2(290., 450.)}
+                    apply: {swipe_progress: vec2(1., 1.)}
                 }
 
                 reset = {
                     from: {all: Snap}
-                    apply: {image_offset: vec2(0., 0.)}
+                    apply: {swipe_progress: vec2(0., 0.)}
                 }
             }
         }
-
-
     }
 
     GalleryScreen = <View> {
@@ -119,7 +144,7 @@ pub struct Gallery {
     #[redraw]
     area: Area,
     #[live]
-    image_offset: DVec2,
+    swipe_progress: DVec2,
 
     #[rust]
     images: ComponentMap<GalleryImageId, GalleryImage>,
@@ -163,6 +188,9 @@ impl LiveHook for Gallery {
 
 impl Widget for Gallery {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        for image in self.images.values_mut() {
+            image.handle_event(cx, event, scope);
+        }
         self.view.handle_event(cx, event, scope);
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
@@ -204,7 +232,7 @@ impl Widget for Gallery {
                 _ => Some(self.images_deps[image_idu64 as usize].as_str()),
             } {
                 gallery_image.set_path(image_path.to_owned());
-                gallery_image.set_size(dvec2(IMAGE_WIDTH, IMAGE_HEIGHT));
+                gallery_image.set_size(cx, dvec2(IMAGE_WIDTH, IMAGE_HEIGHT));
             }
 
             gallery_image.draw_all(cx, &mut Scope::with_data(&mut pos));
@@ -232,9 +260,6 @@ impl Gallery {
             -(IMAGE_HEIGHT + IMAGE_PADDING) * previous_row,
         );
 
-        let padded_size = dvec2(IMAGE_WIDTH + IMAGE_PADDING, IMAGE_HEIGHT + IMAGE_PADDING);
-
-        let progress = self.image_offset / padded_size;
         // Check if the animation is complete
         if !self.animator.is_track_animating(cx, id!(swipe)) {
             if self.animator.animator_in_state(cx, id!(swipe.vertical))
@@ -248,8 +273,8 @@ impl Gallery {
 
         // Interpolate between the previous and current offsets
         let interpolated_offset = dvec2(
-            previous_offset.x + (current_offset.x - previous_offset.x) * progress.x,
-            previous_offset.y + (current_offset.y - previous_offset.y) * progress.y,
+            previous_offset.x + (current_offset.x - previous_offset.x) * self.swipe_progress.x,
+            previous_offset.y + (current_offset.y - previous_offset.y) * self.swipe_progress.y,
         );
 
         interpolated_offset
@@ -356,7 +381,9 @@ impl Gallery {
                     cx.widget_action(
                         widget_uid,
                         &scope.path,
-                        StackNavigationAction::NavigateTo(live_id!(gallery_image_slider_stack_view))
+                        StackNavigationAction::NavigateTo(live_id!(
+                            gallery_image_slider_stack_view
+                        )),
                     );
                 }
                 // Reset variable for swiping
