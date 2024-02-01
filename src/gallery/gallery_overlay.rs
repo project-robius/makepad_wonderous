@@ -63,13 +63,13 @@ live_design! {
             shrink_vertically = {
                 default: off
                 on = {
-                    from: {all: Forward {duration: 0.075}}
+                    from: {all: Forward {duration: 0.15}}
                     apply: {
                         draw_bg: {crop_height: 320}
                     }
                 }
                 off = {
-                    from: {all: Forward {duration: 0.075}}
+                    from: {all: Forward {duration: 0.15}}
                     apply: {
                         draw_bg: {crop_height: 430}
                     }
