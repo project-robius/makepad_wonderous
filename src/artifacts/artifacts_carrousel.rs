@@ -14,30 +14,26 @@ live_design! {
         height: 280,
         padding: 4.0,
 
+        flow: Overlay
+
         draw_bg: {
-            radius: 46.
-            border_width: 1.0
-            border_color: #fff
+            instance radius: 46.0
+            instance border_width: 1.0
+            instance border_color: #fff
         }
 
-        image = <Image> {
-            width: Fill,
-            height: Fill,
-            //fit: Smallest,
-
+        image_wrapper = <CachedRoundedView> {
             draw_bg: {
-                instance radius: 46.
-                fn pixel(self) -> vec4 {
-                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(
-                        1,
-                        1,
-                        self.rect_size.x - 2.0,
-                        self.rect_size.y - 2.0,
-                        max(1.0, self.radius)
-                    )
-                    sdf.fill_keep(self.get_color())
-                    return sdf.result
+                instance radius: 46.0
+            }
+
+            image = <Image> {
+                fit: Vertical,
+                width: Fill,
+                height: Fill,
+
+                draw_bg: {
+                    image_pan: vec2(0.0, 0.0)
                 }
             }
         }
@@ -56,6 +52,14 @@ live_design! {
             dep("crate://self/resources/images/artifacts/great-wall-3.jpg"),
             dep("crate://self/resources/images/artifacts/great-wall-4.jpg"),
             dep("crate://self/resources/images/artifacts/great-wall-5.jpg"),
+        ]
+
+        item_pan: [
+            vec2(0.0, 0.0),
+            vec2(0.0, 0.0),
+            vec2(0.24, 0.0),
+            vec2(0.24, 0.0),
+            vec2(0.0, 0.0)
         ]
 
         background = <BlurStage>{
@@ -130,9 +134,13 @@ live_design! {
                         radius: 36.
                     }
 
-                    image = {
+                    image_wrapper = {
                         draw_bg: {
                             radius: 36.
+                        }
+
+                        image = {
+                            fit: Biggest,
                         }
                     }
                 }
@@ -146,9 +154,13 @@ live_design! {
                         radius: 36.
                     }
 
-                    image = {
+                    image_wrapper = {
                         draw_bg: {
                             radius: 36.
+                        }
+
+                        image = {
+                            fit: Biggest,
                         }
                     }
                 }
@@ -162,9 +174,13 @@ live_design! {
                         radius: 36.
                     }
 
-                    image = {
+                    image_wrapper = {
                         draw_bg: {
                             radius: 36.
+                        }
+
+                        image = {
+                            fit: Biggest,
                         }
                     }
                 }
@@ -342,6 +358,9 @@ pub struct ArtifactsCarrousel {
     #[live]
     items: Vec<LiveDependency>,
 
+    #[live]
+    item_pan: Vec<Vec2>,
+
     #[rust(0)]
     current_index: i8,
 
@@ -416,31 +435,36 @@ impl ArtifactsCarrousel {
         let index = self.current_index as usize;
 
         let mut dep_path = self.items[index].as_str();
-        let mut image = self.view.image(id!(container.main_item.image));
+        let mut image = self.view.image(id!(container.main_item.image_wrapper.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
+        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[index])}});
 
         image = self.view.image(id!(background.step3.step2.step1.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
 
         let previous_index = (index as i8 - 1).rem_euclid(self.items.len() as i8) as usize;
         dep_path = self.items[previous_index].as_str();
-        image = self.view.image(id!(container.previous_item.image));
+        image = self.view.image(id!(container.previous_item.image_wrapper.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
+        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[previous_index])}});
 
         let next_index = (index as i8 + 1).rem_euclid(self.items.len() as i8) as usize;
         dep_path = self.items[next_index].as_str();
-        image = self.view.image(id!(container.next_item.image));
+        image = self.view.image(id!(container.next_item.image_wrapper.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
+        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[next_index] * 1.0)}});
 
+        let aux_index;
         if move_next {
-            let aux_index = (index as i8 - 2).rem_euclid(self.items.len() as i8) as usize;
+            aux_index = (index as i8 - 2).rem_euclid(self.items.len() as i8) as usize;
             dep_path = self.items[aux_index].as_str();
         } else {
-            let aux_index = (index as i8 + 2).rem_euclid(self.items.len() as i8) as usize;
+            aux_index = (index as i8 + 2).rem_euclid(self.items.len() as i8) as usize;
             dep_path = self.items[aux_index].as_str();
         }
-        image = self.view.image(id!(container.aux_item.image));
+        image = self.view.image(id!(container.aux_item.image_wrapper.image));
         let _ = image.load_image_dep_by_path(cx, dep_path);
+        image.apply_over(cx, live!{draw_bg: {image_pan: (self.item_pan[aux_index])}});
 
         let carrousel_item = self.view.view(id!(container.aux_item));
         carrousel_item.set_visible(false);
