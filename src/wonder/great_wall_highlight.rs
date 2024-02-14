@@ -91,7 +91,7 @@ impl Widget for GreatWallHighlight {
 
 impl GreatWallHighlight {
     fn update_values(&mut self, cx: &mut Cx, scroll: f64) {
-        if scroll < 500.0 || scroll > 1600.0 {
+        if !(500.0..=1600.0).contains(&scroll) {
             return;
         }
 

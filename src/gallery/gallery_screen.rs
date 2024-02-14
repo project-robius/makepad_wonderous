@@ -195,13 +195,9 @@ impl Widget for Gallery {
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
         }
-        if !self.animator.is_track_animating(cx, id!(swipe)) {
-            if self.animator.animator_in_state(cx, id!(swipe.vertical))
-                || self.animator.animator_in_state(cx, id!(swipe.horizontal))
-                || self.animator.animator_in_state(cx, id!(swipe.diagonal))
-            {
-                self.animator_play(cx, id!(swipe.idle));
-            }
+        if !self.animator.is_track_animating(cx, id!(swipe)) && (self.animator.animator_in_state(cx, id!(swipe.vertical))
+                || self.animator.animator_in_state(cx, id!(swipe.horizontal)) || self.animator.animator_in_state(cx, id!(swipe.diagonal))) {
+            self.animator_play(cx, id!(swipe.idle));
         }
 
         self.handle_click_and_swipe(cx, event, scope);
@@ -261,23 +257,19 @@ impl Gallery {
         );
 
         // Check if the animation is complete
-        if !self.animator.is_track_animating(cx, id!(swipe)) {
-            if self.animator.animator_in_state(cx, id!(swipe.vertical))
-                || self.animator.animator_in_state(cx, id!(swipe.horizontal))
-                || self.animator.animator_in_state(cx, id!(swipe.diagonal))
-            {
-                self.previous_index = self.current_index;
-                return current_offset;
-            }
+        if !self.animator.is_track_animating(cx, id!(swipe)) && (self.animator.animator_in_state(cx, id!(swipe.vertical))
+                || self.animator.animator_in_state(cx, id!(swipe.horizontal)) || self.animator.animator_in_state(cx, id!(swipe.diagonal))) {
+            self.previous_index = self.current_index;
+            return current_offset;
         }
 
         // Interpolate between the previous and current offsets
-        let interpolated_offset = dvec2(
+        
+
+        dvec2(
             previous_offset.x + (current_offset.x - previous_offset.x) * self.swipe_progress.x,
             previous_offset.y + (current_offset.y - previous_offset.y) * self.swipe_progress.y,
-        );
-
-        interpolated_offset
+        )
     }
 
     // TODO: Abstract this in a wrapper, so we keep the logic in one place for this and the overlay
