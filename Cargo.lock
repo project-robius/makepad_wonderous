@@ -16,15 +16,15 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.4.0"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4682ae6287fcf752ecaabbfcc7b6f9b72aa33933dc23a554d853aea8eea8635"
+checksum = "cf4b9d6a944f767f8e5e0db018570623c85f3d925ac718db4e06d0187adb21c1"
 
 [[package]]
 name = "bytemuck"
-version = "1.14.0"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "374d28ec25809ee0e23827c2ab573d729e293f281dfe393500e7ad618baa61c6"
+checksum = "5d6d68c57235a3a081186990eca2867354726650f42f7516ca50c28d6281fd15"
 
 [[package]]
 name = "jni-sys"
@@ -211,7 +211,7 @@ dependencies = [
 name = "makepad-zune-core"
 version = "0.2.14"
 dependencies = [
- "bitflags 2.4.0",
+ "bitflags 2.5.0",
 ]
 
 [[package]]
@@ -272,21 +272,21 @@ checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
 
 [[package]]
 name = "smallvec"
-version = "1.11.0"
+version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62bb4feee49fdd9f707ef802e22365a35de4b7b299de4763d44bfea899442ff9"
+checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
 
 [[package]]
 name = "ttf-parser"
-version = "0.19.1"
+version = "0.19.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a464a4b34948a5f67fddd2b823c62d9d92e44be75058b99939eae6c5b6960b33"
+checksum = "49d64318d8311fc2668e48b63969f4343e0a85c4a109aa8460d6672e364b8bd1"
 
 [[package]]
 name = "unicode-bidi"
-version = "0.3.13"
+version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92888ba5573ff080736b3648696b70cafad7d250551175acbaa4e0385b3e1460"
+checksum = "08f95100a766bf4f8f28f90d77e0a5461bbdb219042e7679bebe79004fed8d75"
 
 [[package]]
 name = "unicode-bidi-mirroring"
@@ -302,15 +302,15 @@ checksum = "cc2520efa644f8268dce4dcd3050eaa7fc044fca03961e9998ac7e2e92b77cf1"
 
 [[package]]
 name = "unicode-properties"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7f91c8b21fbbaa18853c3d0801c78f4fc94cdb976699bb03e832e75f7fd22f0"
+checksum = "e4259d9d4425d9f0661581b804cb85fe66a4c631cadd8f490d1c13a35d5d9291"
 
 [[package]]
 name = "unicode-script"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d817255e1bed6dfd4ca47258685d14d2bdcfbc64fdc9e3819bd5848057b8ecc"
+checksum = "ad8d71f5726e5f285a935e9fe8edfd53f0491eb6e9a5774097fdabee7cd8c9cd"
 
 [[package]]
 name = "windows-core"
