@@ -138,10 +138,8 @@ impl Widget for GalleryImageSlider {
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
         }
-        if !self.animator.is_track_animating(cx, id!(swipe)) {
-            if self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
-                self.animator_play(cx, id!(swipe.reset));
-            }
+        if !self.animator.is_track_animating(cx, id!(swipe)) && self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+            self.animator_play(cx, id!(swipe.reset));
         }
         self.handle_swipe(cx, event);
     }
@@ -201,12 +199,10 @@ impl GalleryImageSlider {
             return dvec2(current_offset, 0.);
         }
         // Stays in same index
-        if !self.animator.is_track_animating(cx, id!(swipe)) {
-            if self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
-                self.last_swipe_vector_x = 0.;
-                self.previous_index = self.current_index;
-                self.redraw(cx);
-            }
+        if !self.animator.is_track_animating(cx, id!(swipe)) && self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+            self.last_swipe_vector_x = 0.;
+            self.previous_index = self.current_index;
+            self.redraw(cx);
         }
         if self.current_index == self.previous_index {
             let last_offset =
@@ -214,25 +210,25 @@ impl GalleryImageSlider {
 
             let current_offset = (-padded_image_width) * self.current_index as f64;
 
-            let interpolated_offset = dvec2(
+            
+            dvec2(
                 last_offset
                     + (current_offset - last_offset)
                     + self.last_swipe_vector_x * (1. - self.offset),
                 0.,
-            );
-            return interpolated_offset;
+            )
         } else {
             let last_offset =
                 (-padded_image_width) * self.previous_index as f64 + self.last_swipe_vector_x;
 
             let current_offset = (-padded_image_width) * self.current_index as f64;
 
-            let interpolated_offset = dvec2(
+            
+
+            dvec2(
                 last_offset + (current_offset - last_offset) * self.offset,
                 0.,
-            );
-
-            return interpolated_offset;
+            )
         }
     }
 

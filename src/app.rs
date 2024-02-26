@@ -175,7 +175,7 @@ live_design! {
                         }
                         body = {
                             show_bg: false,
-                            global_timeline = <GlobalTimeline> {}
+                            global_timeline = <GlobalTimelineScreen> {}
                         }
                     }
                 }
@@ -189,7 +189,7 @@ app_main!(App);
 #[derive(Live, LiveHook)]
 pub struct App {
     #[live]
-    ui: WidgetRef
+    ui: WidgetRef,
 }
 
 impl LiveRegister for App {

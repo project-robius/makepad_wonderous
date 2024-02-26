@@ -307,7 +307,8 @@ live_design! {
 
 #[derive(Live, LiveHook, Widget)]
 pub struct TimelineScreenInner {
-    #[live] #[wrap]
+    #[live]
+    #[wrap]
     expandable_panel: ExpandablePanel,
 }
 
@@ -328,13 +329,16 @@ impl WidgetMatchEvent for TimelineScreenInner {
             match action.as_widget_action().cast() {
                 ExpandablePanelAction::ScrolledAt(scroll_offset) => {
                     let header_opacity = clamp(1.0 - scroll_offset / 200.0, 0.5, 1.0);
-                    self.expandable_panel.apply_over(cx, live! {
-                        body = { header = { draw_bg: { opacity: (header_opacity) }}}
-                    });
+                    self.expandable_panel.apply_over(
+                        cx,
+                        live! {
+                            body = { header = { draw_bg: { opacity: (header_opacity) }}}
+                        },
+                    );
 
                     self.redraw(cx);
                 }
-                _ => ()
+                _ => (),
             }
         }
     }
@@ -359,13 +363,13 @@ impl WidgetMatchEvent for TimelineScreenWrapper {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &Actions, scope: &mut Scope) {
         if self
             .button(id!(open_global_timeline_button))
-            .clicked(&actions)
+            .clicked(actions)
         {
             let widget_uid = self.widget_uid();
             cx.widget_action(
                 widget_uid,
                 &scope.path,
-                StackNavigationAction::NavigateTo(live_id!(global_timeline_stack_view))
+                StackNavigationAction::NavigateTo(live_id!(global_timeline_stack_view)),
             );
         }
     }

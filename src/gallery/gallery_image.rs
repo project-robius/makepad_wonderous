@@ -99,7 +99,7 @@ impl GalleryImage {
         self.path = path;
     }
 
-    pub fn set_size(&mut self, cx: &mut Cx, size: DVec2) {
+    pub fn set_size(&mut self, _cx: &mut Cx, size: DVec2) {
         self.size = size;
     }
 
