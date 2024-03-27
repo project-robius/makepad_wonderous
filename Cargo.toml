@@ -7,3 +7,20 @@ edition = "2021"
 
 [dependencies]
 makepad-widgets = { path = "../makepad/widgets", version = "0.6.0" }
+
+[package.metadata]
+osiris.application.id = "Wonderous"
+
+[[package.metadata.osiris.platforms]]
+id = "macos"
+macos.abis = ["native"]
+#macos.bundle-id = "rs.robius.wonderous"
+#macos.version-code = 1
+#macos.version-name = "0.1.0"
+
+[[package.metadata.osiris.archives]]
+id = "macos-pkg"
+macos-pkg.app-id = "TBD.rs.robius.wonderous"
+#macos-pkg.codesign-identity = "./TBD"
+#macos-pkg.pkgsign-identity = "./TBD"
+#macos-pkg.provision-file = "./TBD"
