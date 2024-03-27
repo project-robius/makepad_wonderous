@@ -87,8 +87,11 @@ impl Widget for GalleryImage {
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, _walk: Walk) -> DrawStep {
-        let pos = scope.data.get_mut::<DVec2>();
-        self.draw_abs(cx, *pos);
+        let opt_pos = scope.data.get_mut::<DVec2>();
+
+        if let Some(pos) = opt_pos {
+            self.draw_abs(cx, *pos);
+        }
 
         DrawStep::done()
     }
