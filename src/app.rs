@@ -148,7 +148,14 @@ live_design! {
                             content = {
                                 title_container = {
                                     title = {
-                                        text: " "
+                                    // Hack to make sure the button is visible, we render some text in the same
+                                    // color as the background
+                                        text: "." 
+                                        draw_text: {
+                                            fn get_color(self) -> vec4 {
+                                                return #1f1b18;
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -168,7 +175,16 @@ live_design! {
                             content = {
                                 title_container = {
                                     title = {
-                                        text: " "
+                                        text: "GLOBAL TIMELINE"
+                                        draw_text: {
+                                            text_style: {
+                                                font_size: 12.0
+                                            }
+
+                                            fn get_color(self) -> vec4 {
+                                                return #fff
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -224,6 +240,7 @@ impl LiveRegister for App {
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
         crate::timeline::global_timeline::live_design(cx);
+        crate::timeline::timeline_nav::live_design(cx);
     }
 }
 

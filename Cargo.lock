@@ -27,6 +27,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "374d28ec25809ee0e23827c2ab573d729e293f281dfe393500e7ad618baa61c6"
 
 [[package]]
+name = "jni-sys"
+version = "0.4.0"
+
+[[package]]
 name = "makepad-derive-live"
 version = "0.4.0"
 dependencies = [
@@ -54,6 +58,7 @@ name = "makepad-draw"
 version = "0.6.0"
 dependencies = [
  "ab_glyph_rasterizer",
+ "makepad-html",
  "makepad-platform",
  "makepad-vector",
  "rustybuzz",
@@ -68,6 +73,13 @@ version = "0.4.0"
 [[package]]
 name = "makepad-futures-legacy"
 version = "0.7.0"
+
+[[package]]
+name = "makepad-html"
+version = "0.4.0"
+dependencies = [
+ "makepad-live-id",
+]
 
 [[package]]
 name = "makepad-http"
@@ -106,6 +118,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "makepad-markdown"
+version = "0.4.0"
+dependencies = [
+ "makepad-live-id",
+]
+
+[[package]]
 name = "makepad-math"
 version = "0.4.0"
 
@@ -135,6 +154,7 @@ version = "0.4.0"
 name = "makepad-platform"
 version = "0.6.0"
 dependencies = [
+ "jni-sys",
  "makepad-futures",
  "makepad-futures-legacy",
  "makepad-http",
@@ -173,6 +193,8 @@ version = "0.6.0"
 dependencies = [
  "makepad-derive-widget",
  "makepad-draw",
+ "makepad-html",
+ "makepad-markdown",
  "makepad-zune-jpeg",
  "makepad-zune-png",
 ]
