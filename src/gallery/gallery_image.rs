@@ -109,7 +109,7 @@ impl GalleryImage {
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
         let bg_width = Size::Fixed(self.size.x);
         let bg_height = Size::Fixed(self.size.y);
-        let _ = self.image.load_image_dep_by_path(cx, &self.path);
+        let _ = self.image.load_image_dep_by_path(cx, &self.path, 0);
         _ = self
             .image
             .draw_walk(cx, Walk::size(bg_width, bg_height).with_abs_pos(pos));

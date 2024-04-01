@@ -1,15 +1,10 @@
-const YEAR_TO_POSITION_RATIO: f64 = 0.5;
-const TIMELINE_YEARS_LIMITS: [i32; 2] = [-3000, 2200];
-
-fn years_to_pixels(year: i32) -> f64 {
-    year as f64 * YEAR_TO_POSITION_RATIO
-}
 
 use makepad_widgets::{
     touch_gesture::{ScrollMode, TouchGesture},
     *,
 };
 use std::fmt::Write;
+use super::{timeline_nav::{NavigatorAction, NavigatorWidgetExt}, wonders_data::*};
 
 live_design! {
     import makepad_widgets::base::*;
@@ -19,81 +14,10 @@ live_design! {
     import crate::shared::styles::*;
     import crate::shared::helpers::*;
     import crate::shared::widgets::*;
+    import crate::timeline::timeline_nav::*;
 
     IMG_GREAT_WALL = dep("crate://self/resources/images/great-wall-flattened.jpg")
-
-   ChartItem = <RoundedView> {
-        width: 10,
-        height: 11,
-
-        draw_bg: {
-            border_color: #aaa
-            border_width: 1.
-            radius: 2.
-        }
-    }
-
-    ChartRow = <View> {
-        width: Fill,
-        height: Fit,
-        spacing: 2.0
-    }
-
-    ChartBottom = <View> {
-        width: Fill,
-        height: Fit,
-        margin: { top: 10. }
-        align: { x: 0.5, y: 0 }
-
-        <Label> {
-            draw_text: {
-                text_style: <REGULAR_TEXT>{font_size: 10},
-                color: #ccc
-            }
-            text: "700 BCE to 1487   •  CE Prehistory"
-        }
-    }
-
-    Chart = <View> {
-        width: Fill,
-        height: Fit,
-        flow: Down,
-        padding: 10,
-        spacing: 5,
-
-        <ChartRow> {
-            <View> { width: 170, height: 1 }
-            <ChartItem> {}
-            <View> { width: 30, height: 1 }
-            <ChartItem> { width: 80 }
-            <ChartItem> {}
-        }
-        <ChartRow> {
-            <View> { width: 148, height: 1 }
-            <ChartItem> { width: 30 }
-            <View> { width: 110, height: 1 }
-            <ChartItem> {}
-        }
-        <ChartRow> {
-            <View> { width: 10, height: 1 }
-            <ChartItem> {}
-            <View> { width: 130, height: 1 }
-            <ChartItem> {
-                width: 170
-                draw_bg: {
-                    color: #BFABA2
-                    border_color: #BFABA2
-                    border_width: 1.
-                    radius: 2.
-                }
-            }
-            <View> { width: 10, height: 1 }
-            <ChartItem> {}
-        }
-
-        <ChartBottom> {}
-    }
-
+    BACKGROUND_ITEM_COLOR = #333
 
     TimelineSlider = {{TimelineSlider}} {
         width: Fill,
@@ -274,10 +198,6 @@ live_design! {
     }
 
     GlobalTimeline = {{GlobalTimeline}} {
-        flow: Down,
-        width: Fill,
-        height: Fill,
-
         initial_offset: 0.0;
 
         flow: Overlay,
@@ -338,28 +258,29 @@ live_design! {
             flow: Overlay,
             width: Fill,
             height: Fill,
-            align: { y: 0.5 }
-
+            align: { y: 0.51 }
 
             line = <View> {
-                flow: Overlay,
                 width: Fill,
-                height: 1,
+                height: 0.8,
                 margin: 0.0,
                 padding: 0.0, spacing: 0.0
                 show_bg: true
                 draw_bg: {
                     color: #fff
-                    // TODO: Make the line striped
                     fn pixel(self) -> vec4 {
-                        let line_width = 10.0; // Width of the space between stripes
-
-                        let m = self.pos.x - ( line_width * (self.pos.x / line_width));
-
-                        if m == 0 {
-                            return vec4(0.0, 0.0, 0.0, 0.0); // Transparent
+                        let dash_length = 0.03; // 3% of view width
+                        let gap_length = 0.05; // 5% of view width
+                        let cycle_length = dash_length + gap_length;
+                    
+                        let cycle_position = mod(self.pos.x, cycle_length);
+                    
+                        if cycle_position < 0.05 {
+                            // Within a dash segment
+                            return #aaa;
                         } else {
-                            return #fff
+                            // Within a gap segment, return transparent
+                            return vec4(0.0, 0.0, 0.0, 0.0);
                         }
                     }
                 }
@@ -367,132 +288,87 @@ live_design! {
         }
     }
 
-    GlobalTimelineScreen = <View> {
+    GlobalTimelineScreen = {{GlobalTimelineScreen}} {
         width: Fill, height: Fill
-        flow: Right,
-
+        flow: Down,
+        spacing: 20.0
         show_bg: true,
         draw_bg: {
             color: #1f1b18
         }
 
-        <GlobalTimeline> {}
-    }
-}
+        timeline_wrapper = <View> {
+            width: Fill, height: Fill
+            flow: Down
+            timeline = <GlobalTimeline> {}
 
-// TODO: This should probably be abstracted to the whole app
-#[derive(Default, Clone, PartialEq)]
-enum WonderType {
-    #[default]
-    GreatWall,
-    Petra,
-    Colosseum,
-    ChichenItza,
-    MachuPichu,
-    TajMahal,
-    ChristTheRedeemer,
-    PyramidsOfGiza,
-}
-
-impl WonderType {
-    fn bg_color(&self) -> Vec4 {
-        match *self {
-            Self::GreatWall => vec4(0.404, 0.522, 0.32, 1.0), // #678551
-            Self::Petra => vec4(0.102, 0.102, 0.384, 1.0),    // #1A1A62
-            Self::Colosseum => vec4(0.286, 0.643, 0.624, 1.0), // #49A49F
-            Self::ChichenItza => vec4(0.882, 0.812, 0.733, 1.0), // #E1CFBB
-            Self::MachuPichu => vec4(0.765, 0.855, 0.824, 1.0), // #C3DAD2
-            Self::TajMahal => vec4(0.392, 0.157, 0.153, 1.0), // #642827
-            Self::ChristTheRedeemer => vec4(0.957, 0.463, 0.404, 1.0), // #F47667
-            Self::PyramidsOfGiza => vec4(0.271, 0.29, 0.612, 1.0), // #454A9C
+            timeline_nav = <TimelineNav> {}
         }
     }
 }
-/*
-16184D + vec4(0.086, 0.094, 0.302, 1.0)
-642828 + vec4(0.392, 0.157, 0.157, 1.0)
-444B9B + vec4(0.267, 0.294, 0.608, 1.0)
-1E736D + vec4(0.118, 0.451, 0.427, 1.0)
-164F2A + vec4(0.086, 0.310, 0.165, 1.0)
-0E4064 + vec4(0.055, 0.251, 0.392, 1.0)
-C96454 + vec4(0.788, 0.392, 0.329, 1.0)
-1C4D46 + vec4(0.110, 0.302, 0.275, 1.0)
-*/
-struct WonderData {
-    wonder_type: WonderType,
-    start_year: i32,
-    end_year: i32,
-    image_path: &'static str,
-    // fg_color: &str,
-}
-// dep("crate://self/resources/images/great-wall-flattened.jpg"),
-// dep("crate://self/resources/images/petra-flattened.jpg"),
-// dep("crate://self/resources/images/colosseum-flattened.jpg"),
-// dep("crate://self/resources/images/chichen-itza-flattened.jpg"),
-// dep("crate://self/resources/images/machu-picchu-flattened.jpg"),
-// dep("crate://self/resources/images/taj-mahal-flattened.jpg"),
-// dep("crate://self/resources/images/christ-the-redeemer-flattened.jpg"),
-// dep("crate://self/resources/images/pyramids-of-giza-flattened.jpg"),
 
-const GREAT_WALL_DATA: WonderData = WonderData {
-    wonder_type: WonderType::GreatWall,
-    start_year: -700,
-    end_year: 1644,
-    image_path: "crate://self/resources/images/great-wall-flattened.jpg",
-};
-const PETRA_DATA: WonderData = WonderData {
-    wonder_type: WonderType::Petra,
-    start_year: -312,
-    end_year: 100,
-    image_path: "crate://self/resources/images/petra-flattened.jpg",
-};
-const COLOSSEUM_DATA: WonderData = WonderData {
-    wonder_type: WonderType::Colosseum,
-    start_year: 70,
-    end_year: 80,
-    image_path: "crate://self/resources/images/colosseum-flattened.jpg",
-};
-const CHICHENITZA_DATA: WonderData = WonderData {
-    wonder_type: WonderType::ChichenItza,
-    start_year: 550,
-    end_year: 1550,
-    image_path: "crate://self/resources/images/chichen-itza-flattened.jpg",
-};
-const MACHU_PICHU_DATA: WonderData = WonderData {
-    wonder_type: WonderType::MachuPichu,
-    start_year: 1450,
-    end_year: 1572,
-    image_path: "crate://self/resources/images/machu-picchu-flattened.jpg",
-};
-const TAJ_MAHAL_DATA: WonderData = WonderData {
-    wonder_type: WonderType::TajMahal,
-    start_year: 1632,
-    end_year: 1653,
-    image_path: "crate://self/resources/images/taj-mahal-flattened.jpg",
-};
-const CHRIST_THE_REDEEMER_DATA: WonderData = WonderData {
-    wonder_type: WonderType::ChristTheRedeemer,
-    start_year: 1922,
-    end_year: 1931,
-    image_path: "crate://self/resources/images/christ-the-redeemer-flattened.jpg",
-};
-const PYRAMIDS_OF_GIZA_DATA: WonderData = WonderData {
-    wonder_type: WonderType::PyramidsOfGiza,
-    start_year: -2600,
-    end_year: -2500,
-    image_path: "crate://self/resources/images/pyramids-of-giza-flattened.jpg",
-};
-// This array keeps the same order as the image dependency ones
-const ALL_WONDERS_DATA: [WonderData; 8] = [
-    GREAT_WALL_DATA,
-    PETRA_DATA,
-    COLOSSEUM_DATA,
-    CHICHENITZA_DATA,
-    MACHU_PICHU_DATA,
-    TAJ_MAHAL_DATA,
-    CHRIST_THE_REDEEMER_DATA,
-    PYRAMIDS_OF_GIZA_DATA,
-];
+#[derive(Live, LiveHook, Widget)]
+pub struct GlobalTimelineScreen {
+    #[deref]
+    view: View,
+
+    #[rust(-700)]
+    current_year: i32
+}
+
+impl Widget for GlobalTimelineScreen {
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.view.draw_walk(cx, scope, walk)
+    }
+    
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.match_event(cx, event);
+        self.view.handle_event(cx, event, scope);
+    }
+}
+
+impl MatchEvent for GlobalTimelineScreen {
+    fn handle_actions(&mut self, cx: &mut Cx, actions:&Actions) {
+        for action in actions {
+            match action.cast() {
+                TimelineAction::YearChanged(year) => {
+                    self.current_year = year;
+
+                    let nav_label = self.label(
+                        id!(timeline_wrapper.timeline_nav.nav.nav_label)
+                    );
+                    nav_label.set_text_and_redraw(cx, era_label(year));
+
+                    let mut navigator = self.navigator(
+                        id!(timeline_wrapper.timeline_nav.nav.horizontal_timeline.navigator)
+                    );
+                    navigator.set_current_year(year);
+                    navigator.redraw(cx);
+                },
+                TimelineAction::ViewportChanged(height) => {
+                    let year_span = height / YEAR_TO_POSITION_RATIO;
+                    let mut navigator = self.navigator(
+                        id!(timeline_wrapper.timeline_nav.nav.horizontal_timeline.navigator)
+                    );
+                    navigator.set_viewport_year_span(year_span);
+                    navigator.redraw(cx);
+                }
+                _ => {}
+            }
+
+            match action.cast() {
+                NavigatorAction::YearChanged(year) => {
+                    let mut global_timeline = self.global_timeline(
+                        id!(timeline_wrapper.timeline)
+                    );
+
+                    global_timeline.shift_to_year(cx, year);
+                },
+                _ => {}
+            }
+        }
+    }
+}
 
 #[derive(Live, Widget)]
 pub struct GlobalTimeline {
@@ -507,10 +383,17 @@ pub struct GlobalTimeline {
     #[rust]
     current_wonder: WonderType,
 
-    #[rust]
+    #[rust(-700)]
     current_year: i32,
     #[rust(true)]
     first_render: bool,
+    #[rust]
+    latest_viewport_h: f64,
+    #[rust]
+    first_timeline_shift: bool,
+
+    #[rust]
+    last_scrolled_at: f64,
 }
 
 impl LiveHook for GlobalTimeline {
@@ -549,40 +432,38 @@ impl Widget for GlobalTimeline {
             if self.first_render {
                 let scrolled_at = touch_gesture.scrolled_at + initial_wonder_offset;
                 let panel_margin = self.initial_offset - scrolled_at;
+                self.last_scrolled_at = touch_gesture.scrolled_at;
 
                 self.apply_over(
-                    cx,
-                    live! {
-                        panel = { margin: { top: (panel_margin) }}
-                    },
+                   cx,
+                   live! {
+                       panel = { margin: { top: (panel_margin) }}
+                   },
                 );
             }
         }
         if self.first_render {
             let rounded_current_year = (initial_wonder_year.abs() / 10) * 10;
             let year_subfix = if initial_wonder_year < 0 { "BCE" } else { "CE" };
-
+            self.first_render = false;
             self.apply_over(
-                cx,
-                live! {
-                    year_info = {
-                        year = {
-                            text: (rounded_current_year.to_string())
-                        }
-                        year_subfix = {
-                            text: (year_subfix)
-                        }
-                    }
-                },
+               cx,
+               live! {
+                   year_info = {
+                       year = {
+                           text: (rounded_current_year.to_string())
+                       }
+                       year_subfix = {
+                           text: (year_subfix)
+                       }
+                   }
+               },
             );
         }
-        if let Some(touch_gesture) = self.touch_gesture.as_mut() {
-            if self.first_render {
-                touch_gesture.scrolled_at = ((GREAT_WALL_DATA.start_year - TIMELINE_YEARS_LIMITS[0])
-                    as f64
-                    * YEAR_TO_POSITION_RATIO);
-                self.first_render = false;
-            }
+
+        if self.initial_offset != 0.0 && !self.first_timeline_shift {
+            self.shift_to_year(cx, initial_wonder_year);
+            self.first_timeline_shift = true;
         }
 
         if let Some(touch_gesture) = self.touch_gesture.as_mut() {
@@ -590,7 +471,8 @@ impl Widget for GlobalTimeline {
                 .handle_event(cx, event, self.view.area())
                 .has_changed()
             {
-                let scrolled_at = touch_gesture.scrolled_at;
+                let current_scrolled_at = touch_gesture.scrolled_at;
+                let scrolled_at = current_scrolled_at;
                 let panel_margin = self.initial_offset - scrolled_at;
 
                 self.apply_over(
@@ -600,36 +482,13 @@ impl Widget for GlobalTimeline {
                     },
                 );
 
-                // update current year
-                self.current_year = ((scrolled_at) / YEAR_TO_POSITION_RATIO) as i32;
-                // convert to the negative limits
-                self.current_year += TIMELINE_YEARS_LIMITS[0];
-                // keep the year within the limits
-                self.current_year = self
-                    .current_year
-                    .clamp(TIMELINE_YEARS_LIMITS[0], TIMELINE_YEARS_LIMITS[1]);
+                let scroll_delta = self.last_scrolled_at - scrolled_at;
+                let scrolled_in_years = (scroll_delta / YEAR_TO_POSITION_RATIO) as i32;
 
-                self.timeline_wonder_entries(id!(panel.wonder_entries))
-                    .update_current_year(self.current_year);
+                let scroll_to = self.current_year - scrolled_in_years;
+                self.shift_to_year(cx, scroll_to);
 
-                // TODO: Round up the displayed year
-                let rounded_current_year = (self.current_year.abs() / 10) * 10;
-                let year_subfix = if self.current_year < 0 { "BCE" } else { "CE" };
-
-                self.apply_over(
-                    cx,
-                    live! {
-                        year_info = {
-                            year = {
-                                text: (rounded_current_year.to_string())
-                            }
-                            year_subfix = {
-                                text: (year_subfix)
-                            }
-                        }
-                    },
-                );
-
+                self.last_scrolled_at = scrolled_at;
                 self.redraw(cx);
             }
         }
@@ -642,16 +501,90 @@ impl Widget for GlobalTimeline {
             let mut touch_gesture = TouchGesture::new();
             touch_gesture.set_mode(ScrollMode::Swipe);
 
-            // Limit the amount of dragging allowed for the panel
-            let panel_height = self.view(id!(panel)).area().rect(cx).size.y;
-            touch_gesture.set_range(0.0, panel_height - self.initial_offset);
+            let range_min = (self.current_year - TIMELINE_YEARS_LIMITS[0]) as f64 * YEAR_TO_POSITION_RATIO;
+            let range_max = (TIMELINE_YEARS_LIMITS[1] - self.current_year) as f64 * YEAR_TO_POSITION_RATIO;
 
-            touch_gesture.reset_scrolled_at();
+            touch_gesture.set_range(-range_min, range_max);
+            touch_gesture.scrolled_at = 0.0;
+
             self.touch_gesture = Some(touch_gesture);
+        }
+
+        let current_viewport_h = self.view.area().rect(cx).size.y;
+        if self.latest_viewport_h != current_viewport_h {
+            cx.action(TimelineAction::ViewportChanged(current_viewport_h));
+            self.latest_viewport_h = current_viewport_h;
         }
 
         result
     }
+}
+
+impl GlobalTimelineRef {
+    pub fn shift_to_year(&mut self, cx: &mut Cx, year: i32) {
+        if let Some(mut inner) = self.borrow_mut() {
+            // Update scrolled at when timeline is shifted horizontally
+            if let Some(tg) = inner.touch_gesture.as_mut() {
+                tg.reset_scrolled_at();
+                
+                let range_min = (year - TIMELINE_YEARS_LIMITS[0]) as f64 * YEAR_TO_POSITION_RATIO;
+                let range_max = (TIMELINE_YEARS_LIMITS[1] - year) as f64 * YEAR_TO_POSITION_RATIO;
+
+                tg.set_range(-range_min, range_max);
+
+                inner.last_scrolled_at = 0.;
+            }
+            inner.shift_to_year(cx, year);
+        }
+    }
+}
+
+impl GlobalTimeline {
+    fn shift_to_year(&mut self, cx: &mut Cx, year: i32) {
+        self.current_year = year.clamp(TIMELINE_YEARS_LIMITS[0], TIMELINE_YEARS_LIMITS[1]);
+
+        let years_to_beginning = year as i32 - TIMELINE_YEARS_LIMITS[0];
+        let distance_to_beginning_px = years_to_pixels(years_to_beginning);
+
+        let margin = distance_to_beginning_px - self.initial_offset;
+
+        self.apply_over(
+            cx,
+            live! {
+                panel = { margin: { top: (-margin) }}
+            },
+        );
+
+        self.timeline_wonder_entries(id!(panel.wonder_entries))
+            .update_current_year(self.current_year);
+
+        let rounded_current_year = (self.current_year.abs() / 10) * 10;
+        let year_subfix = if self.current_year < 0 { "BCE" } else { "CE" };
+        cx.action(TimelineAction::YearChanged(self.current_year));
+
+        self.apply_over(
+            cx,
+            live! {
+                year_info = {
+                    year = {
+                        text: (rounded_current_year.to_string())
+                    }
+                    year_subfix = {
+                        text: (year_subfix)
+                    }
+                }
+            },
+        );
+
+        self.redraw(cx);
+    }
+}
+
+#[derive(DefaultNone, Debug, Clone)]
+pub enum TimelineAction {
+    YearChanged(i32),
+    ViewportChanged(f64),
+    None
 }
 
 #[derive(Live, LiveHook, LiveRegisterWidget, WidgetRef)]
@@ -701,7 +634,7 @@ impl Widget for TimelineWonderEntries {
         }
     }
 
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+    fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(walk, self.layout);
 
         self.draw_wonders_entries(cx, walk);
@@ -715,16 +648,7 @@ impl Widget for TimelineWonderEntries {
 impl TimelineWonderEntries {
     fn draw_wonders_entries(&mut self, cx: &mut Cx2d, walk: Walk) {
         for (i, wonder_data) in ALL_WONDERS_DATA.iter().enumerate() {
-            let column = match wonder_data.wonder_type {
-                WonderType::GreatWall => 0,
-                WonderType::Petra => 1,
-                WonderType::Colosseum => 2,
-                WonderType::ChichenItza => 2,
-                WonderType::MachuPichu => 1,
-                WonderType::TajMahal => 2,
-                WonderType::ChristTheRedeemer => 0,
-                WonderType::PyramidsOfGiza => 0,
-            };
+            let column = wonder_data.wonder_type.vertical_column();
 
             let wonder_min_height = 85.0;
             let mut wonder_height = years_to_pixels(wonder_data.end_year - wonder_data.start_year);
@@ -877,7 +801,7 @@ impl Widget for TimelineYears {
         }
     }
 
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+    fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(walk, self.layout);
 
         self.draw_years(cx, walk);
@@ -978,15 +902,9 @@ impl Widget for TimelineSlider {
             Hit::FingerUp(_fe) => self.ready_to_swipe = true,
             _ => {}
         }
-
-        self.update_animation(cx);
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         self.view.draw_walk(cx, scope, walk)
     }
-}
-
-impl TimelineSlider {
-    fn update_animation(&mut self, cx: &mut Cx) {}
 }
