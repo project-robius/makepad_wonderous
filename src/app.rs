@@ -18,6 +18,7 @@ live_design! {
     import crate::gallery::gallery_screen::*;
     import crate::gallery::gallery_image_slider::*;
     import crate::artifacts::artifacts_screen::*;
+    import crate::artifacts::artifacts_gallery::*;
     import crate::timeline::timeline_screen::*;
     import crate::timeline::global_timeline::*;
     import crate::shared::custom_radio_button::*;
@@ -72,7 +73,7 @@ live_design! {
         ]
 
         ui: <Window> {
-            window: {position: vec2(0, 0), inner_size: vec2(375, 813)},
+            window: {position: vec2(1000, 8000), inner_size: vec2(375, 813)},
             pass: {clear_color: #2A}
 
             body = {
@@ -218,6 +219,26 @@ live_design! {
                             global_timeline = <GlobalTimelineScreen> {}
                         }
                     }
+                    artifact_gallery_view = <StackNavigationView> {
+                        show_bg: true
+                        draw_bg: {
+                            color: #1f1b18
+                        }
+                        header = {
+                            show_bg: false,
+                            content = {
+                                title_container = {
+                                    title = {
+                                        text: " "
+                                    }
+                                }
+                            }
+                        }
+                        body = {
+                            show_bg: false,
+                            image_slider = <ArtifactsGallery> {}
+                        }
+                    }
                 }
             }
         }
@@ -246,6 +267,8 @@ impl LiveRegister for App {
         crate::shared::curved_label::live_design(cx);
         crate::shared::custom_radio_button::live_design(cx);
         crate::shared::helpers::live_design(cx);
+        crate::shared::icon::live_design(cx);
+        crate::shared::staggered_grid::live_design(cx);
 
         // Wonder
         crate::wonder::rotating_title::live_design(cx);
@@ -266,6 +289,7 @@ impl LiveRegister for App {
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
         crate::artifacts::artifacts_carrousel::live_design(cx);
+        crate::artifacts::artifacts_gallery::live_design(cx);
 
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
