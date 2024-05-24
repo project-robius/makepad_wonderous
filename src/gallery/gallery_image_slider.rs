@@ -268,6 +268,12 @@ impl GalleryImageSlider {
                     }
 
                     self.set_index(new_index, cx);
+                    let widget_uid = self.widget_uid();
+                    cx.widget_action(
+                        widget_uid,
+                        &scope.path,
+                        GallerySliderAction::Selected(new_index),
+                    );
 
                     self.ready_to_swipe = false;
                 }
@@ -297,4 +303,10 @@ impl GalleryImageSliderRef {
             inner.previous_index = id;
         }
     }
+}
+
+#[derive(Clone, DefaultNone, Debug)]
+pub enum GallerySliderAction {
+    None,
+    Selected(i64),
 }
