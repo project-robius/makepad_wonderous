@@ -15,58 +15,148 @@ live_design! {
 
     CALENDAR_ICON = dep("crate://self/resources/icons/calendar.svg")
 
+    IMG_A = dep("crate://self/resources/images/artifacts/test_1.jpg")
+    IMG_B = dep("crate://self/resources/images/artifacts/test_2.jpg")
+    IMG_C = dep("crate://self/resources/images/artifacts/test_3.jpg")
+    IMG_D = dep("crate://self/resources/images/artifacts/test_4.jpg")
+
+    // GridImage = <Image> {
+    //     source: (IMG_A)
+    //     width: Fill,
+    //     height: Fill
+    //     min_width: 100,
+    //     min_height: 100,
+    //     fit: Horizontal,
+    //     draw_bg: {
+    //         instance hover: 0.0
+    //         instance down: 0.0
+    //         fn pixel(self) -> vec4 {
+    //             let sdf = Sdf2d::viewport(self.pos * self.rect_size)
+    //             sdf.box(1, 1, self.rect_size.x - 2, self.rect_size.y - 2, 4.0)
+    //             let max_scale = vec2(0.92);
+    //             let scale = mix(vec2(1.0), max_scale, self.hover);
+    //             let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.hover);
+    //             let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
+    //             sdf.fill_keep(color);
+    //             sdf.stroke(
+    //                 mix(mix(#x0000, #x0006, self.hover), #xfff2, self.down),
+    //                 1.0
+    //             )
+                
+    //             return sdf.result
+    //         }
+    //     }
+    // }
+
+    // Short = <View> {
+    //     height: 100
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #38ada9
+    //     }
+
+    //     <GridImage> { source: (IMG_A) }
+    //     align: {x: 0.5, y: 0.5}
+    // }
+    // Medium = <View> {
+    //     height: 200
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #4a69bd
+    //     }
+    //     align: {x: 0.5, y: 0.5}
+
+    //     <GridImage> { source: (IMG_B) }
+    // }
+    // Medium_2 = <View> {
+    //     height: 250
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #0c2461
+    //     }
+    //     align: {x: 0.5, y: 0.5}
+
+    //     <GridImage> { source: (IMG_D) }
+    // }
+    // Long = <View> {
+    //     height: 300
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #0a3d62
+    //     }
+    //     align: {x: 0.5, y: 0.5}
+    //     <GridImage> { source: (IMG_C) }
+    // }
+
+    Short = <View> {
+        height: 100
+        show_bg: true
+        draw_bg: {
+            color: #38ada9
+        }
+
+        align: {x: 0.5, y: 0.5}
+        lbl = <Label> {
+            draw_text:{
+                text_style: <SUBTITLE_CAPTION>{font_size: 12},
+                color: #fff
+            }
+        }
+    }
+    Medium = <View> {
+        height: 200
+        show_bg: true
+        draw_bg: {
+            color: #4a69bd
+        }
+        align: {x: 0.5, y: 0.5}
+
+        lbl = <Label> {
+            draw_text:{
+                text_style: <SUBTITLE_CAPTION>{font_size: 12},
+                color: #fff
+            }
+        }
+    }
+    Medium_2 = <View> {
+        height: 250
+        show_bg: true
+        draw_bg: {
+            color: #6a89cc
+        }
+        align: {x: 0.5, y: 0.5}
+
+        lbl = <Label> {
+            draw_text:{
+                text_style: <SUBTITLE_CAPTION>{font_size: 12},
+                color: #fff
+            }
+        }
+    }
+    Long = <View> {
+        height: 300
+        show_bg: true
+        draw_bg: {
+            color: #0a3d62
+        }
+        align: {x: 0.5, y: 0.5}
+
+        lbl = <Label> {
+            draw_text:{
+                text_style: <SUBTITLE_CAPTION>{font_size: 12},
+                color: #fff
+            }
+        }
+    }
+
     ResultsGrid = {{ResultsGrid}} {
         list = <StaggeredGrid>{
             columns_number: 2
             column_spacing: 4.0
-            ShortElement = <View> {
-                height: 100
-                show_bg: true
-                draw_bg: {
-                    // color: #0a3d62
-                    color: #38ada9
-                }
-                align: {x: 0.5, y: 0.5}
-                lbl = <Label> {
-                    draw_text:{
-                        text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                        color: #fff
-                    }
-                    // text: "Short element"
-                }
-            }
-            MediumElement = <View> {
-                height: 200
-                show_bg: true
-                draw_bg: {
-                    // color: #0c2461
-                    color: #4a69bd
-                }
-                align: {x: 0.5, y: 0.5}
-                lbl = <Label> {
-                    draw_text:{
-                        text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                        color: #fff
-                    }
-                    // text: "Tall element"
-                }
-            }
-            LongElement = <View> {
-                height: 300
-                show_bg: true
-                draw_bg: {
-                    // color: #0c2461
-                    color: #0a3d62
-                }
-                align: {x: 0.5, y: 0.5}
-                lbl = <Label> {
-                    draw_text:{
-                        text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                        color: #fff
-                    }
-                    // text: "Tall element"
-                }
-            }
+            ShortElement = <Short> {}
+            MediumElement = <Medium> {}
+            MediumElement_2 = <Medium_2> {} 
+            LongElement = <Long> {}
         }
     }
 
@@ -177,26 +267,28 @@ impl Widget for ResultsGrid {
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_staggered_grid().borrow_mut() {
                 // TODO: this creates a total of range_end x number of columns items
-                list.set_item_range(cx, 0, 100);
+
+                let mut last_drawn_item = 0;
+                list.set_item_range(cx, 0, 20);
                 while let Some(item_id) = list.next_visible_item(cx) {
+                    // break early if the item_id is lower than the previous item_ids
+                    if item_id < last_drawn_item {
+                        log!("SOMETHING WHACKY HAPPENED OMG");
+                        // break;
+                    }
+
                     let template = match item_id {
                     // let template = match random_number() {
-                        x if x % 3 == 0 => live_id!(ShortElement),
-                        x if x % 3 == 1 => live_id!(MediumElement),
+                        x if x % 4 == 0 => live_id!(ShortElement),
+                        x if x % 4 == 1 => live_id!(MediumElement),
+                        x if x % 4 == 2 => live_id!(MediumElement_2),
                         _ => live_id!(LongElement),
                     };
                     let item = list.item(cx, item_id, template).unwrap();
-                    // let text = match item_id % 4 {
-                    //     1 => format!("Hello! {}", item_id),
-                    //     2 => format!("Hello GOSIM\n With lines {}", item_id),
-                    //     3 => format!("Random numbers {}", item_id),
-                    //     _ => format!("Text body 4 id {}", item_id),
-                    // };
-                    item.label(id!(lbl)).set_text(&format!("{}", item_id + 1));
-                    // item.button(id!(likes)).set_text(&format!("{}", item_id % 23));
-                    // item.button(id!(comments)).set_text(&format!("{}", item_id % 6));
-                    log!("****************** DRAWING ITEM {}", item_id + 2);
+                    item.label(id!(lbl)).set_text(&format!("{}", item_id));
+                    log!("****************** DRAWING ITEM {}", item_id);
                     item.draw_all(cx, scope);
+                    last_drawn_item = item_id;
                 }
             }
         }

@@ -1,11 +1,12 @@
-use makepad_widgets::{scroll_bar::{ScrollAxis, ScrollBarAction}, *};
+use makepad_widgets::{scroll_bar::ScrollBarAction, *};
 use std::collections::HashMap;
 
 // TODO:
-// - fix all items being called on next_visible_item
+// - fix all items being called on next_visible_item - fix first_visible_item
 // - fix snapping at end
 // - fix scroll_bar not moving correctly on mouse wheel
-// - fix range not setting the right limits
+
+// - 1/2 DONE - fix range not setting the right limits
 
 live_design!{
     import makepad_widgets::base::*;
@@ -63,27 +64,36 @@ pub struct StaggeredGrid {
     
     #[rust] range_start: usize,
     #[rust(usize::MAX)] range_end: usize,
+
     #[rust(0usize)] view_window: usize,
+    
     #[live(0.2)] flick_scroll_minimum: f64,
     #[live(80.0)] flick_scroll_maximum: f64,
     #[live(0.005)] flick_scroll_scaling: f64,
     #[live(0.98)] flick_scroll_decay: f64,
+    
     #[live(100.0)] max_pull_down: f64,
+    
     #[live(true)] align_top_when_empty: bool,
     #[live(false)] grab_key_focus: bool,
     #[live(true)] drag_scrolling: bool,
-    #[rust] first_id: usize,
-    #[rust] first_scroll: f64,
-    #[rust(Vec2Index::X)] vec_index: Vec2Index,
-    #[live] scroll_bar: ScrollBar,
-    #[live] capture_overload: bool,
-    #[live(false)] keep_invisible: bool,
-    #[rust] draw_state: DrawStateWrap<ListDrawState>,
-    #[rust] draw_align_list: Vec<AlignItem>,
-    #[rust] detect_tail_in_draw: bool,
     #[live(false)] auto_tail: bool,
     #[rust(false)] tail_range: bool,
+    #[live] capture_overload: bool,
+    #[live(false)] keep_invisible: bool,
+
+    #[live] scroll_bar: ScrollBar,
+
+    #[rust(Vec2Index::X)] vec_index: Vec2Index,
+
+    /// First viisble item in the Grid, from top to bottom, left to right.
+    #[rust] first_visible_item: usize,
+    #[rust] first_item_offset: f64,    
     
+    #[rust] draw_state: DrawStateWrap<ListDrawState>,
+    #[rust] draw_align_list: Vec<AlignItem>,
+    #[rust] detect_tail_in_draw: bool,    
+
     #[rust] templates: ComponentMap<LiveId, LivePtr>,
     #[rust] items: ComponentMap<(usize, LiveId), WidgetRef>,
     //#[rust(DragState::None)] drag_state: DragState,
@@ -95,8 +105,11 @@ pub struct StaggeredGrid {
     /// List of columns on the grid, indexed by column number, left to right.
     #[rust] columns: Vec<Column>,
 
-    /// Maps item indices to their assigned columns, anchoring items to fixed positions
-    /// within the grid when first drawn. It prevents reordering when scrolling or resizing the viewport.
+    #[rust] last_drawn_item_index: usize,
+    /// Maps item indices to their assigned columns, 
+    /// anchoring items to fixed positions within the grid when first drawn. 
+    /// 
+    /// Anchoring items to columns prevents reordering when scrolling or resizing the viewport.
     #[rust] item_columns: HashMap<usize, usize>
 }
 
@@ -104,7 +117,14 @@ pub struct StaggeredGrid {
 struct Column {
     pub last_item_index: usize,
     pub height: f64,
-    pub exceeds_viewport: bool, 
+    pub exceeds_viewport: bool,
+    pub items: Vec<ColumnItem>
+}
+
+#[derive(Default, Clone, Debug)]
+struct ColumnItem {
+    pub index: usize,
+    pub size: DVec2
 }
 
 struct AlignItem {
@@ -177,159 +197,70 @@ impl StaggeredGrid {
     // Positions all the drawn items 
     fn end(&mut self, cx: &mut Cx2d) {
         let vi = self.vec_index;
-        let mut at_end = false;
-        let mut visible_items = 0;
-
+    
         if let Some(ListDrawState::End {viewport}) = self.draw_state.get() {
             let list = &mut self.draw_align_list;
             if list.len()>0 {
                 list.sort_by( | a, b | a.index.cmp(&b.index));
-                let first_index = list.iter().position( | v | v.index == self.first_id).unwrap();
-                
+                let first_index = list.iter().position( | v | v.index == self.first_visible_item).unwrap();
+    
                 // Find the position of the first item in our set
-                let mut first_pos = self.first_scroll;
+                let mut first_pos = self.first_item_offset;
                 for i in (0..first_index).rev() {
                     let item = &list[i];
                     first_pos -= item.size.index(vi);
                 }
-                
-                // Find the position of the last item in the range
-                // note that the grid requests items beyond the range so you can pad out the grid 
-                // when there is not enough data
-                let mut last_pos = self.first_scroll;
-                let mut last_item_pos = None;
-                for i in first_index..list.len() {
-                    let item = &list[i];
-                    last_pos += item.size.index(vi);
-                    if item.index < self.range_end {
-                        last_item_pos = Some(last_pos);
-                    }
-                    else {
-                        break;
-                    }
-                }
-                
-                // Viewport filling check
-                // later used to trigger a stick-to-top if needed
-                let mut not_filling_viewport = false;
-                if list[0].index == self.range_start {
-                    let mut total = 0.0;
-                    for item in list.iter() {
-                        if item.index >= self.range_end {
-                            break;
-                        }
-                        total += item.size.index(vi);
-                    }
-                    not_filling_viewport = total < viewport.size.index(vi);
-                }
-                
-                // 'Pull Down' scenario - when we are at the top
-                if list.first().unwrap().index == self.range_start && first_pos > 0.0 {
-                    let min = if let ScrollState::Stopped = self.scroll_state {
-                        0.0
-                    }
-                    else {
-                        self.max_pull_down
-                    };
-                    
-                    let mut pos = first_pos.min(min); // maximum for first scroll
-                    for item in list {
-                        let shift = DVec2::from_index_pair(vi, pos, 0.0);
-                        cx.shift_align_range(&item.align_range, shift - DVec2::from_index_pair(vi, item.shift, 0.0));
-                        pos += item.size.index(vi);
-                        visible_items += 1;
-                    }
-                    self.first_scroll = first_pos.min(min);
-                    self.first_id = self.range_start;
-                    log!("::end - first_id: {}", self.first_id);
-                }
-                else {
-                    // Compute the 'stick to bottom' case 
-                    let shift = if let Some(last_item_pos) = last_item_pos {
-                        if self.align_top_when_empty && not_filling_viewport {
-                            -first_pos
-                        }
-                        else {
-                            let ret = (viewport.size.index(vi) - last_item_pos).max(0.0);
-                            if ret > 0.0 {
-                                at_end = true;
-                            }
-                            ret
-                        }
-                    }
-                    else {
-                        0.0
-                    };
 
-                    // Regular scenario - align to current scroll position
-                    // Scan upwards and move items in place
-                    let mut first_id_changed = false;
-                    let start_pos = self.first_scroll + shift;
-                    let mut pos = start_pos;
-                    for i in (0..first_index).rev() {
-                        let item = &list[i];
-                        let visible = pos > 0.0;
-                        pos -= item.size.index(vi);
-                        let shift = DVec2::from_index_pair(vi, pos, 0.0);
-                        cx.shift_align_range(&item.align_range, shift - DVec2::from_index_pair(vi, item.shift, 0.0));
-                        if visible { // move up
-                            self.first_scroll = pos;
-                            self.first_id = item.index;
-                            log!("::end 2 - first_id: {}", self.first_id);
-                            first_id_changed = true;
-                            if item.index < self.range_end {
-                                visible_items += 1;
-                            }
-                        }
-                    }
-                    // Scan downwards
-                    let mut pos = start_pos;
-                    for i in first_index..list.len() {
-                        let item = &list[i];
-                        let shift = DVec2::from_index_pair(vi, pos, 0.0);
-                        cx.shift_align_range(&item.align_range, shift - DVec2::from_index_pair(vi, item.shift, 0.0));
-                        pos += item.size.index(vi);
-                        let invisible = pos < 0.0;
-                        if invisible { // move down
-                            self.first_scroll = pos - item.size.index(vi);
-                            self.first_id = item.index;
-                            first_id_changed = true;
-                            // TODO: fix this, if we don't break the second invisible item will cause a wierd jump in first_scroll
-                            //dgb
+                log!("🚧 🚧 🚧 🚧 🚧 🚧");
+
+                let mut pos = first_pos;
+                let mut first_visible_item = None;
+                // check for first visible item in left-most column
+
+                // TODO: currently drawing might start from the second most visible item, ignoring an earlier item 
+                // on another column.
+                // First visible item must be the first visible item (and the smallest number) in whichever column it is in.
+
+                let first_visible_index = -1;
+                for column in self.columns.iter_mut() {
+                    let mut column_pos = pos;
+                    // TODO: Here keep track of the first visible item on each column, then compare them across columns to find the first visible item
+                    // might want to store the first visible item in the column struct
+                    for item in column.items.iter() {
+                        column_pos += item.size.index(vi);
+                        let visible = pos >= 0.0;
+                        if visible {
+                            first_visible_item = Some(item);
                             break;
                         }
-                        else if item.index < self.range_end {
-                            visible_items += 1;
-                        }
-                    }
-                    // Overwrite first scroll for top/bottom aligns if we havent updated already
-                    if !first_id_changed {
-                        self.first_scroll = start_pos;
                     }
                 }
-                if !self.scroll_bar.animator_in_state(cx, id!(hover.pressed)){
-                    self.update_scroll_bar(cx);
+
+
+                // log!("items: {:?}", self.columns[0].items);
+                // for item in self.columns[0].items.iter() {
+                //     pos += item.size.index(vi);
+                //     let visible = pos >= 0.0;
+                //     if visible {
+                //         first_visible_item = Some(item);
+                //         break;
+                //     }
+                // }
+
+                if let Some(item) = first_visible_item {
+                    log!("👀 👀 FIRST VISIBLE ITEM: {}", item.index);
+                    self.first_visible_item = item.index;
+                    self.first_item_offset = pos - item.size.index(vi);
+                    log!("🏍️ 🏍️ 🏍️ UPDATE FIRST ITEM OFFSET TO: {}", self.first_item_offset);
+                    // log!("UPDATED FIRST ID TO: {}", self.first_visible_item);
                 }
             }
         }
         else {
             log!("Draw state not at end in StaggeredGrid, please review your next_visible_item loop")
         }
-        let rect = cx.turtle().rect();
-        if at_end || self.view_window == 0 || self.view_window > visible_items{
-            self.view_window = visible_items.max(4) - 3;
-        }
-        if self.detect_tail_in_draw{
-            self.detect_tail_in_draw = false;
-            if self.auto_tail && at_end{
-                self.tail_range = true;
-            }
-        }
-        let total_views = (self.range_end - self.range_start) as f64 / self.view_window as f64;
-        self.scroll_bar.draw_scroll_bar(cx, ScrollAxis::Vertical, rect, dvec2(100.0, rect.size.y * total_views));
-        if !self.keep_invisible{
-            self.items.retain_visible();
-        }
+
+        // log!("ALIGN ITEM: {:?}", self.draw_align_list[5].index);
         cx.end_turtle_with_area(&mut self.area);
     }
     
@@ -340,21 +271,22 @@ impl StaggeredGrid {
                 ListDrawState::Begin => {
                     let viewport = cx.turtle().padded_rect();
                     self.draw_state.set(ListDrawState::Down {
-                        index: self.first_id,
-                        pos: self.first_scroll,
+                        index: self.first_visible_item,
+                        pos: self.first_item_offset,
                         viewport,
                     });
 
-                    log!("ListDrawState::Begin - first_id {} - first_scroll {}", self.first_id, self.first_scroll);
+                    log!("ListDrawState::Begin - first_visible_item {} - first_item_offset {}", self.first_visible_item, self.first_item_offset);
 
-                    let abs_pos = dvec2(viewport.pos.x, viewport.pos.y + self.first_scroll);
+                    let abs_pos = dvec2(viewport.pos.x, viewport.pos.y + self.first_item_offset);
                     log!("FIRST ITEM {:?}", abs_pos);
                     
+                    self.last_drawn_item_index = 0;
                     self.last_drawn_column = 0;
                     // When beginning draw state, set the column heights to the first item's position
                     // in relationship to the viewport.
                     for column in self.columns.iter_mut() {
-                        column.height = viewport.pos.y + self.first_scroll;
+                        column.height = viewport.pos.y + self.first_item_offset;
                     }
 
                     cx.begin_turtle(Walk {
@@ -363,7 +295,7 @@ impl StaggeredGrid {
                         width: Size::Fixed(self.column_width(viewport)),
                         height: Size::Fit
                     }, self.layout_with_spacing());
-                    return Some(self.first_id)
+                    return Some(self.first_visible_item)
                 }
                 ListDrawState::Down {index, pos, viewport} | ListDrawState::DownAgain {index, pos, viewport} => {
                     // log!("POS: {}", pos);
@@ -379,17 +311,24 @@ impl StaggeredGrid {
                         index
                     });
 
+                    self.columns[self.last_drawn_column].items.push(ColumnItem {
+                        index,
+                        size: prev_item_rect.size
+                    });
+
                     let current_column = self.find_column_for_item(index);
-                    // let current_column = self.find_next_available_column().unwrap_or(0);
 
                     self.record_previous_column(index, prev_item_rect, viewport, vi);
 
-                    if !did_draw || self.columns[current_column].exceeds_viewport {
+                    // if !did_draw || self.columns[current_column].exceeds_viewport || index >= self.range_end {
+                    let index_is_older = index < self.last_drawn_item_index;
+                    log!("Index {} - Last Drawn Item Index {} - Index is older: {}", index, self.last_drawn_item_index, index_is_older);
+                    if !did_draw || self.columns[current_column].exceeds_viewport || index >= self.range_end || index_is_older  {
                         // lets scan upwards
-                        if self.first_id > 0 && !is_down_again {
+                        if self.first_visible_item > 0 && !is_down_again {
                             self.draw_state.set(ListDrawState::Up {
-                                index: self.first_id - 1,
-                                pos: self.first_scroll,
+                                index: self.first_visible_item - 1,
+                                pos: self.first_item_offset,
                                 hit_bottom: index >= self.range_end,
                                 viewport
                             });
@@ -399,7 +338,13 @@ impl StaggeredGrid {
                                 width: Size::Fixed(self.column_width(viewport)),
                                 height: Size::Fit
                             }, Layout::flow_down());
-                            return Some(self.first_id - 1);
+                            log!("🪲🪲 ABOUTTA DO SOMETHING WHACKY");
+                            // return Some(self.first_visible_item - 1);
+                            // return Some(index + 1);
+                            // return None
+
+                            // return index of the first visible item of the left-most column
+                            return Some(self.columns[0].items[0].index)
                         }
                         else {
                             self.draw_state.set(ListDrawState::End {viewport});
@@ -434,6 +379,8 @@ impl StaggeredGrid {
                     self.last_drawn_column = current_column;
                     self.item_columns.insert(index, current_column);
 
+                    self.last_drawn_item_index = index;
+
                     cx.begin_turtle(Walk {
                         abs_pos: Some(new_item_abs_pos),
                         margin: Default::default(),
@@ -443,7 +390,6 @@ impl StaggeredGrid {
                     return Some(index + 1)
                 }
                 ListDrawState::Up {index, pos, hit_bottom, viewport} => {
-                    log!("UP");
                     let did_draw = cx.turtle_has_align_items();
                     let align_range = cx.get_turtle_align_range();
                     let rect = cx.end_turtle();
@@ -452,6 +398,11 @@ impl StaggeredGrid {
                         size: rect.size,
                         shift: 0.0,
                         index
+                    });
+
+                    self.columns[self.last_drawn_column].items.push(ColumnItem {
+                        index,
+                        size: rect.size
                     });
                     if index == self.range_start {
                         // we are at range start, but if we snap to top, we might need to walk further down as well
@@ -522,30 +473,32 @@ impl StaggeredGrid {
         self.range_start = range_start;
         if self.range_end != range_end {
             self.range_end = range_end;
+            log!("******************* FIRST VISIBLE ITEM: {}", self.range_end.max(1) - 1);
             if self.tail_range{
-                self.first_id = self.range_end.max(1) - 1;
-                self.first_scroll = 0.0;
+                self.first_visible_item = self.range_end.max(1) - 1;
+                self.first_item_offset = 0.0;
             }
             self.update_scroll_bar(cx);
         }
     }
     
     pub fn update_scroll_bar(&mut self, cx: &mut Cx) {
-        let scroll_pos = ((self.first_id - self.range_start) as f64 / ((self.range_end - self.range_start).max(self.view_window + 1) - self.view_window) as f64) * self.scroll_bar.get_scroll_view_total();
+        let scroll_pos = ((self.first_visible_item - self.range_start) as f64 / ((self.range_end - self.range_start).max(self.view_window + 1) - self.view_window) as f64) * self.scroll_bar.get_scroll_view_total();
         // move the scrollbar to the right 'top' position
         self.scroll_bar.set_scroll_pos_no_action(cx, scroll_pos);
     }
     
     fn delta_top_scroll(&mut self, cx: &mut Cx, delta: f64, clip_top: bool) {
-        self.first_scroll += delta;
-        if self.first_id == self.range_start {
-            self.first_scroll = self.first_scroll.min(self.max_pull_down);
+        self.first_item_offset += delta;
+        if self.first_visible_item == self.range_start {
+            self.first_item_offset = self.first_item_offset.min(self.max_pull_down);
+            log!("UPDATED OFFSET: {:.0}", self.first_item_offset);
         }
-        if self.first_id == self.range_start && self.first_scroll > 0.0 && clip_top {
-            self.first_scroll = 0.0;
+        if self.first_visible_item == self.range_start && self.first_item_offset > 0.0 && clip_top {
+            self.first_item_offset = 0.0;
         }
         self.update_scroll_bar(cx);
-        log!("delta_top_scroll: first_scroll: {:.0}", self.first_scroll);
+        log!("delta_top_scroll: first_item_offset: {:.0}", self.first_item_offset);
     }
 
     /// Updates the state of the previously drawn column
@@ -627,16 +580,16 @@ impl Widget for StaggeredGrid {
         });
         if let Some((scroll_to, at_end)) = scroll_to {
             if at_end && self.auto_tail{
-                self.first_id = self.range_end.max(1) - 1;
-                self.first_scroll = 0.0;
+                self.first_visible_item = self.range_end.max(1) - 1;
+                self.first_item_offset = 0.0;
                 self.tail_range = true;
             }
             else if self.tail_range {
                 self.tail_range = false;
             }
 
-            self.first_id = ((scroll_to / self.scroll_bar.get_scroll_view_visible()) * self.view_window as f64) as usize;
-            self.first_scroll = 0.0;
+            self.first_visible_item = ((scroll_to / self.scroll_bar.get_scroll_view_visible()) * self.view_window as f64) as usize;
+            self.first_item_offset = 0.0;
             cx.widget_action(uid, &scope.path, StaggeredGridAction::Scroll);
             self.area.redraw(cx);
         }
@@ -666,10 +619,10 @@ impl Widget for StaggeredGrid {
             ScrollState::Pulldown {next_frame} => {
                 if let Some(_) = next_frame.is_event(event) {
                     // we have to bounce back
-                    if self.first_id == self.range_start && self.first_scroll > 0.0 {
-                        self.first_scroll *= 0.9;
-                        if self.first_scroll < 1.0 {
-                            self.first_scroll = 0.0;
+                    if self.first_visible_item == self.range_start && self.first_item_offset > 0.0 {
+                        self.first_item_offset *= 0.9;
+                        if self.first_item_offset < 1.0 {
+                            self.first_item_offset = 0.0;
                         }
                         else {
                             *next_frame = cx.new_next_frame();
@@ -701,65 +654,6 @@ impl Widget for StaggeredGrid {
                     cx.widget_action(uid, &scope.path, StaggeredGridAction::Scroll);
                     self.area.redraw(cx);
                 },
-                
-                Hit::KeyDown(ke) => match ke.key_code {
-                    KeyCode::Home => {
-                        self.first_id = 0;
-                        self.first_scroll = 0.0;
-                        self.tail_range = false;
-                        self.update_scroll_bar(cx);
-                        self.area.redraw(cx);
-                    },
-                    KeyCode::End => {
-                        self.first_id = self.range_end.max(1) - 1;
-                        self.first_scroll = 0.0;
-                        if self.auto_tail {
-                            self.tail_range = true;
-                        }
-                        self.update_scroll_bar(cx);
-                        self.area.redraw(cx);
-                    },
-                    KeyCode::PageUp => {
-                        self.first_id = self.first_id.max(self.view_window) - self.view_window;
-                        self.first_scroll = 0.0;
-                        self.tail_range = false;
-                        self.update_scroll_bar(cx);
-                        self.area.redraw(cx);
-                    },
-                    KeyCode::PageDown => {
-                        self.first_id += self.view_window;
-                        self.first_scroll = 0.0;
-                        if self.first_id >= self.range_end.max(1) {
-                            self.first_id = self.range_end.max(1) - 1;
-                        }
-                        self.detect_tail_in_draw = true;
-                        self.update_scroll_bar(cx);
-                        self.area.redraw(cx);
-                    },
-                    KeyCode::ArrowDown => {
-                        self.first_id += 1;
-                        if self.first_id >= self.range_end.max(1) {
-                            self.first_id = self.range_end.max(1) - 1;
-                        }
-                        self.detect_tail_in_draw = true;
-                        self.first_scroll = 0.0;
-                        self.update_scroll_bar(cx);
-                        self.area.redraw(cx);
-                    },
-                    KeyCode::ArrowUp => {
-                        if self.first_id > 0 {
-                            self.first_id -= 1;
-                            if self.first_id < self.range_start {
-                                self.first_id = self.range_start;
-                            }
-                            self.first_scroll = 0.0;
-                            self.area.redraw(cx);
-                            self.tail_range = false;
-                            self.update_scroll_bar(cx);
-                        }
-                    },
-                    _ => ()
-                }
                 Hit::FingerDown(e) => {
                     //log!("F inger down {} {}", e.time, e.abs);
                     if self.grab_key_focus {
@@ -811,7 +705,7 @@ impl Widget for StaggeredGrid {
                                 }
                             }
                             scaled_delta *= self.flick_scroll_scaling;
-                            if self.first_id == self.range_start && self.first_scroll > 0.0 {
+                            if self.first_visible_item == self.range_start && self.first_item_offset > 0.0 {
                                 self.scroll_state = ScrollState::Pulldown {next_frame: cx.new_next_frame()};
                             }
                             else if total_delta.abs() > 10.0 && scaled_delta.abs() > self.flick_scroll_minimum{
@@ -855,85 +749,85 @@ impl Widget for StaggeredGrid {
     }
 }
 
-impl StaggeredGridRef {
-    pub fn set_first_id_and_scroll(&self, id: usize, s: f64) {
-        if let Some(mut inner) = self.borrow_mut() {
-            inner.first_id = id;
-            inner.first_scroll = s;
-        }
-    }
+// impl StaggeredGridRef {
+//     pub fn set_first_visible_item_and_scroll(&self, id: usize, s: f64) {
+//         if let Some(mut inner) = self.borrow_mut() {
+//             inner.first_visible_item = id;
+//             inner.first_item_offset = s;
+//         }
+//     }
     
-    pub fn set_first_id(&self, id: usize) {
-        if let Some(mut inner) = self.borrow_mut() {
-            inner.first_id = id;
-        }
-    }
+//     pub fn set_first_visible_item(&self, id: usize) {
+//         if let Some(mut inner) = self.borrow_mut() {
+//             inner.first_visible_item = id;
+//         }
+//     }
     
-    pub fn first_id(&self) -> usize {
-        if let Some(inner) = self.borrow() {
-            inner.first_id
-        }
-        else {
-            0
-        }
-    }
+//     pub fn first_visible_item(&self) -> usize {
+//         if let Some(inner) = self.borrow() {
+//             inner.first_visible_item
+//         }
+//         else {
+//             0
+//         }
+//     }
     
-    pub fn set_tail_range(&self, tail_range: bool) {
-        if let Some(mut inner) = self.borrow_mut() {
-            inner.tail_range = tail_range
-        }
-    }
+//     pub fn set_tail_range(&self, tail_range: bool) {
+//         if let Some(mut inner) = self.borrow_mut() {
+//             inner.tail_range = tail_range
+//         }
+//     }
     
-    pub fn item(&self, cx: &mut Cx, entry_id: usize, template: LiveId) -> Option<WidgetRef> {
-        if let Some(mut inner) = self.borrow_mut() {
-            inner.item(cx, entry_id, template)
-        }
-        else {
-            None
-        }
-    }
+//     pub fn item(&self, cx: &mut Cx, entry_id: usize, template: LiveId) -> Option<WidgetRef> {
+//         if let Some(mut inner) = self.borrow_mut() {
+//             inner.item(cx, entry_id, template)
+//         }
+//         else {
+//             None
+//         }
+//     }
     
-    pub fn items_with_actions(&self, actions: &Actions) -> ItemsWithActions {
-        let mut set = Vec::new();
-        self.items_with_actions_vec(actions, &mut set);
-        set
-    }
+//     pub fn items_with_actions(&self, actions: &Actions) -> ItemsWithActions {
+//         let mut set = Vec::new();
+//         self.items_with_actions_vec(actions, &mut set);
+//         set
+//     }
     
-    fn items_with_actions_vec(&self, actions: &Actions, set: &mut ItemsWithActions) {
-        let uid = self.widget_uid();
-        for action in actions {
-            if let Some(action) = action.as_widget_action(){
-                if let Some(group) = &action.group{
-                    if group.group_uid == uid{
-                        if let Some(inner) = self.borrow() {
-                            for ((item_id, _), item) in inner.items.iter() {
-                                if group.item_uid == item.widget_uid(){
-                                    set.push((*item_id, item.clone()))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+//     fn items_with_actions_vec(&self, actions: &Actions, set: &mut ItemsWithActions) {
+//         let uid = self.widget_uid();
+//         for action in actions {
+//             if let Some(action) = action.as_widget_action(){
+//                 if let Some(group) = &action.group{
+//                     if group.group_uid == uid{
+//                         if let Some(inner) = self.borrow() {
+//                             for ((item_id, _), item) in inner.items.iter() {
+//                                 if group.item_uid == item.widget_uid(){
+//                                     set.push((*item_id, item.clone()))
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
 
-type ItemsWithActions = Vec<(usize, WidgetRef)>;
+// type ItemsWithActions = Vec<(usize, WidgetRef)>;
 
-impl StaggeredGridSet {
-    pub fn set_first_id(&self, id: usize) {
-        for list in self.iter() {
-            list.set_first_id(id)
-        }
-    }
+// impl StaggeredGridSet {
+//     pub fn set_first_visible_item(&self, id: usize) {
+//         for list in self.iter() {
+//             list.set_first_visible_item(id)
+//         }
+//     }
     
     
-    pub fn items_with_actions(&self, actions: &Actions) -> ItemsWithActions {
-        let mut set = Vec::new();
-        for list in self.iter() {
-            list.items_with_actions_vec(actions, &mut set)
-        }
-        set
-    }
-}
+//     pub fn items_with_actions(&self, actions: &Actions) -> ItemsWithActions {
+//         let mut set = Vec::new();
+//         for list in self.iter() {
+//             list.items_with_actions_vec(actions, &mut set)
+//         }
+//         set
+//     }
+// }
