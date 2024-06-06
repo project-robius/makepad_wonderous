@@ -30,8 +30,9 @@ live_design! {
         align: {x: 0.0, y: 0.0}
         draw_radio: {
             radio_type: Tab,
-            color_active: #fff,
-            color_inactive: #fff,
+            // TODO: Update radio button styling with current themeing
+            // color_active: #fff,
+            // color_inactive: #fff,
         }
         draw_text: {
             color_selected: #0b0,
@@ -236,6 +237,7 @@ impl LiveRegister for App {
 
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
+        crate::artifacts::artifacts_carrousel::live_design(cx);
 
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
