@@ -30,8 +30,9 @@ live_design! {
         align: {x: 0.0, y: 0.0}
         draw_radio: {
             radio_type: Tab,
-            color_active: #fff,
-            color_inactive: #fff,
+            // TODO: Update radio button styling with current themeing
+            // color_active: #fff,
+            // color_inactive: #fff,
         }
         draw_text: {
             color_selected: #0b0,
@@ -56,9 +57,9 @@ live_design! {
                             margin: 0.0,
                             padding: 0.0
 
-                            tab1_frame = <WonderScreen> {visible: false}
+                            tab1_frame = <WonderScreen> {visible: true}
                             tab2_frame = <GalleryScreen> {visible: false}
-                            tab3_frame = <ArtifactsScreen> {visible: true}
+                            tab3_frame = <ArtifactsScreen> {visible: false}
                             tab4_frame = <TimelineScreen> {visible: false}
                         }
 

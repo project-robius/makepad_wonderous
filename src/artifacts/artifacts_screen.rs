@@ -36,22 +36,23 @@ live_design! {
             
             <View> { height: Fill, width: 1 }
 
-            <Button> {
-                width: Fill,
-                height: 50,
-                text: "BROWSE ALL ARTIFACTS",
-                draw_text: {
-                    text_style: {
-                        font_size: 9.0
-                    }
+            // Disabled until we integrate the artifacts grid
+            // <Button> {
+            //     width: Fill,
+            //     height: 50,
+            //     text: "BROWSE ALL ARTIFACTS",
+            //     draw_text: {
+            //         text_style: {
+            //             font_size: 9.0
+            //         }
 
-                    fn get_color(self) -> vec4 {
-                        return #fff
-                    }
-                }
+            //         fn get_color(self) -> vec4 {
+            //             return #fff
+            //         }
+            //     }
 
-                draw_bg: { bodytop: (BACKGROUND_ITEM_COLOR), bodybottom: (BACKGROUND_ITEM_COLOR) }
-            }
+            //     draw_bg: { bodytop: (BACKGROUND_ITEM_COLOR), bodybottom: (BACKGROUND_ITEM_COLOR) }
+            // }
         }
     }
 }

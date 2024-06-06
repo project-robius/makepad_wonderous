@@ -10,21 +10,21 @@ live_design! {
     import crate::shared::widgets::*;
 
     CarrouselItem = <RoundedView> {
-        width: 200,
+        width: 160,
         height: 280,
         padding: 4.0,
 
         flow: Overlay
 
         draw_bg: {
-            instance radius: 46.0
+            instance radius: 40.0
             instance border_width: 1.0
             instance border_color: #fff
         }
 
         image_wrapper = <CachedRoundedView> {
             draw_bg: {
-                instance radius: 46.0
+                instance radius: 40.0
             }
 
             image = <Image> {
@@ -33,7 +33,7 @@ live_design! {
                 height: Fill,
 
                 draw_bg: {
-                    image_pan: vec2(0.0, 0.0)
+                    image_pan: vec2(0.5, 0.5)
                 }
             }
         }
@@ -55,11 +55,11 @@ live_design! {
         ]
 
         item_pan: [
-            vec2(0.0, 0.0),
-            vec2(0.0, 0.0),
-            vec2(0.24, 0.0),
-            vec2(0.24, 0.0),
-            vec2(0.0, 0.0)
+            vec2(0.15, 0.0),
+            vec2(0.15, 0.0),
+            vec2(0.28, 0.0),
+            vec2(0.29, 0.0),
+            vec2(0.12, 0.0)
         ]
 
         background = <BlurStage>{
@@ -87,8 +87,8 @@ live_design! {
                             source: (IMG_CONTENT)
 
                             draw_bg: {
-                                image_scale: 20.0
-                                image_pan: vec2(0.15, 0.2)
+                                image_scale: 15.0
+                                image_pan: vec2(0.2, 0.2)
                             }
                         }
                     }
@@ -97,7 +97,7 @@ live_design! {
         }
 
         <RoundedView> {
-            margin: { top: 300, bottom: -200, left: -200, right: -200 }
+            margin: { top: 350, bottom: -200, left: -200, right: -200 }
 
             width: Fill,
             height: Fill,
@@ -113,7 +113,7 @@ live_design! {
 
             flow: Down,
             spacing: 10.0,
-            padding: { top: 100.0 }
+            padding: { top: 125.0 }
             align: {x: 0.5, y: 0.0},
             
             container = <View> {
@@ -122,7 +122,7 @@ live_design! {
                 height: 360,
 
                 main_item = <CarrouselItem> {
-                    margin: { left: 75.0 }
+                    margin: { left: 95.0 }
                 }
 
                 previous_item = <CarrouselItem> {
@@ -167,8 +167,6 @@ live_design! {
 
                 aux_item = <CarrouselItem> {
                     visible: false
-                    width: 160,
-                    height: 160,
 
                     draw_bg: {
                         radius: 36.
@@ -211,8 +209,8 @@ live_design! {
                     apply: {
                         body = { container = {
                             main_item = {
-                                margin: {left: 75.0, top: 0.0}
-                                width: 200,
+                                margin: {left: 95.0, top: 0.0}
+                                width: 160,
                                 height: 280,
                             }
                             next_item = {
@@ -249,8 +247,8 @@ live_design! {
                                 height: 160,
                             }
                             previous_item = {
-                                margin: {left: 75.0, top: 0.0}
-                                width: 200,
+                                margin: {left: 95.0, top: 0.0}
+                                width: 160,
                                 height: 280,
                             }
                             aux_item = {
@@ -267,8 +265,8 @@ live_design! {
                     apply: {
                         body = { container = {
                             main_item = {
-                                margin: {left: 75.0, top: 0.0}
-                                width: 200,
+                                margin: {left: 95.0, top: 0.0}
+                                width: 160,
                                 height: 280,
                             }
                             next_item = {
@@ -300,8 +298,8 @@ live_design! {
                                 height: 160,
                             }
                             next_item = {
-                                margin: {left: 75.0, top: 0.0}
-                                width: 200,
+                                margin: {left: 95.0, top: 0.0}
+                                width: 160,
                                 height: 280,
                             }
                             previous_item = {
@@ -323,8 +321,8 @@ live_design! {
                     apply: {
                         body = { container = {
                             main_item = {
-                                margin: {left: 75.0, top: 0.0}
-                                width: 200,
+                                margin: {left: 95.0, top: 0.0}
+                                width: 160,
                                 height: 280,
                             }
                             next_item = {
