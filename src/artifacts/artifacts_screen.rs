@@ -16,27 +16,28 @@ live_design! {
         flow: Overlay,
         align: {x: 0.5, y: 0.0},
 
-        <Label> {
-            margin: { top: 40.0 }
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 10},
-                color: #fff
-            }
-            text: "ARTIFACTS"
-        }
-
-        <ArtifactsCarrousel> {
-            margin: { top: 30.0 }
-        }
+            <ArtifactsCarrousel> {}
 
         <View> {
-            height: Fill,
-            margin: 20,
-            flow: Down,
-            
-            <View> { height: Fill, width: 1 }
+            margin: { top: 40., left: 145. }
 
-            // Disabled until we integrate the artifacts grid
+            <Label> {
+                draw_text:{
+                    text_style: <SUBTITLE_CAPTION>{font_size: 12},
+                    color: #fff
+                }
+                text: "ARTIFACTS"
+            }
+        }
+
+        // Disabled until we integrate the artifacts grid
+        // <View> {
+            // height: Fill,
+            // margin: 20,
+            // flow: Down,
+            
+            // <View> { height: Fill, width: 1 }
+
             // <Button> {
             //     width: Fill,
             //     height: 50,
@@ -53,6 +54,6 @@ live_design! {
 
             //     draw_bg: { bodytop: (BACKGROUND_ITEM_COLOR), bodybottom: (BACKGROUND_ITEM_COLOR) }
             // }
-        }
+        // }
     }
 }
