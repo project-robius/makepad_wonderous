@@ -146,7 +146,7 @@ live_design! {
                 }
 
                 next_item = <CarrouselItem> {
-                    margin: { left: 280.0, top: 170.0 }
+                    margin: { left: 290.0, top: 170.0 }
                     width: 160,
                     height: 160,
 
@@ -209,12 +209,12 @@ live_design! {
                     apply: {
                         body = { container = {
                             main_item = {
-                                margin: {left: 95.0, top: 0.0}
+                                margin: {left: 100.0, top: 0.0}
                                 width: 160,
                                 height: 280,
                             }
                             next_item = {
-                                margin: {left: 280.0, top: 170.0}
+                                margin: {left: 290.0, top: 170.0}
                                 width: 160,
                                 height: 160,
                             }
@@ -237,7 +237,7 @@ live_design! {
                     apply: {
                         body = { container = {
                             main_item = {
-                                margin: {left: 280.0, top: 170.0}
+                                margin: {left: 290.0, top: 170.0}
                                 width: 160,
                                 height: 160,
                             }
@@ -247,7 +247,7 @@ live_design! {
                                 height: 160,
                             }
                             previous_item = {
-                                margin: {left: 95.0, top: 0.0}
+                                margin: {left: 100.0, top: 0.0}
                                 width: 160,
                                 height: 280,
                             }
@@ -265,12 +265,12 @@ live_design! {
                     apply: {
                         body = { container = {
                             main_item = {
-                                margin: {left: 95.0, top: 0.0}
+                                margin: {left: 100.0, top: 0.0}
                                 width: 160,
                                 height: 280,
                             }
                             next_item = {
-                                margin: {left: 280.0, top: 170.0}
+                                margin: {left: 290.0, top: 170.0}
                                 width: 160,
                                 height: 160,
                             }
@@ -298,7 +298,7 @@ live_design! {
                                 height: 160,
                             }
                             next_item = {
-                                margin: {left: 95.0, top: 0.0}
+                                margin: {left: 100.0, top: 0.0}
                                 width: 160,
                                 height: 280,
                             }
@@ -308,7 +308,7 @@ live_design! {
                                 height: 160,
                             }
                             aux_item = {
-                                margin: {left: 280.0, top: 170.0}
+                                margin: {left: 290.0, top: 170.0}
                                 width: 160,
                                 height: 160,
                             }
@@ -321,12 +321,12 @@ live_design! {
                     apply: {
                         body = { container = {
                             main_item = {
-                                margin: {left: 95.0, top: 0.0}
+                                margin: {left: 100.0, top: 0.0}
                                 width: 160,
                                 height: 280,
                             }
                             next_item = {
-                                margin: {left: 280.0, top: 170.0}
+                                margin: {left: 290.0, top: 170.0}
                                 width: 160,
                                 height: 160,
                             }
