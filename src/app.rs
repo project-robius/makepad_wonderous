@@ -175,7 +175,9 @@ live_design! {
                             show_bg: false,
                             content = {
                                 title_container = {
+                                    margin: {left: 125.}
                                     title = {
+                                        margin: 0
                                         text: "GLOBAL TIMELINE"
                                         draw_text: {
                                             text_style: {
@@ -187,6 +189,9 @@ live_design! {
                                             }
                                         }
                                     }
+                                }
+                                button_container = {
+                                    margin: {left: 10.}
                                 }
                             }
                         }
