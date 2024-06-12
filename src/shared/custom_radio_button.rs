@@ -2,6 +2,10 @@ use makepad_widgets::{
     image_cache::ImageCacheImpl, makepad_derive_widget::*, makepad_draw::*, widget::*, Image, View
 };
 
+// FIXME: This customized clone of RadioButton is a workaround for Makepad's RadioButton not exposing ImageRef
+// (therefore we can't update the images programmatically from the outside of the widget)
+// A proper solution will be to expose inner widgets from WidgetRefs in Makepad itself.
+
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
