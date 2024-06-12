@@ -42,6 +42,10 @@ live_design! {
             radio_type: Tab,
             instance inset: vec4(0.0, 0.0, 0.0, 0.0)
             instance radius: 2.5
+
+            fn pixel(self) -> vec4 {
+                return vec4(0.0, 0.0, 0.0, 0.0);
+            }
         }
         media: Image
         image: <Image> {
