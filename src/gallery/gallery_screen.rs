@@ -3,6 +3,8 @@ use makepad_widgets::*;
 
 use super::gallery_image::{GalleryImage, GalleryImageId};
 
+use std::collections::HashMap;
+
 pub const IMAGE_WIDTH: f64 = 270.;
 pub const IMAGE_HEIGHT: f64 = 430.;
 pub const IMAGE_PADDING: f64 = 20.;
@@ -21,33 +23,6 @@ live_design! {
 
     Gallery = {{Gallery}} {
         width: Fill, height: Fill
-
-        images_deps: [
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-0.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-1.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-2.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-3.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-4.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-5.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-6.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-7.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-8.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-9.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-10.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-11.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-12.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-13.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-14.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-15.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-16.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-17.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-18.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-19.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-20.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-21.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-22.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
-        ]
 
         gallery_image_template: <GalleryImage> {
             image: <Image> {
@@ -133,7 +108,7 @@ pub struct Gallery {
     view: View,
 
     #[live]
-    images_deps: Vec<LiveDependency>,
+    image_urls: Vec<String>,
     #[live]
     gallery_image_template: Option<LivePtr>,
 
@@ -159,6 +134,8 @@ pub struct Gallery {
     image_count: i64,
     #[rust]
     ready_to_swipe: bool,
+    #[rust]
+    requested_images: bool,
 }
 
 impl LiveHook for Gallery {
@@ -177,6 +154,12 @@ impl LiveHook for Gallery {
         self.previous_index = self.current_index;
         self.ready_to_swipe = true;
 
+        if !cx.has_global::<NetworkImageCache>() {
+            cx.set_global(NetworkImageCache::new());
+        }
+
+        self.setup_image_urls();
+
         for i in 0..self.grid_size.pow(2) {
             let image_id = LiveId(i as u64).into();
             let new_image = GalleryImage::new_from_ptr(cx, self.gallery_image_template);
@@ -188,6 +171,7 @@ impl LiveHook for Gallery {
 
 impl Widget for Gallery {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.match_event(cx, event);
         for image in self.images.values_mut() {
             image.handle_event(cx, event, scope);
         }
@@ -204,6 +188,12 @@ impl Widget for Gallery {
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
+        if !self.requested_images {
+            self.request_images(cx);
+            self.requested_images = true;
+            return DrawStep::done();
+        }
+
         cx.begin_turtle(walk, self.layout);
 
         let start_pos = cx.turtle().size() / dvec2(2., 2.);
@@ -223,11 +213,23 @@ impl Widget for Gallery {
                     (row * (padded_image_height) + indexed_offset.y) - IMAGE_HEIGHT / 2.,
                 );
 
-            if let Some(image_path) = match image_idu64 {
-                24 => Some(self.images_deps[0].as_str()),
-                _ => Some(self.images_deps[image_idu64 as usize].as_str()),
+
+            if let Some(image_id) = match image_idu64 {
+                24 => Some(self.image_urls[0].as_str()),
+                _ => Some(self.image_urls[image_idu64 as usize].as_str()),
             } {
-                gallery_image.set_path(image_path.to_owned());
+                
+                let blob = { 
+                    cx.get_global::<NetworkImageCache>().map.get(&LiveId::from_str(&image_id))
+                };
+                
+                if let Some(blob) = blob {
+                    let image_data = blob.clone();
+                    if !gallery_image.is_image_ready() {
+                        let _ = gallery_image.load_jpg_from_data(cx, &image_data);
+                    }
+                }
+
                 gallery_image.set_size(cx, dvec2(IMAGE_WIDTH, IMAGE_HEIGHT));
             }
 
@@ -236,6 +238,31 @@ impl Widget for Gallery {
         cx.end_turtle_with_area(&mut self.area);
 
         DrawStep::done()
+    }
+}
+
+impl MatchEvent for Gallery {
+    fn handle_network_responses(
+        &mut self,
+        cx: &mut Cx,
+        responses: &NetworkResponsesEvent
+    ) {
+        for event in responses {
+            match &event.response {
+                NetworkResponse::HttpResponse(response) => {
+                    if response.status_code == 200 {
+                        if let Some(body) = response.get_body() {
+                            cx.get_global::<NetworkImageCache>().map.insert(event.request_id, body.clone());
+                            self.redraw(cx);
+                        }
+                    }
+                }
+                NetworkResponse::HttpRequestError(error) => {
+                    println!("Error fetching gallery image: {:?}", error);
+                }
+                _ => ()
+            }
+        }
     }
 }
 
@@ -393,6 +420,46 @@ impl Gallery {
         self.current_index = value;
         self.redraw(cx);
     }
+
+    fn setup_image_urls(&mut self) {
+        self.image_urls = vec![
+            "eq4OpDuGN7w".to_string(),
+            "cSKa2PDcU-Q".to_string(),
+            "MLfwSItwSpg".to_string(),
+            "1xnuIi-zcTQ".to_string(),
+            "20Nfb3kTnsY".to_string(),
+            "Wbu_scb-9HQ".to_string(),
+            "0FMRVVrMCyc".to_string(),
+            "Q36BvLGdOAg".to_string(),
+            "RyGG5z6SUZ8".to_string(),
+            "ZQxxar2ovS0".to_string(),
+            "siy5LCp84AY".to_string(),
+            "chc2vP_7_kY".to_string(),
+            "6aZBfbzx5Ms".to_string(),
+            "i56swU7BDbQ".to_string(),
+            "VW8YW3Xlc0k".to_string(),
+            "MZayf0ZVY-A".to_string(),
+            "fDxfe1_5VyY".to_string(),
+            "E13mcj-2TLE".to_string(),
+            "sGPfjjAOX1o".to_string(),
+            "d0VxLuvjUJA".to_string(),
+            "lzwT4n05p20".to_string(),
+            "OXL47qN9brQ".to_string(),
+            "vhKZvNFmpPU".to_string(),
+            "2s1chnvuMQ4".to_string()
+        ]
+    }
+
+    fn request_images(&self, cx: &mut Cx) {
+        // TODO: request images in order (start from the middle and go outwards)
+        // add a spinner or fade in animation for the images
+        for url in self.image_urls.iter() {
+            let full_url = format!("https://www.wonderous.info/unsplash/{}-{}.jpg", url, 800);
+            let request_id = LiveId::from_str(&url);
+            let request = HttpRequest::new(full_url, HttpMethod::GET);
+            cx.http_request(request_id, request);
+        }
+    }
 }
 
 impl GalleryRef {
@@ -407,4 +474,16 @@ impl GalleryRef {
 pub enum GalleryGridAction {
     None,
     Selected(i64),
+}
+
+pub struct NetworkImageCache {
+    pub map: HashMap<LiveId, Vec<u8>>,
+}
+
+impl NetworkImageCache {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
 }

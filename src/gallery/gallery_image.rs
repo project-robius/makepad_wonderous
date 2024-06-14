@@ -1,3 +1,4 @@
+use image_cache::ImageError;
 use makepad_widgets::{image_cache::ImageCacheImpl, *};
 
 live_design! {
@@ -73,7 +74,7 @@ pub struct GalleryImage {
     #[animator]
     animator: Animator,
     #[rust]
-    path: String,
+    image_ready: bool,
     #[rust]
     size: DVec2,
 }
@@ -98,18 +99,23 @@ impl Widget for GalleryImage {
 }
 
 impl GalleryImage {
-    pub fn set_path(&mut self, path: String) {
-        self.path = path;
-    }
-
     pub fn set_size(&mut self, _cx: &mut Cx, size: DVec2) {
         self.size = size;
+    }
+
+    pub fn is_image_ready(&self) -> bool {
+        self.image_ready
+    }
+
+    pub fn load_jpg_from_data(&mut self, cx: &mut Cx, data: &[u8]) -> Result<(), ImageError> {
+        let res = self.image.load_jpg_from_data(cx, data, 0);
+        self.image_ready = true;
+        res
     }
 
     pub fn draw_abs(&mut self, cx: &mut Cx2d, pos: DVec2) {
         let bg_width = Size::Fixed(self.size.x);
         let bg_height = Size::Fixed(self.size.y);
-        let _ = self.image.load_image_dep_by_path(cx, &self.path, 0);
         _ = self
             .image
             .draw_walk(cx, Walk::size(bg_width, bg_height).with_abs_pos(pos));

@@ -1,7 +1,7 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
-use super::gallery_image::{GalleryImage, GalleryImageId};
+use super::{gallery_image::{GalleryImage, GalleryImageId}, gallery_screen::NetworkImageCache};
 
 live_design! {
     import makepad_widgets::base::*;
@@ -15,32 +15,6 @@ live_design! {
     GalleryImageSlider = {{GalleryImageSlider}} {
         width: Fill, height: Fill
         align: {y: 0.5}
-        images_deps: [
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-0.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-1.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-2.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-3.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-4.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-5.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-6.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-7.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-8.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-9.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-10.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-11.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-12.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-13.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-14.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-15.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-16.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-17.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-18.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-19.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-20.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-21.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-22.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
-        ]
 
         offset: 0.
 
@@ -82,7 +56,7 @@ pub struct GalleryImageSlider {
     #[animator]
     animator: Animator,
     #[live]
-    images_deps: Vec<LiveDependency>,
+    image_urls: Vec<String>,
     #[live]
     gallery_image_template: Option<LivePtr>,
     #[live]
@@ -119,7 +93,8 @@ impl LiveHook for GalleryImageSlider {
     }
 
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        self.image_count = self.images_deps.len() as i64;
+        self.setup_image_urls();
+        self.image_count = self.image_urls.len() as i64;
         self.ready_to_swipe = true;
         self.is_dragging = true;
         self.swipe_vector_x = 0.;
@@ -173,11 +148,20 @@ impl Widget for GalleryImageSlider {
                     -(image_height / 2.) - 80.,
                 );
 
-            if let Some(image_path) = match image_idu64 {
-                24 => Some(self.images_deps[0].as_str()),
-                _ => Some(self.images_deps[image_idu64 as usize].as_str()),
+            if let Some(image_id) = match image_idu64 {
+                24 => Some(self.image_urls[0].as_str()),
+                _ => Some(self.image_urls[image_idu64 as usize].as_str()),
             } {
-                gallery_image.set_path(image_path.to_owned());
+                let blob = { 
+                    cx.cx.get_global::<NetworkImageCache>().map.get(&LiveId::from_str(&image_id))
+                };
+                
+                if let Some(blob) = blob {
+                    let image_data = blob.clone();
+                    if !gallery_image.is_image_ready() {
+                        let _ = gallery_image.load_jpg_from_data(cx, &image_data);
+                    }
+                }
                 gallery_image.set_size(cx, dvec2(image_width, image_height));
             }
 
@@ -287,6 +271,35 @@ impl GalleryImageSlider {
         }
         self.current_index = value;
         self.redraw(cx);
+    }
+
+    fn setup_image_urls(&mut self) {
+        self.image_urls = vec![
+            "eq4OpDuGN7w".to_string(),
+            "cSKa2PDcU-Q".to_string(),
+            "MLfwSItwSpg".to_string(),
+            "1xnuIi-zcTQ".to_string(),
+            "20Nfb3kTnsY".to_string(),
+            "Wbu_scb-9HQ".to_string(),
+            "0FMRVVrMCyc".to_string(),
+            "Q36BvLGdOAg".to_string(),
+            "RyGG5z6SUZ8".to_string(),
+            "ZQxxar2ovS0".to_string(),
+            "siy5LCp84AY".to_string(),
+            "chc2vP_7_kY".to_string(),
+            "6aZBfbzx5Ms".to_string(),
+            "i56swU7BDbQ".to_string(),
+            "VW8YW3Xlc0k".to_string(),
+            "MZayf0ZVY-A".to_string(),
+            "fDxfe1_5VyY".to_string(),
+            "E13mcj-2TLE".to_string(),
+            "sGPfjjAOX1o".to_string(),
+            "d0VxLuvjUJA".to_string(),
+            "lzwT4n05p20".to_string(),
+            "OXL47qN9brQ".to_string(),
+            "vhKZvNFmpPU".to_string(),
+            "2s1chnvuMQ4".to_string()
+        ]
     }
 }
 
