@@ -54,11 +54,33 @@ live_design! {
                     }
                 }
             }
+
+            fade_in = {
+                default: off
+                off = {
+                    from: {
+                        ease: OutExp,
+                        all: Forward {duration: 0.4}
+                    }
+                    apply: {
+                        image: {draw_bg: {opacity: 0.0}}
+                    }
+                }
+                on = {
+                    from: {
+                        ease: OutExp,
+                        all: Forward {duration: 0.8}
+                    }
+                    apply: {
+                        image: { draw_bg: {opacity: 1.0} }
+                    }
+                }
+            }
         }
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Live, Widget)]
 pub struct GalleryImage {
     #[live]
     #[redraw]
@@ -95,6 +117,20 @@ impl Widget for GalleryImage {
         }
 
         DrawStep::done()
+    }
+}
+
+impl LiveHook for GalleryImage {
+    fn after_new_from_doc(&mut self, cx: &mut Cx) {
+        let texture_format = TextureFormat::VecBGRAu8_32 {
+            width: 4,
+            height: 4,
+            data: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        };
+
+        let default_texture = Texture::new_with_format(cx, texture_format);
+
+        self.image.set_texture(Some(default_texture), 0);
     }
 }
 

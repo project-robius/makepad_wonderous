@@ -1,7 +1,10 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
-use super::gallery_image::{GalleryImage, GalleryImageId};
+use super::{
+    gallery_image::{GalleryImage, GalleryImageId},
+    GALLERY_IMAGE_URLS,
+};
 
 use std::collections::HashMap;
 
@@ -32,6 +35,7 @@ live_design! {
                     instance scale: 0.0
                     instance down: 0.0
                     instance size: vec2(270., 430.)
+                    instance opacity: 1.0
 
                     fn pixel(self) -> vec4 {
                         let sdf = Sdf2d::viewport(self.pos * self.rect_size);
@@ -47,8 +51,11 @@ live_design! {
                         let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.scale);
 
                         let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), 0);
-                        sdf.fill_keep(color);
-                        return sdf.result
+
+                        let final_color = Pal::premul(vec4(color.xyz, color.w * self.opacity))
+
+                        sdf.fill_keep(final_color);
+                        return sdf.result;
                     }
                 }
             }
@@ -108,8 +115,6 @@ pub struct Gallery {
     view: View,
 
     #[live]
-    image_urls: Vec<String>,
-    #[live]
     gallery_image_template: Option<LivePtr>,
 
     #[animator]
@@ -158,8 +163,6 @@ impl LiveHook for Gallery {
             cx.set_global(NetworkImageCache::new());
         }
 
-        self.setup_image_urls();
-
         for i in 0..self.grid_size.pow(2) {
             let image_id = LiveId(i as u64).into();
             let new_image = GalleryImage::new_from_ptr(cx, self.gallery_image_template);
@@ -179,8 +182,11 @@ impl Widget for Gallery {
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
         }
-        if !self.animator.is_track_animating(cx, id!(swipe)) && (self.animator.animator_in_state(cx, id!(swipe.vertical))
-                || self.animator.animator_in_state(cx, id!(swipe.horizontal)) || self.animator.animator_in_state(cx, id!(swipe.diagonal))) {
+        if !self.animator.is_track_animating(cx, id!(swipe))
+            && (self.animator.animator_in_state(cx, id!(swipe.vertical))
+                || self.animator.animator_in_state(cx, id!(swipe.horizontal))
+                || self.animator.animator_in_state(cx, id!(swipe.diagonal)))
+        {
             self.animator_play(cx, id!(swipe.idle));
         }
 
@@ -191,7 +197,6 @@ impl Widget for Gallery {
         if !self.requested_images {
             self.request_images(cx);
             self.requested_images = true;
-            return DrawStep::done();
         }
 
         cx.begin_turtle(walk, self.layout);
@@ -213,20 +218,29 @@ impl Widget for Gallery {
                     (row * (padded_image_height) + indexed_offset.y) - IMAGE_HEIGHT / 2.,
                 );
 
-
             if let Some(image_id) = match image_idu64 {
-                24 => Some(self.image_urls[0].as_str()),
-                _ => Some(self.image_urls[image_idu64 as usize].as_str()),
+                24 => Some(GALLERY_IMAGE_URLS[0]),
+                _ => Some(GALLERY_IMAGE_URLS[image_idu64 as usize]),
             } {
-                
-                let blob = { 
-                    cx.get_global::<NetworkImageCache>().map.get(&LiveId::from_str(&image_id))
+                let is_center_image = image_idu64 == (GALLERY_IMAGE_URLS.len() / 2) as u64;
+
+                let blob = {
+                    cx.get_global::<NetworkImageCache>()
+                        .map
+                        .get(&LiveId::from_str(&image_id))
                 };
-                
+
                 if let Some(blob) = blob {
                     let image_data = blob.clone();
                     if !gallery_image.is_image_ready() {
                         let _ = gallery_image.load_jpg_from_data(cx, &image_data);
+
+                        // Make the center image immediately visible
+                        if is_center_image {
+                            gallery_image.animator_cut(cx, id!(fade_in.on));
+                        } else {
+                            gallery_image.animator_play(cx, id!(fade_in.on));
+                        }
                     }
                 }
 
@@ -242,17 +256,15 @@ impl Widget for Gallery {
 }
 
 impl MatchEvent for Gallery {
-    fn handle_network_responses(
-        &mut self,
-        cx: &mut Cx,
-        responses: &NetworkResponsesEvent
-    ) {
+    fn handle_network_responses(&mut self, cx: &mut Cx, responses: &NetworkResponsesEvent) {
         for event in responses {
             match &event.response {
                 NetworkResponse::HttpResponse(response) => {
                     if response.status_code == 200 {
                         if let Some(body) = response.get_body() {
-                            cx.get_global::<NetworkImageCache>().map.insert(event.request_id, body.clone());
+                            cx.get_global::<NetworkImageCache>()
+                                .map
+                                .insert(event.request_id, body.clone());
                             self.redraw(cx);
                         }
                     }
@@ -260,7 +272,7 @@ impl MatchEvent for Gallery {
                 NetworkResponse::HttpRequestError(error) => {
                     println!("Error fetching gallery image: {:?}", error);
                 }
-                _ => ()
+                _ => (),
             }
         }
     }
@@ -284,14 +296,16 @@ impl Gallery {
         );
 
         // Check if the animation is complete
-        if !self.animator.is_track_animating(cx, id!(swipe)) && (self.animator.animator_in_state(cx, id!(swipe.vertical))
-                || self.animator.animator_in_state(cx, id!(swipe.horizontal)) || self.animator.animator_in_state(cx, id!(swipe.diagonal))) {
+        if !self.animator.is_track_animating(cx, id!(swipe))
+            && (self.animator.animator_in_state(cx, id!(swipe.vertical))
+                || self.animator.animator_in_state(cx, id!(swipe.horizontal))
+                || self.animator.animator_in_state(cx, id!(swipe.diagonal)))
+        {
             self.previous_index = self.current_index;
             return current_offset;
         }
 
         // Interpolate between the previous and current offsets
-        
 
         dvec2(
             previous_offset.x + (current_offset.x - previous_offset.x) * self.swipe_progress.x,
@@ -421,43 +435,34 @@ impl Gallery {
         self.redraw(cx);
     }
 
-    fn setup_image_urls(&mut self) {
-        self.image_urls = vec![
-            "eq4OpDuGN7w".to_string(),
-            "cSKa2PDcU-Q".to_string(),
-            "MLfwSItwSpg".to_string(),
-            "1xnuIi-zcTQ".to_string(),
-            "20Nfb3kTnsY".to_string(),
-            "Wbu_scb-9HQ".to_string(),
-            "0FMRVVrMCyc".to_string(),
-            "Q36BvLGdOAg".to_string(),
-            "RyGG5z6SUZ8".to_string(),
-            "ZQxxar2ovS0".to_string(),
-            "siy5LCp84AY".to_string(),
-            "chc2vP_7_kY".to_string(),
-            "6aZBfbzx5Ms".to_string(),
-            "i56swU7BDbQ".to_string(),
-            "VW8YW3Xlc0k".to_string(),
-            "MZayf0ZVY-A".to_string(),
-            "fDxfe1_5VyY".to_string(),
-            "E13mcj-2TLE".to_string(),
-            "sGPfjjAOX1o".to_string(),
-            "d0VxLuvjUJA".to_string(),
-            "lzwT4n05p20".to_string(),
-            "OXL47qN9brQ".to_string(),
-            "vhKZvNFmpPU".to_string(),
-            "2s1chnvuMQ4".to_string()
-        ]
-    }
-
     fn request_images(&self, cx: &mut Cx) {
-        // TODO: request images in order (start from the middle and go outwards)
-        // add a spinner or fade in animation for the images
-        for url in self.image_urls.iter() {
-            let full_url = format!("https://www.wonderous.info/unsplash/{}-{}.jpg", url, 800);
-            let request_id = LiveId::from_str(&url);
-            let request = HttpRequest::new(full_url, HttpMethod::GET);
-            cx.http_request(request_id, request);
+        let middle = GALLERY_IMAGE_URLS.len() / 2;
+
+        // Iterate outwards from the middle
+        for offset in 0..=middle {
+            // Check and request the image on the right side of the middle
+            if let Some(right_url) = GALLERY_IMAGE_URLS.get(middle + offset) {
+                let full_url = format!(
+                    "https://www.wonderous.info/unsplash/{}-{}.jpg",
+                    right_url, 800
+                );
+                let request_id = LiveId::from_str(right_url);
+                let request = HttpRequest::new(full_url, HttpMethod::GET);
+                cx.http_request(request_id, request);
+            }
+
+            // Check and request the image on the left side of the middle
+            if offset != 0 {
+                if let Some(left_url) = GALLERY_IMAGE_URLS.get(middle - offset) {
+                    let full_url = format!(
+                        "https://www.wonderous.info/unsplash/{}-{}.jpg",
+                        left_url, 800
+                    );
+                    let request_id = LiveId::from_str(left_url);
+                    let request = HttpRequest::new(full_url, HttpMethod::GET);
+                    cx.http_request(request_id, request);
+                }
+            }
         }
     }
 }

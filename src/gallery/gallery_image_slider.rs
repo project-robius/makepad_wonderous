@@ -1,7 +1,11 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
-use super::{gallery_image::{GalleryImage, GalleryImageId}, gallery_screen::NetworkImageCache};
+use super::{
+    gallery_image::{GalleryImage, GalleryImageId},
+    gallery_screen::NetworkImageCache,
+    GALLERY_IMAGE_URLS,
+};
 
 live_design! {
     import makepad_widgets::base::*;
@@ -55,8 +59,7 @@ pub struct GalleryImageSlider {
     view: View,
     #[animator]
     animator: Animator,
-    #[live]
-    image_urls: Vec<String>,
+
     #[live]
     gallery_image_template: Option<LivePtr>,
     #[live]
@@ -93,8 +96,7 @@ impl LiveHook for GalleryImageSlider {
     }
 
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        self.setup_image_urls();
-        self.image_count = self.image_urls.len() as i64;
+        self.image_count = GALLERY_IMAGE_URLS.len() as i64;
         self.ready_to_swipe = true;
         self.is_dragging = true;
         self.swipe_vector_x = 0.;
@@ -113,7 +115,9 @@ impl Widget for GalleryImageSlider {
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
         }
-        if !self.animator.is_track_animating(cx, id!(swipe)) && self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+        if !self.animator.is_track_animating(cx, id!(swipe))
+            && self.animator.animator_in_state(cx, id!(swipe.horizontal))
+        {
             self.animator_play(cx, id!(swipe.reset));
         }
         self.handle_swipe(cx, event);
@@ -149,13 +153,16 @@ impl Widget for GalleryImageSlider {
                 );
 
             if let Some(image_id) = match image_idu64 {
-                24 => Some(self.image_urls[0].as_str()),
-                _ => Some(self.image_urls[image_idu64 as usize].as_str()),
+                24 => Some(GALLERY_IMAGE_URLS[0]),
+                _ => Some(GALLERY_IMAGE_URLS[image_idu64 as usize]),
             } {
-                let blob = { 
-                    cx.cx.get_global::<NetworkImageCache>().map.get(&LiveId::from_str(&image_id))
+                let blob = {
+                    cx.cx
+                        .get_global::<NetworkImageCache>()
+                        .map
+                        .get(&LiveId::from_str(&image_id))
                 };
-                
+
                 if let Some(blob) = blob {
                     let image_data = blob.clone();
                     if !gallery_image.is_image_ready() {
@@ -183,7 +190,9 @@ impl GalleryImageSlider {
             return dvec2(current_offset, 0.);
         }
         // Stays in same index
-        if !self.animator.is_track_animating(cx, id!(swipe)) && self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+        if !self.animator.is_track_animating(cx, id!(swipe))
+            && self.animator.animator_in_state(cx, id!(swipe.horizontal))
+        {
             self.last_swipe_vector_x = 0.;
             self.previous_index = self.current_index;
             self.redraw(cx);
@@ -194,7 +203,6 @@ impl GalleryImageSlider {
 
             let current_offset = (-padded_image_width) * self.current_index as f64;
 
-            
             dvec2(
                 last_offset
                     + (current_offset - last_offset)
@@ -206,8 +214,6 @@ impl GalleryImageSlider {
                 (-padded_image_width) * self.previous_index as f64 + self.last_swipe_vector_x;
 
             let current_offset = (-padded_image_width) * self.current_index as f64;
-
-            
 
             dvec2(
                 last_offset + (current_offset - last_offset) * self.offset,
@@ -271,35 +277,6 @@ impl GalleryImageSlider {
         }
         self.current_index = value;
         self.redraw(cx);
-    }
-
-    fn setup_image_urls(&mut self) {
-        self.image_urls = vec![
-            "eq4OpDuGN7w".to_string(),
-            "cSKa2PDcU-Q".to_string(),
-            "MLfwSItwSpg".to_string(),
-            "1xnuIi-zcTQ".to_string(),
-            "20Nfb3kTnsY".to_string(),
-            "Wbu_scb-9HQ".to_string(),
-            "0FMRVVrMCyc".to_string(),
-            "Q36BvLGdOAg".to_string(),
-            "RyGG5z6SUZ8".to_string(),
-            "ZQxxar2ovS0".to_string(),
-            "siy5LCp84AY".to_string(),
-            "chc2vP_7_kY".to_string(),
-            "6aZBfbzx5Ms".to_string(),
-            "i56swU7BDbQ".to_string(),
-            "VW8YW3Xlc0k".to_string(),
-            "MZayf0ZVY-A".to_string(),
-            "fDxfe1_5VyY".to_string(),
-            "E13mcj-2TLE".to_string(),
-            "sGPfjjAOX1o".to_string(),
-            "d0VxLuvjUJA".to_string(),
-            "lzwT4n05p20".to_string(),
-            "OXL47qN9brQ".to_string(),
-            "vhKZvNFmpPU".to_string(),
-            "2s1chnvuMQ4".to_string()
-        ]
     }
 }
 
