@@ -1,7 +1,11 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
-use super::gallery_image::{GalleryImage, GalleryImageId};
+use super::{
+    gallery_image::{GalleryImage, GalleryImageId},
+    gallery_screen::NetworkImageCache,
+    GALLERY_IMAGE_URLS,
+};
 
 live_design! {
     import makepad_widgets::base::*;
@@ -15,32 +19,6 @@ live_design! {
     GalleryImageSlider = {{GalleryImageSlider}} {
         width: Fill, height: Fill
         align: {y: 0.5}
-        images_deps: [
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-0.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-1.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-2.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-3.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-4.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-5.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-6.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-7.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-8.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-9.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-10.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-11.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-12.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-13.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-14.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-15.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-16.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-17.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-18.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-19.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-20.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-21.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-22.jpg"),
-            dep("crate://self/resources/images/gallery/great-wall/gallery-great-wall-23.jpg"),
-        ]
 
         offset: 0.
 
@@ -81,8 +59,7 @@ pub struct GalleryImageSlider {
     view: View,
     #[animator]
     animator: Animator,
-    #[live]
-    images_deps: Vec<LiveDependency>,
+
     #[live]
     gallery_image_template: Option<LivePtr>,
     #[live]
@@ -119,7 +96,7 @@ impl LiveHook for GalleryImageSlider {
     }
 
     fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        self.image_count = self.images_deps.len() as i64;
+        self.image_count = GALLERY_IMAGE_URLS.len() as i64;
         self.ready_to_swipe = true;
         self.is_dragging = true;
         self.swipe_vector_x = 0.;
@@ -138,7 +115,9 @@ impl Widget for GalleryImageSlider {
         if self.animator_handle_event(cx, event).is_animating() {
             self.redraw(cx);
         }
-        if !self.animator.is_track_animating(cx, id!(swipe)) && self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+        if !self.animator.is_track_animating(cx, id!(swipe))
+            && self.animator.animator_in_state(cx, id!(swipe.horizontal))
+        {
             self.animator_play(cx, id!(swipe.reset));
         }
         self.handle_swipe(cx, event);
@@ -173,11 +152,23 @@ impl Widget for GalleryImageSlider {
                     -(image_height / 2.) - 80.,
                 );
 
-            if let Some(image_path) = match image_idu64 {
-                24 => Some(self.images_deps[0].as_str()),
-                _ => Some(self.images_deps[image_idu64 as usize].as_str()),
+            if let Some(image_id) = match image_idu64 {
+                24 => Some(GALLERY_IMAGE_URLS[0]),
+                _ => Some(GALLERY_IMAGE_URLS[image_idu64 as usize]),
             } {
-                gallery_image.set_path(image_path.to_owned());
+                let blob = {
+                    cx.cx
+                        .get_global::<NetworkImageCache>()
+                        .map
+                        .get(&LiveId::from_str(&image_id))
+                };
+
+                if let Some(blob) = blob {
+                    let image_data = blob.clone();
+                    if !gallery_image.is_image_ready() {
+                        let _ = gallery_image.load_jpg_from_data(cx, &image_data);
+                    }
+                }
                 gallery_image.set_size(cx, dvec2(image_width, image_height));
             }
 
@@ -199,7 +190,9 @@ impl GalleryImageSlider {
             return dvec2(current_offset, 0.);
         }
         // Stays in same index
-        if !self.animator.is_track_animating(cx, id!(swipe)) && self.animator.animator_in_state(cx, id!(swipe.horizontal)) {
+        if !self.animator.is_track_animating(cx, id!(swipe))
+            && self.animator.animator_in_state(cx, id!(swipe.horizontal))
+        {
             self.last_swipe_vector_x = 0.;
             self.previous_index = self.current_index;
             self.redraw(cx);
@@ -210,7 +203,6 @@ impl GalleryImageSlider {
 
             let current_offset = (-padded_image_width) * self.current_index as f64;
 
-            
             dvec2(
                 last_offset
                     + (current_offset - last_offset)
@@ -222,8 +214,6 @@ impl GalleryImageSlider {
                 (-padded_image_width) * self.previous_index as f64 + self.last_swipe_vector_x;
 
             let current_offset = (-padded_image_width) * self.current_index as f64;
-
-            
 
             dvec2(
                 last_offset + (current_offset - last_offset) * self.offset,
