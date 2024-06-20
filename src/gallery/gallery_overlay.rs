@@ -19,8 +19,11 @@ live_design! {
             instance radius: 3.;
             instance crop_width: 270.;
             instance crop_height: 430.;
+
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                
+                // Create the outer box
                 sdf.box(
                     -2.0,
                     -2.0,
@@ -28,18 +31,37 @@ live_design! {
                     self.rect_size.y + 2,
                     1.0
                 );
-
+                
+                // Create the cropped-out area
+                let crop_x = (self.rect_size.x - self.crop_width) / 2.0;
+                let crop_y = (self.rect_size.y - self.crop_height) / 2.0;
                 sdf.box(
-                    (self.rect_size.x - self.crop_width) / 2.0 + 2,
-                    (self.rect_size.y - self.crop_height) / 2.0 + 2,
-                    self.crop_width - 4,
-                    self.crop_height - 4,
+                    crop_x,
+                    crop_y,
+                    self.crop_width,
+                    self.crop_height,
                     max(1.0, self.radius)
                 );
-
+                
+                // Subtract the cropped-out area from the outer box
                 sdf.subtract();
+                
+                // Fill the outer box with a semi-transparent black color
                 sdf.fill_keep(vec4(0.0, 0.0, 0.0, 0.6));
-
+                
+                // Draw the orange border around the cropped-out area
+                let border_width = 2.5;
+                let border_color = vec4(1.0, 0.5, 0.0, 1.0); // Orange
+                sdf.box(
+                    crop_x - border_width,
+                    crop_y - border_width,
+                    self.crop_width + 2.0 * border_width,
+                    self.crop_height + 2.0 * border_width,
+                    max(1.0, self.radius)
+                );
+                sdf.intersect();
+                sdf.fill(border_color);
+                
                 return sdf.result;
             }
         }
