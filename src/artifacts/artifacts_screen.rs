@@ -30,7 +30,6 @@ live_design! {
             }
         }
 
-        // Disabled until we integrate the artifacts grid
         <View> {
             height: Fill,
             margin: 20,
@@ -38,7 +37,7 @@ live_design! {
             
             <View> { height: Fill, width: 1 }
 
-            <Button> {
+            browse_artifacts_button = <Button> {
                 width: Fill,
                 height: 50,
                 text: "BROWSE ALL ARTIFACTS",

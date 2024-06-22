@@ -344,6 +344,21 @@ impl MatchEvent for App {
             self.ui.redraw(cx);
         }
 
+        // FIXME: Ideally this would be within the ArtifactsScreen,
+        // however making ArtifactsScreen into a Widget instead of a simple View,
+        // breaks the stack navigation layout for some reason
+        if self
+            .ui.button(id!(browse_artifacts_button))
+            .clicked(actions)
+        {
+            let widget_uid = self.ui.widget_uid();
+            cx.widget_action(
+                widget_uid,
+                &Scope::empty().path,
+                StackNavigationAction::NavigateTo(live_id!(artifact_gallery_view)),
+            );
+        }
+
         let mut navigation = self.ui.stack_navigation(id!(navigation));
         navigation.handle_stack_view_actions(cx, &actions);
 
