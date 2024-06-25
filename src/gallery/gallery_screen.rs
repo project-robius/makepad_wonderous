@@ -11,6 +11,7 @@ use std::collections::HashMap;
 pub const IMAGE_WIDTH: f64 = 270.;
 pub const IMAGE_HEIGHT: f64 = 430.;
 pub const IMAGE_PADDING: f64 = 20.;
+pub const ASSETS_BASE_URL: &str = "https://project-robius.github.io/makepad_wonderous_assets/images";
 
 live_design! {
     import makepad_widgets::base::*;
@@ -437,30 +438,27 @@ impl Gallery {
 
     fn request_images(&self, cx: &mut Cx) {
         let middle = GALLERY_IMAGE_URLS.len() / 2;
-
+    
+        // Helper function to create and send an HTTP request
+        let mut fetch_image = |url: &str| {
+            let full_url = format!(
+                "{}/{}-{}.jpg",
+                ASSETS_BASE_URL, url, 800
+            );
+            let request_id = LiveId::from_str(url);
+            let request = HttpRequest::new(full_url, HttpMethod::GET);
+            cx.http_request(request_id, request);
+        };
+    
         // Iterate outwards from the middle
         for offset in 0..=middle {
-            // Check and request the image on the right side of the middle
             if let Some(right_url) = GALLERY_IMAGE_URLS.get(middle + offset) {
-                let full_url = format!(
-                    "https://www.wonderous.info/unsplash/{}-{}.jpg",
-                    right_url, 800
-                );
-                let request_id = LiveId::from_str(right_url);
-                let request = HttpRequest::new(full_url, HttpMethod::GET);
-                cx.http_request(request_id, request);
+                fetch_image(right_url);
             }
-
-            // Check and request the image on the left side of the middle
+    
             if offset != 0 {
                 if let Some(left_url) = GALLERY_IMAGE_URLS.get(middle - offset) {
-                    let full_url = format!(
-                        "https://www.wonderous.info/unsplash/{}-{}.jpg",
-                        left_url, 800
-                    );
-                    let request_id = LiveId::from_str(left_url);
-                    let request = HttpRequest::new(full_url, HttpMethod::GET);
-                    cx.http_request(request_id, request);
+                    fetch_image(left_url);
                 }
             }
         }
