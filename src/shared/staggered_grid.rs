@@ -1,13 +1,6 @@
 use makepad_widgets::{scroll_bar::ScrollBarAction, *};
 use std::collections::HashMap;
 
-// TODO:
-// - fix all items being called on next_visible_item - fix first_visible_item
-// - fix snapping at end
-// - fix scroll_bar not moving correctly on mouse wheel
-
-// - 1/2 DONE - fix range not setting the right limits
-
 live_design!{
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
@@ -21,41 +14,26 @@ live_design!{
     }
 }
 
-#[derive(Clone,Copy)]
-struct ScrollSample{
-    abs: f64,
-    time: f64,
-}
-
-enum ScrollState {
-    Stopped,
-    Drag{samples:Vec<ScrollSample>},
-    Flick {delta: f64, next_frame: NextFrame},
-    Pulldown {next_frame: NextFrame},
-}
-
-#[derive(Clone)]
-enum ListDrawState {
-    Begin,
-    Down {index: usize, pos: f64, viewport: Rect},
-    Up {index: usize, pos: f64, hit_bottom: bool, viewport: Rect},
-    DownAgain {index: usize, pos: f64, viewport: Rect},
-    End {viewport: Rect}
-}
-
-#[derive(Clone, Debug, DefaultNone)]
-pub enum StaggeredGridAction {
-    Scroll,
-    None
-}
-impl ListDrawState {
-    fn is_down_again(&self) -> bool {
-        match self {
-            Self::DownAgain {..} => true,
-            _ => false
-        }
-    }
-}
+/// A StaggeredGrid widget that displays items in a multi-column layout with variable item heights.
+/// 
+/// This widget efficiently handles large datasets by only rendering visible items, and supports
+/// smooth scrolling with proper handling of item visibility across columns.
+/// 
+/// Current features:
+/// - Supports N columns (configurable)
+/// - Efficiently renders only visible items
+/// - Handles variable item heights
+/// - Supports smooth scrolling and item reordering based on visibility
+/// 
+/// Note: This widget is still under development. Current limitations and planned improvements:
+/// - Currently only supports top-to-bottom drawing. Future versions will support both vertical
+///   and horizontal layouts using the `vec_index` property.
+/// - The ScrollBar is not currently showign up in the UI and has some positioning limitations.
+/// - Hot-reloading of column numbers is not yet supported. A restart is required to change
+///   the number of columns without breaking layout.
+/// - The `draw_align_list` is still in use for the ListDrawState::Up arm in next_visible_item and will be refactored in future versions.
+/// 
+/// Future development will focus on removing these limitations and expanding the widget's capabilities.
 #[derive(Live, Widget)]
 pub struct StaggeredGrid {
     #[redraw] #[rust] area: Area,
@@ -65,7 +43,7 @@ pub struct StaggeredGrid {
     #[rust] range_start: usize,
     #[rust(usize::MAX)] range_end: usize,
 
-    #[rust(0usize)] view_window: usize,
+    // #[rust(0usize)] view_window: usize,
     
     #[live(0.2)] flick_scroll_minimum: f64,
     #[live(80.0)] flick_scroll_maximum: f64,
@@ -88,7 +66,8 @@ pub struct StaggeredGrid {
 
     /// First viisble item in the Grid, from top to bottom, left to right.
     #[rust] first_visible_item: usize,
-    #[rust] first_item_offset: f64,    
+    /// How far the first visible item is from the top of the viewport.
+    #[rust] scrolled_offset: f64, 
     
     #[rust] draw_state: DrawStateWrap<ListDrawState>,
     #[rust] draw_align_list: Vec<AlignItem>,
@@ -96,7 +75,6 @@ pub struct StaggeredGrid {
 
     #[rust] templates: ComponentMap<LiveId, LivePtr>,
     #[rust] items: ComponentMap<(usize, LiveId), WidgetRef>,
-    //#[rust(DragState::None)] drag_state: DragState,
     #[rust(ScrollState::Stopped)] scroll_state: ScrollState,
     #[live] columns_number: usize,
     #[live] column_spacing: f64,
@@ -106,11 +84,12 @@ pub struct StaggeredGrid {
     #[rust] columns: Vec<Column>,
 
     #[rust] last_drawn_item_index: usize,
-    /// Maps item indices to their assigned columns, 
-    /// anchoring items to fixed positions within the grid when first drawn. 
-    /// 
+    /// Maps item indices to their designated columns when first drawn. 
     /// Anchoring items to columns prevents reordering when scrolling or resizing the viewport.
-    #[rust] item_columns: HashMap<usize, usize>
+    #[rust] item_columns: HashMap<usize, usize>,
+
+    /// The most recent viewport dimensions, changes on resize.
+    #[rust] most_recent_viewport: Rect,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -118,7 +97,11 @@ struct Column {
     pub last_item_index: usize,
     pub height: f64,
     pub exceeds_viewport: bool,
-    pub items: Vec<ColumnItem>
+    pub items: Vec<ColumnItem>,
+    pub is_dirty: bool,
+    pub first_visible_item: usize,
+    pub first_item_offset: f64,
+    pub has_drawn_first_item: bool
 }
 
 #[derive(Default, Clone, Debug)]
@@ -128,10 +111,44 @@ struct ColumnItem {
 }
 
 struct AlignItem {
-    align_range: TurtleAlignRange,
     size: DVec2,
-    shift: f64,
     index: usize
+}
+
+#[derive(Clone,Copy)]
+struct ScrollSample{
+    abs: f64,
+    time: f64,
+}
+
+enum ScrollState {
+    Stopped,
+    Drag{samples:Vec<ScrollSample>},
+    Flick {delta: f64, next_frame: NextFrame},
+    Pulldown {next_frame: NextFrame},
+}
+
+#[derive(Clone)]
+enum ListDrawState {
+    Begin,
+    Down {index: usize, pos: f64, viewport: Rect},
+    Up {index: usize, pos: f64, hit_bottom: bool, viewport: Rect},
+    DownAgain {index: usize, pos: f64, viewport: Rect},
+    End,
+}
+
+#[derive(Clone, Debug, DefaultNone)]
+pub enum StaggeredGridAction {
+    Scroll,
+    None
+}
+impl ListDrawState {
+    fn is_down_again(&self) -> bool {
+        match self {
+            Self::DownAgain {..} => true,
+            _ => false
+        }
+    }
 }
 
 impl LiveHook for StaggeredGrid {
@@ -181,86 +198,37 @@ impl LiveHook for StaggeredGrid {
 impl StaggeredGrid {
     fn begin(&mut self, cx: &mut Cx2d, walk: Walk) {
         cx.begin_turtle(walk, self.layout);
-        log!("▶️▶️▶️▶️▶️▶️ BEGIN");
-        
-        // The columns number in the DSL has changed so we need to recompute item ordering
+    
+        // The columns number in the DSL has changed, recompute item ordering
         if self.columns.len() != self.columns_number {
             self.item_columns.clear();
+            self.columns = vec![Column::default(); self.columns_number];
+        } else {
+            // Reset calculated values, keep the items
+            for column in &mut self.columns {
+                column.last_item_index = 0;
+                column.exceeds_viewport = false;
+                column.has_drawn_first_item = false;
+                column.is_dirty = true;
+            }
         }
 
-        self.columns = vec![Column::default(); self.columns_number];
-
-
+        self.clean_up_old_items();
         self.draw_align_list.clear();
     }
 
-    // Positions all the drawn items 
+    fn clean_up_old_items(&mut self) {
+        let range_end = self.range_end;
+        for column in &mut self.columns {
+            column.items.retain(|item| item.index < range_end);
+        }
+    }
+
     fn end(&mut self, cx: &mut Cx2d) {
-        let vi = self.vec_index;
-    
-        if let Some(ListDrawState::End {viewport}) = self.draw_state.get() {
-            let list = &mut self.draw_align_list;
-            if list.len()>0 {
-                list.sort_by( | a, b | a.index.cmp(&b.index));
-                let first_index = list.iter().position( | v | v.index == self.first_visible_item).unwrap();
-    
-                // Find the position of the first item in our set
-                let mut first_pos = self.first_item_offset;
-                for i in (0..first_index).rev() {
-                    let item = &list[i];
-                    first_pos -= item.size.index(vi);
-                }
-
-                log!("🚧 🚧 🚧 🚧 🚧 🚧");
-
-                let mut pos = first_pos;
-                let mut first_visible_item = None;
-                // check for first visible item in left-most column
-
-                // TODO: currently drawing might start from the second most visible item, ignoring an earlier item 
-                // on another column.
-                // First visible item must be the first visible item (and the smallest number) in whichever column it is in.
-
-                let first_visible_index = -1;
-                for column in self.columns.iter_mut() {
-                    let mut column_pos = pos;
-                    // TODO: Here keep track of the first visible item on each column, then compare them across columns to find the first visible item
-                    // might want to store the first visible item in the column struct
-                    for item in column.items.iter() {
-                        column_pos += item.size.index(vi);
-                        let visible = pos >= 0.0;
-                        if visible {
-                            first_visible_item = Some(item);
-                            break;
-                        }
-                    }
-                }
-
-
-                // log!("items: {:?}", self.columns[0].items);
-                // for item in self.columns[0].items.iter() {
-                //     pos += item.size.index(vi);
-                //     let visible = pos >= 0.0;
-                //     if visible {
-                //         first_visible_item = Some(item);
-                //         break;
-                //     }
-                // }
-
-                if let Some(item) = first_visible_item {
-                    log!("👀 👀 FIRST VISIBLE ITEM: {}", item.index);
-                    self.first_visible_item = item.index;
-                    self.first_item_offset = pos - item.size.index(vi);
-                    log!("🏍️ 🏍️ 🏍️ UPDATE FIRST ITEM OFFSET TO: {}", self.first_item_offset);
-                    // log!("UPDATED FIRST ID TO: {}", self.first_visible_item);
-                }
-            }
+        if !matches!(self.draw_state.get(), Some(ListDrawState::End)) {
+            error!("Draw state not at end in StaggeredGrid, please review your next_visible_item loop");
         }
-        else {
-            log!("Draw state not at end in StaggeredGrid, please review your next_visible_item loop")
-        }
-
-        // log!("ALIGN ITEM: {:?}", self.draw_align_list[5].index);
+    
         cx.end_turtle_with_area(&mut self.area);
     }
     
@@ -270,24 +238,44 @@ impl StaggeredGrid {
             match draw_state {
                 ListDrawState::Begin => {
                     let viewport = cx.turtle().padded_rect();
+                    self.most_recent_viewport = viewport;
+
+                    let mut first_visible_column = 0;
+                    // FIXME: for some reason the grid starts with 0 in the right-most column,
+                    // instead of the left-most one.
+                    for (i, column) in self.columns.iter_mut().enumerate() {
+                        // Cleanup: maybe we can repalce this with a first_visible_item_column
+                        // and update it in delta_top_scroll
+                        column.height = viewport.pos.y + column.first_item_offset;
+                       
+                        if column.first_visible_item == self.first_visible_item {
+                            first_visible_column = i;
+                        }
+                    }
+
+                    // for column in self.columns.iter_mut() {
+                    //     column.height = viewport.pos.y + column.first_item_offset;
+                    // }                
+                    // // Find the column with the global first visible item
+                    // let first_visible_column = self.columns.iter() 
+                    //     .position(|col| col.first_visible_item == self.first_visible_item)
+                    //     .unwrap_or(0);
+                
                     self.draw_state.set(ListDrawState::Down {
                         index: self.first_visible_item,
-                        pos: self.first_item_offset,
+                        pos: self.columns[first_visible_column].first_item_offset,
                         viewport,
                     });
-
-                    log!("ListDrawState::Begin - first_visible_item {} - first_item_offset {}", self.first_visible_item, self.first_item_offset);
-
-                    let abs_pos = dvec2(viewport.pos.x, viewport.pos.y + self.first_item_offset);
-                    log!("FIRST ITEM {:?}", abs_pos);
+                
+                    let column_width = viewport.size.x / self.columns.len() as f64;
+                    let abs_pos = dvec2(
+                        viewport.pos.x + (first_visible_column as f64 * column_width),
+                        viewport.pos.y + self.columns[first_visible_column].first_item_offset,
+                    );
                     
-                    self.last_drawn_item_index = 0;
-                    self.last_drawn_column = 0;
-                    // When beginning draw state, set the column heights to the first item's position
-                    // in relationship to the viewport.
-                    for column in self.columns.iter_mut() {
-                        column.height = viewport.pos.y + self.first_item_offset;
-                    }
+                    self.last_drawn_item_index = self.first_visible_item;
+                    self.last_drawn_column = first_visible_column;
+                    self.columns[first_visible_column].has_drawn_first_item = true;
 
                     cx.begin_turtle(Walk {
                         abs_pos: Some(abs_pos),
@@ -298,37 +286,59 @@ impl StaggeredGrid {
                     return Some(self.first_visible_item)
                 }
                 ListDrawState::Down {index, pos, viewport} | ListDrawState::DownAgain {index, pos, viewport} => {
-                    // log!("POS: {}", pos);
                     let is_down_again = draw_state.is_down_again();
                     let did_draw = cx.turtle_has_align_items();
-                    let align_range = cx.get_turtle_align_range();
                     // Computed width and height of the last item drawn
                     let prev_item_rect = cx.end_turtle();
                     self.draw_align_list.push(AlignItem {
-                        align_range,
-                        shift: pos,
                         size: prev_item_rect.size,
                         index
                     });
 
-                    self.columns[self.last_drawn_column].items.push(ColumnItem {
-                        index,
-                        size: prev_item_rect.size
-                    });
-
-                    let current_column = self.find_column_for_item(index);
-
                     self.record_previous_column(index, prev_item_rect, viewport, vi);
+                    let next_index = index + 1;
+                    let mut valid_next_index = next_index;
+                    
+                    let mut current_column = self.find_column_for_item(next_index);
 
-                    // if !did_draw || self.columns[current_column].exceeds_viewport || index >= self.range_end {
+                    // Check if the next item is actually visible, as it might have been scrolled out of the viewport.
+                    // We need to maintain the order of items while ensuring we only draw visible ones.
+                    //
+                    // Example scenario:
+                    // Initial grid:          After scrolling:
+                    // | col 0  | col 1 |     | col 0  | col 1 |
+                    // | ------ | ----- |     | ------ | ----- |
+                    // | 4      | 3     |     | 6      | 3     |
+                    // | 6      | 5     |     | 8      | 5     |
+                    // | 8      | 7     |     | 9      | 7     |
+                    //
+                    // If item 4 scrolls out of view but 3 is still visible, we should draw: 3 -> 5 -> 6 -> 7
+                    // This maintains item order while skipping invisible items.
+                    //
+                    // To achieve this we check if next_index corresponds to an item that's actually the first visible one for its column.
+                    if !self.columns[current_column].has_drawn_first_item {
+                        let current_col_already_has_this_item = self.columns[current_column].items.iter().any(|item| item.index == next_index);
+                        let current_col_first_visible_is_this_item = self.columns[current_column].first_visible_item == next_index;
+                        let current_col_fist_visible_zero = self.columns[current_column].first_visible_item == 0;
+
+                        // If the item is already in the column (is not the first time we draw it) but shouldn't be the first visible item,
+                        // we need to skip it and find the next valid item, regardless of column.
+                        if current_col_already_has_this_item && !current_col_first_visible_is_this_item && !current_col_fist_visible_zero {
+                            valid_next_index += 1;
+                            current_column = self.find_column_for_item(valid_next_index);
+                        }
+                    }
+
                     let index_is_older = index < self.last_drawn_item_index;
-                    log!("Index {} - Last Drawn Item Index {} - Index is older: {}", index, self.last_drawn_item_index, index_is_older);
-                    if !did_draw || self.columns[current_column].exceeds_viewport || index >= self.range_end || index_is_older  {
+                    let exceeds_viewport = self.columns[current_column].exceeds_viewport;
+                    let index_exceeds_range = index >= self.range_end;
+                    // If we have drawn all items in the range, or if the item is older than the last drawn item
+                    if !did_draw || exceeds_viewport || index_exceeds_range || index_is_older  {
                         // lets scan upwards
                         if self.first_visible_item > 0 && !is_down_again {
                             self.draw_state.set(ListDrawState::Up {
                                 index: self.first_visible_item - 1,
-                                pos: self.first_item_offset,
+                                pos: self.scrolled_offset,
                                 hit_bottom: index >= self.range_end,
                                 viewport
                             });
@@ -338,48 +348,41 @@ impl StaggeredGrid {
                                 width: Size::Fixed(self.column_width(viewport)),
                                 height: Size::Fit
                             }, Layout::flow_down());
-                            log!("🪲🪲 ABOUTTA DO SOMETHING WHACKY");
-                            // return Some(self.first_visible_item - 1);
-                            // return Some(index + 1);
-                            // return None
 
-                            // return index of the first visible item of the left-most column
-                            return Some(self.columns[0].items[0].index)
+                            return Some(self.first_visible_item);
                         }
                         else {
-                            self.draw_state.set(ListDrawState::End {viewport});
-                            log!("Set draw state to end");
+                            self.draw_state.set(ListDrawState::End);
                             return None
                         }
                     }
                     if is_down_again {
                         self.draw_state.set(ListDrawState::DownAgain {
-                            index: index + 1,
+                            index: valid_next_index,
                             pos: pos + prev_item_rect.size.index(vi),
                             viewport
                         });
                     }
                     else {
                         self.draw_state.set(ListDrawState::Down {
-                            index: index + 1,
+                            index: valid_next_index,
                             pos: pos + prev_item_rect.size.index(vi),
                             viewport
                         });
                     }
 
-                    // Currently all columns are the same width
+                    // All columns are the same width
                     let column_width = viewport.size.x / self.columns.len() as f64;
                     let new_item_abs_pos = dvec2(
                         viewport.pos.x + (current_column as f64 * column_width), // x position based on current column
                         self.columns[current_column].height,    // y position based on accumulated height
                     );
 
-                    log!("ABS POS -> X: {:.0}, Y: {:.0}", new_item_abs_pos.x, new_item_abs_pos.y);
-
                     self.last_drawn_column = current_column;
-                    self.item_columns.insert(index, current_column);
+                    self.item_columns.insert(valid_next_index, current_column);
 
                     self.last_drawn_item_index = index;
+                    self.columns[current_column].has_drawn_first_item = true;
 
                     cx.begin_turtle(Walk {
                         abs_pos: Some(new_item_abs_pos),
@@ -387,23 +390,16 @@ impl StaggeredGrid {
                         width: Size::Fixed(self.column_width(viewport)),
                         height: Size::Fit
                     }, self.layout_with_spacing());
-                    return Some(index + 1)
+                    return Some(valid_next_index)
                 }
                 ListDrawState::Up {index, pos, hit_bottom, viewport} => {
                     let did_draw = cx.turtle_has_align_items();
-                    let align_range = cx.get_turtle_align_range();
                     let rect = cx.end_turtle();
                     self.draw_align_list.push(AlignItem {
-                        align_range,
                         size: rect.size,
-                        shift: 0.0,
                         index
                     });
 
-                    self.columns[self.last_drawn_column].items.push(ColumnItem {
-                        index,
-                        size: rect.size
-                    });
                     if index == self.range_start {
                         // we are at range start, but if we snap to top, we might need to walk further down as well
                         // therefore we now go 'down again' to make sure we have enough visible items
@@ -418,7 +414,6 @@ impl StaggeredGrid {
                                     pos: total_height,
                                     viewport
                                 });
-                                log!("UP 1");
                                 cx.begin_turtle(Walk {
                                     abs_pos: Some(dvec2(viewport.pos.x, viewport.pos.y + total_height)),
                                     margin: Default::default(),
@@ -428,12 +423,12 @@ impl StaggeredGrid {
                                 return Some(last_index + 1);
                             }
                         }
-                        self.draw_state.set(ListDrawState::End {viewport});
+                        self.draw_state.set(ListDrawState::End);
                         return None
                     }
                     
                     if !did_draw || pos < if hit_bottom {-viewport.size.index(vi)} else {0.0} {
-                        self.draw_state.set(ListDrawState::End {viewport});
+                        self.draw_state.set(ListDrawState::End);
                         return None
                     }
                     
@@ -443,7 +438,6 @@ impl StaggeredGrid {
                         pos: pos - rect.size.index(vi),
                         viewport
                     });
-                    log!("UP 2");                   
                     cx.begin_turtle(Walk {
                         abs_pos: Some(dvec2(viewport.pos.x, viewport.pos.y)),
                         margin: Default::default(),
@@ -473,60 +467,121 @@ impl StaggeredGrid {
         self.range_start = range_start;
         if self.range_end != range_end {
             self.range_end = range_end;
-            log!("******************* FIRST VISIBLE ITEM: {}", self.range_end.max(1) - 1);
             if self.tail_range{
                 self.first_visible_item = self.range_end.max(1) - 1;
-                self.first_item_offset = 0.0;
+                self.scrolled_offset = 0.0;
             }
             self.update_scroll_bar(cx);
         }
     }
     
     pub fn update_scroll_bar(&mut self, cx: &mut Cx) {
-        let scroll_pos = ((self.first_visible_item - self.range_start) as f64 / ((self.range_end - self.range_start).max(self.view_window + 1) - self.view_window) as f64) * self.scroll_bar.get_scroll_view_total();
-        // move the scrollbar to the right 'top' position
+        let max_scroll = self.calculate_max_scroll();
+        let scroll_fraction = if max_scroll > 0.0 { self.scrolled_offset / max_scroll } else { 0.0 };
+        let scroll_pos = scroll_fraction * self.scroll_bar.get_scroll_view_total();
         self.scroll_bar.set_scroll_pos_no_action(cx, scroll_pos);
     }
     
     fn delta_top_scroll(&mut self, cx: &mut Cx, delta: f64, clip_top: bool) {
-        self.first_item_offset += delta;
+        self.scrolled_offset += delta;
+        let max_scroll = self.calculate_max_scroll();
+        self.scrolled_offset = self.scrolled_offset.max(max_scroll);
+
+        // Apply clamping at the top
         if self.first_visible_item == self.range_start {
-            self.first_item_offset = self.first_item_offset.min(self.max_pull_down);
-            log!("UPDATED OFFSET: {:.0}", self.first_item_offset);
+            self.scrolled_offset = self.scrolled_offset.min(self.max_pull_down);
+            if clip_top && self.scrolled_offset > 0.0 {
+                self.scrolled_offset = 0.0;
+            }
         }
-        if self.first_visible_item == self.range_start && self.first_item_offset > 0.0 && clip_top {
-            self.first_item_offset = 0.0;
+    
+        // Update each column
+        for column in &mut self.columns.iter_mut() {
+            let mut acc_height = self.scrolled_offset;
+            let mut acc_items_height = 0.;
+            column.first_visible_item = column.items.first().map(|item| item.index).unwrap_or(self.range_start);
+            for item in &column.items {
+                let item_size = item.size.index(self.vec_index);
+                acc_height += item_size + self.column_spacing;
+                acc_items_height += item_size + self.column_spacing;
+                if acc_height >= 0. {
+                    column.first_visible_item = item.index;
+                    
+                    if item.index == column.items.first().unwrap().index {
+                        column.first_item_offset = self.scrolled_offset;
+                    } else {
+                        column.first_item_offset = (-(item_size - (acc_items_height + self.scrolled_offset))).min(0.0);
+                    }
+                    
+                    break;
+                }
+            }
         }
+    
+        // Update the global first_visible_item
+        self.first_visible_item = self.columns.iter()
+            .map(|col| col.first_visible_item)
+            .min()
+            .unwrap_or(self.range_start);
+    
         self.update_scroll_bar(cx);
-        log!("delta_top_scroll: first_item_offset: {:.0}", self.first_item_offset);
     }
 
-    /// Updates the state of the previously drawn column
+    fn calculate_max_scroll(&self) -> f64 {        
+        let max_column_height = self.columns.iter()
+            .map(|col| {
+                col.items.iter()
+                    .map(|item| item.size.index(self.vec_index) + self.column_spacing)
+                    .sum::<f64>()
+            })
+            .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap_or(0.0);
+        
+        // Add a small buffer (20% of viewport height) to allow some empty space at the end
+        let buffer = self.most_recent_viewport.size.index(self.vec_index) * 0.8;
+        
+        // The maximum negative scroll value
+        -((max_column_height - buffer).max(0.0))
+    }
+
     fn record_previous_column(&mut self, index: usize, prev_item_rect: Rect, viewport: Rect, vi: Vec2Index) {
         let column = &mut self.columns[self.last_drawn_column];
+    
+        // Update or add the item
+        if let Some(item) = column.items.iter_mut().find(|item| item.index == index) {
+            item.size = prev_item_rect.size;
+        } else {
+            column.items.push(ColumnItem {
+                index,
+                size: prev_item_rect.size
+            });
+        }
 
         column.last_item_index = index + 1;
-        column.height =  column.height + prev_item_rect.size.index(vi);
-
-        // log!("Stored - COLUMN {} INDEX {} POS {:.0}", self.last_drawn_column, index + 1, column.height);
-
-        // Wether we have finished drawing on the column (surpassed the viewport height or width)
+        column.height += prev_item_rect.size.index(vi);
         column.exceeds_viewport = column.height - viewport.pos.y > viewport.size.index(vi);
-        // log!("COLUMN: {} EXCEEDS VIEWPORT: {}", self.last_drawn_column, column.exceeds_viewport)
+        column.is_dirty = false;
     }
 
+    /// Returns the index of the column that should contain the item at the given index.
+    /// If the item has already been drawn, it returns the column it was first drawn on.
     fn find_column_for_item(&mut self, index: usize) -> usize {
         match self.item_columns.get(&index) {
             Some(column) => {
                 *column
             },
             None => {
-                let column = if let Some(col) = self.find_next_available_column() {
+                if let Some(col) = self.find_next_available_column() {
                     col
                 } else {
-                    (self.last_drawn_column + 1) % self.columns.len()
-                };
-                column
+                    // Prefer columns that are still dirty
+                    self.columns.iter()
+                        .enumerate()
+                        .filter(|(_, col)| col.is_dirty)
+                        .min_by_key(|(_, col)| col.items.len())
+                        .map(|(i, _)| i)
+                        .unwrap_or_else(|| (self.last_drawn_column + 1) % self.columns.len())
+                }
             }
         }
     }
@@ -563,11 +618,32 @@ impl StaggeredGrid {
     fn column_width(&self, viewport: Rect) -> f64 {
         viewport.size.x / self.columns.len() as f64
     }
+
+    fn update_first_visible_item(&mut self) {
+        for column in &mut self.columns {
+            let mut acc_height = 0.0;
+            for item in &column.items {
+                if acc_height >= self.scrolled_offset {
+                    column.first_visible_item = item.index;
+                    column.first_item_offset = acc_height - self.scrolled_offset;
+                    break;
+                }
+                acc_height += item.size.index(self.vec_index);
+            }
+        }
+
+        self.first_visible_item = self.columns.iter()
+            .map(|col| col.first_visible_item)
+            .min()
+            .unwrap_or(self.range_start);
+    }
 }
 
 
 impl Widget for StaggeredGrid {
 
+    /// FIXME: A lot of this code is copied from PortalList, since StaggeredGrid doesn't have the ScrollBar 
+    /// fully working yet, some of this code might be unnecessary.
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         let uid = self.widget_uid();
         
@@ -578,18 +654,20 @@ impl Widget for StaggeredGrid {
                 scroll_to = Some((scroll_pos, scroll_pos+0.5 >= view_total - view_visible))
             }
         });
-        if let Some((scroll_to, at_end)) = scroll_to {
+        if let Some((_scroll_to, at_end)) = scroll_to {
             if at_end && self.auto_tail{
                 self.first_visible_item = self.range_end.max(1) - 1;
-                self.first_item_offset = 0.0;
+                self.scrolled_offset = 0.0;
                 self.tail_range = true;
             }
             else if self.tail_range {
                 self.tail_range = false;
             }
 
-            self.first_visible_item = ((scroll_to / self.scroll_bar.get_scroll_view_visible()) * self.view_window as f64) as usize;
-            self.first_item_offset = 0.0;
+            self.first_visible_item = 0;
+            // self.first_visible_item = ((scroll_to / self.scroll_bar.get_scroll_view_visible()) * self.view_window as f64) as usize;
+            self.scrolled_offset = 0.0;
+            self.update_first_visible_item();
             cx.widget_action(uid, &scope.path, StaggeredGridAction::Scroll);
             self.area.redraw(cx);
         }
@@ -619,10 +697,10 @@ impl Widget for StaggeredGrid {
             ScrollState::Pulldown {next_frame} => {
                 if let Some(_) = next_frame.is_event(event) {
                     // we have to bounce back
-                    if self.first_visible_item == self.range_start && self.first_item_offset > 0.0 {
-                        self.first_item_offset *= 0.9;
-                        if self.first_item_offset < 1.0 {
-                            self.first_item_offset = 0.0;
+                    if self.first_visible_item == self.range_start && self.scrolled_offset > 0.0 {
+                        self.scrolled_offset *= 0.9;
+                        if self.scrolled_offset < 1.0 {
+                            self.scrolled_offset = 0.0;
                         }
                         else {
                             *next_frame = cx.new_next_frame();
@@ -655,7 +733,6 @@ impl Widget for StaggeredGrid {
                     self.area.redraw(cx);
                 },
                 Hit::FingerDown(e) => {
-                    //log!("F inger down {} {}", e.time, e.abs);
                     if self.grab_key_focus {
                         cx.set_key_focus(self.area);
                     }
@@ -670,7 +747,6 @@ impl Widget for StaggeredGrid {
                     }
                 }
                 Hit::FingerMove(e) => {
-                    //log!("Finger move {} {}", e.time, e.abs);
                     cx.set_cursor(MouseCursor::Default);
                     match &mut self.scroll_state {
                         ScrollState::Drag {samples}=>{
@@ -687,7 +763,6 @@ impl Widget for StaggeredGrid {
                     }
                 }
                 Hit::FingerUp(_e) => {
-                    //log!("Finger up {} {}", e.time, e.abs);
                     match &mut self.scroll_state {
                         ScrollState::Drag {samples}=>{
                             // alright so we need to see if in the last couple of samples
@@ -705,7 +780,7 @@ impl Widget for StaggeredGrid {
                                 }
                             }
                             scaled_delta *= self.flick_scroll_scaling;
-                            if self.first_visible_item == self.range_start && self.first_item_offset > 0.0 {
+                            if self.first_visible_item == self.range_start && self.scrolled_offset > 0.0 {
                                 self.scroll_state = ScrollState::Pulldown {next_frame: cx.new_next_frame()};
                             }
                             else if total_delta.abs() > 10.0 && scaled_delta.abs() > self.flick_scroll_minimum{
@@ -740,94 +815,10 @@ impl Widget for StaggeredGrid {
         }
 
         if let Some(_) = self.draw_state.get() {
-            log!("🏁🏁🏁🏁🏁");
             self.end(cx);
             self.draw_state.end();
-            log!("🏁🏁🏁🏁🏁 END\n\n");
         }
         DrawStep::done()
     }
 }
 
-// impl StaggeredGridRef {
-//     pub fn set_first_visible_item_and_scroll(&self, id: usize, s: f64) {
-//         if let Some(mut inner) = self.borrow_mut() {
-//             inner.first_visible_item = id;
-//             inner.first_item_offset = s;
-//         }
-//     }
-    
-//     pub fn set_first_visible_item(&self, id: usize) {
-//         if let Some(mut inner) = self.borrow_mut() {
-//             inner.first_visible_item = id;
-//         }
-//     }
-    
-//     pub fn first_visible_item(&self) -> usize {
-//         if let Some(inner) = self.borrow() {
-//             inner.first_visible_item
-//         }
-//         else {
-//             0
-//         }
-//     }
-    
-//     pub fn set_tail_range(&self, tail_range: bool) {
-//         if let Some(mut inner) = self.borrow_mut() {
-//             inner.tail_range = tail_range
-//         }
-//     }
-    
-//     pub fn item(&self, cx: &mut Cx, entry_id: usize, template: LiveId) -> Option<WidgetRef> {
-//         if let Some(mut inner) = self.borrow_mut() {
-//             inner.item(cx, entry_id, template)
-//         }
-//         else {
-//             None
-//         }
-//     }
-    
-//     pub fn items_with_actions(&self, actions: &Actions) -> ItemsWithActions {
-//         let mut set = Vec::new();
-//         self.items_with_actions_vec(actions, &mut set);
-//         set
-//     }
-    
-//     fn items_with_actions_vec(&self, actions: &Actions, set: &mut ItemsWithActions) {
-//         let uid = self.widget_uid();
-//         for action in actions {
-//             if let Some(action) = action.as_widget_action(){
-//                 if let Some(group) = &action.group{
-//                     if group.group_uid == uid{
-//                         if let Some(inner) = self.borrow() {
-//                             for ((item_id, _), item) in inner.items.iter() {
-//                                 if group.item_uid == item.widget_uid(){
-//                                     set.push((*item_id, item.clone()))
-//                                 }
-//                             }
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// type ItemsWithActions = Vec<(usize, WidgetRef)>;
-
-// impl StaggeredGridSet {
-//     pub fn set_first_visible_item(&self, id: usize) {
-//         for list in self.iter() {
-//             list.set_first_visible_item(id)
-//         }
-//     }
-    
-    
-//     pub fn items_with_actions(&self, actions: &Actions) -> ItemsWithActions {
-//         let mut set = Vec::new();
-//         for list in self.iter() {
-//             list.items_with_actions_vec(actions, &mut set)
-//         }
-//         set
-//     }
-// }

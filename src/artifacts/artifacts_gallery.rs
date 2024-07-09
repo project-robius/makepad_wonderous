@@ -20,73 +20,33 @@ live_design! {
     IMG_C = dep("crate://self/resources/images/artifacts/test_3.jpg")
     IMG_D = dep("crate://self/resources/images/artifacts/test_4.jpg")
 
-    // GridImage = <Image> {
-    //     source: (IMG_A)
-    //     width: Fill,
-    //     height: Fill
-    //     min_width: 100,
-    //     min_height: 100,
-    //     fit: Horizontal,
-    //     draw_bg: {
-    //         instance hover: 0.0
-    //         instance down: 0.0
-    //         fn pixel(self) -> vec4 {
-    //             let sdf = Sdf2d::viewport(self.pos * self.rect_size)
-    //             sdf.box(1, 1, self.rect_size.x - 2, self.rect_size.y - 2, 4.0)
-    //             let max_scale = vec2(0.92);
-    //             let scale = mix(vec2(1.0), max_scale, self.hover);
-    //             let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.hover);
-    //             let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
-    //             sdf.fill_keep(color);
-    //             sdf.stroke(
-    //                 mix(mix(#x0000, #x0006, self.hover), #xfff2, self.down),
-    //                 1.0
-    //             )
+    GridImage = <Image> {
+        source: (IMG_A)
+        width: Fill,
+        height: Fill
+        min_width: 100,
+        min_height: 100,
+        fit: Horizontal,
+        draw_bg: {
+            instance hover: 0.0
+            instance down: 0.0
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size)
+                sdf.box(1, 1, self.rect_size.x - 2, self.rect_size.y - 2, 4.0)
+                let max_scale = vec2(0.92);
+                let scale = mix(vec2(1.0), max_scale, self.hover);
+                let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.hover);
+                let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
+                sdf.fill_keep(color);
+                sdf.stroke(
+                    mix(mix(#x0000, #x0006, self.hover), #xfff2, self.down),
+                    1.0
+                )
                 
-    //             return sdf.result
-    //         }
-    //     }
-    // }
-
-    // Short = <View> {
-    //     height: 100
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #38ada9
-    //     }
-
-    //     <GridImage> { source: (IMG_A) }
-    //     align: {x: 0.5, y: 0.5}
-    // }
-    // Medium = <View> {
-    //     height: 200
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #4a69bd
-    //     }
-    //     align: {x: 0.5, y: 0.5}
-
-    //     <GridImage> { source: (IMG_B) }
-    // }
-    // Medium_2 = <View> {
-    //     height: 250
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #0c2461
-    //     }
-    //     align: {x: 0.5, y: 0.5}
-
-    //     <GridImage> { source: (IMG_D) }
-    // }
-    // Long = <View> {
-    //     height: 300
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #0a3d62
-    //     }
-    //     align: {x: 0.5, y: 0.5}
-    //     <GridImage> { source: (IMG_C) }
-    // }
+                return sdf.result
+            }
+        }
+    }
 
     Short = <View> {
         height: 100
@@ -95,13 +55,8 @@ live_design! {
             color: #38ada9
         }
 
+        <GridImage> { source: (IMG_A) }
         align: {x: 0.5, y: 0.5}
-        lbl = <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                color: #fff
-            }
-        }
     }
     Medium = <View> {
         height: 200
@@ -111,27 +66,17 @@ live_design! {
         }
         align: {x: 0.5, y: 0.5}
 
-        lbl = <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                color: #fff
-            }
-        }
+        <GridImage> { source: (IMG_B) }
     }
     Medium_2 = <View> {
         height: 250
         show_bg: true
         draw_bg: {
-            color: #6a89cc
+            color: #0c2461
         }
         align: {x: 0.5, y: 0.5}
 
-        lbl = <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                color: #fff
-            }
-        }
+        <GridImage> { source: (IMG_D) }
     }
     Long = <View> {
         height: 300
@@ -140,14 +85,70 @@ live_design! {
             color: #0a3d62
         }
         align: {x: 0.5, y: 0.5}
-
-        lbl = <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                color: #fff
-            }
-        }
+        <GridImage> { source: (IMG_C) }
     }
+
+    // Debugging
+    // Short = <View> {
+    //     height: 100
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #38ada9
+    //     }
+
+    //     align: {x: 0.5, y: 0.5}
+    //     lbl = <Label> {
+    //         draw_text:{
+    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
+    //             color: #fff
+    //         }
+    //     }
+    // }
+    // Medium = <View> {
+    //     height: 200
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #4a69bd
+    //     }
+    //     align: {x: 0.5, y: 0.5}
+
+    //     lbl = <Label> {
+    //         draw_text:{
+    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
+    //             color: #fff
+    //         }
+    //     }
+    // }
+    // Medium_2 = <View> {
+    //     height: 250
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #6a89cc
+    //     }
+    //     align: {x: 0.5, y: 0.5}
+
+    //     lbl = <Label> {
+    //         draw_text:{
+    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
+    //             color: #fff
+    //         }
+    //     }
+    // }
+    // Long = <View> {
+    //     height: 300
+    //     show_bg: true
+    //     draw_bg: {
+    //         color: #0a3d62
+    //     }
+    //     align: {x: 0.5, y: 0.5}
+
+    //     lbl = <Label> {
+    //         draw_text:{
+    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
+    //             color: #fff
+    //         }
+    //     }
+    // }
 
     ResultsGrid = {{ResultsGrid}} {
         list = <StaggeredGrid>{
@@ -269,7 +270,7 @@ impl Widget for ResultsGrid {
                 // TODO: this creates a total of range_end x number of columns items
 
                 let mut last_drawn_item = 0;
-                list.set_item_range(cx, 0, 20);
+                list.set_item_range(cx, 0, 200);
                 while let Some(item_id) = list.next_visible_item(cx) {
                     // break early if the item_id is lower than the previous item_ids
                     if item_id < last_drawn_item {
@@ -286,7 +287,7 @@ impl Widget for ResultsGrid {
                     };
                     let item = list.item(cx, item_id, template).unwrap();
                     item.label(id!(lbl)).set_text(&format!("{}", item_id));
-                    log!("****************** DRAWING ITEM {}", item_id);
+                    log!("🎨 🎨 🎨 {}", item_id);
                     item.draw_all(cx, scope);
                     last_drawn_item = item_id;
                 }
