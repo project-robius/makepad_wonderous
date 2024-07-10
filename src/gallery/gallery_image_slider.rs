@@ -1,9 +1,10 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
+use crate::shared::network_images_cache::NetworkImageCache;
+
 use super::{
     gallery_image::{GalleryImage, GalleryImageId},
-    gallery_screen::NetworkImageCache,
     GALLERY_IMAGE_URLS,
 };
 
@@ -159,7 +160,6 @@ impl Widget for GalleryImageSlider {
                 let blob = {
                     cx.cx
                         .get_global::<NetworkImageCache>()
-                        .map
                         .get(&LiveId::from_str(&image_id))
                 };
 

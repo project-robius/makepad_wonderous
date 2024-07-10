@@ -1,12 +1,12 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
+use crate::shared::network_images_cache::NetworkImageCache;
+
 use super::{
     gallery_image::{GalleryImage, GalleryImageId},
     GALLERY_IMAGE_URLS,
 };
-
-use std::collections::HashMap;
 
 pub const IMAGE_WIDTH: f64 = 270.;
 pub const IMAGE_HEIGHT: f64 = 430.;
@@ -161,7 +161,7 @@ impl LiveHook for Gallery {
         self.ready_to_swipe = true;
 
         if !cx.has_global::<NetworkImageCache>() {
-            cx.set_global(NetworkImageCache::new());
+            cx.set_global(NetworkImageCache::new(30));
         }
 
         for i in 0..self.grid_size.pow(2) {
@@ -227,7 +227,6 @@ impl Widget for Gallery {
 
                 let blob = {
                     cx.get_global::<NetworkImageCache>()
-                        .map
                         .get(&LiveId::from_str(&image_id))
                 };
 
@@ -264,7 +263,6 @@ impl MatchEvent for Gallery {
                     if response.status_code == 200 {
                         if let Some(body) = response.get_body() {
                             cx.get_global::<NetworkImageCache>()
-                                .map
                                 .insert(event.request_id, body.clone());
                             self.redraw(cx);
                         }
@@ -477,16 +475,4 @@ impl GalleryRef {
 pub enum GalleryGridAction {
     None,
     Selected(i64),
-}
-
-pub struct NetworkImageCache {
-    pub map: HashMap<LiveId, Vec<u8>>,
-}
-
-impl NetworkImageCache {
-    pub fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
-    }
 }
