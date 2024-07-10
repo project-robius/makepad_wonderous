@@ -7,10 +7,12 @@ const INITIAL_IMAGE_SEARCH_NUMBER: usize = 20;
 
 // TODO
 //  - network images
-//      - make sure responses correspond to their widget, or at least make sure the images are only loaded once into the cache.
-//      - make sure there's always a buffer of images loaded so that scrolling is smooth.
+//   - ✓ make sure there's always a buffer of images loaded so that scrolling is smooth.     
+//   - make sure responses correspond to their widget, or at least make sure the images are only loaded once into the cache.
+//   
 //  - timeline navigator 
 //      - the grid range represents the timeline of artifacts
+// 
 //  - search
 //  - artifact detail view: 
 //      - items should be clickable and a sub-page should slide-in with more information about the artifact 
@@ -39,7 +41,7 @@ live_design! {
         width: Fill,
         height: Fill
         min_width: 100,
-        min_height: 100,
+        min_height: 200,
         fit: Horizontal,
         draw_bg: {
             instance hover: 0.0
@@ -62,8 +64,19 @@ live_design! {
         }
     }
 
-    ImageView = <View> {
+    ImageView = <RoundedView> {
+        show_bg: true,
+        draw_bg: {
+            color: #0f0e0c
+            instance radius: 4.0,
+        }
         image = <GridImage> {}
+        // lbl = <Label> { // debugging
+        //     draw_text:{
+        //         text_style: <SUBTITLE_CAPTION>{font_size: 12},
+        //         color: #fff
+        //     }
+        // }
         align: {x: 0.5, y: 0.5}
     }
 
@@ -174,7 +187,7 @@ live_design! {
             }
             text: "THE GREAT WALL"
         }
-        
+
         SearchBar = <RoundedView> {
             width: Fit,
             height: Fit,
@@ -215,7 +228,6 @@ live_design! {
                     text_style:<REGULAR_TEXT>{font_size: 10},
                 }
             }
-            text: "Search (ex. type or material)"
         }
 
         search_results = <Label> {
@@ -321,29 +333,22 @@ impl Widget for ResultsGrid {
                         if self.items_images_ready.get(&item_id).is_none() {
                             let _ = imageref.load_jpg_from_data(cx, &image_data);
                             self.items_images_ready.insert(item_id, true);
+                            item.apply_over(cx,live!{ // comment this out if debugging with labels
+                                show_bg: false,
+                            });
                             log!("updating item {item_id} with artifact image {artifact_id}");
                         }                            
                     } else {
                         // No image data found, request it
-                        if item_id > 20 && self.items_images_ready.get(&item_id).is_none() && self.waiting_for_images == 0 {
-                            let images_to_request = 15;
+                        if item_id >= 20 && self.items_images_ready.get(&item_id).is_none() && self.waiting_for_images == 0 {
+                            let images_to_request = 25;
                             request_search_images(cx, item_id, images_to_request);
                             self.waiting_for_images = images_to_request;
-
-                            // let texture_format = TextureFormat::VecBGRAu8_32 {
-                            //     width: 4,
-                            //     height: 4,
-                            //     data: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-                            // };
-                    
-                            // let default_texture = Texture::new_with_format(cx, texture_format);
-                            // let imageref = item.image(id!(image));
-
-                            // imageref.set_texture(cx, Some(default_texture));
                         }
                     }
 
                     // log!("🎨 🎨 🎨 {}", item_id);
+                    // item.label(id!(lbl)).set_text(&format!("{item_id}")); // debugging
                     item.draw_all(cx, scope);
                     last_drawn_item = item_id;
                 }

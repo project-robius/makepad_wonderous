@@ -72,14 +72,14 @@ const GREAT_WALL_QUERY: (&str, &str) = (
 // }
 
 pub fn request_search_images(cx: &mut Cx, offset: usize, limit: usize) {
-    println!("SEARCH DATA LEN: {}", SEARCH_DATA.len());
+    println!("Requesting at {offset}");
     for artifact in SEARCH_DATA.iter().skip(offset).take(limit) {
         let url = format!(
             "{}/{}_{}.jpg", // base_uri/id_size.jpg
             BASE_ARTIFACT_URI, artifact.id, 600
         );
         let request_id = LiveId::from_str(&artifact.id.to_string());
-        println!("Requesting: {}", url);
+        // println!("Requesting: {}", url);
 
         let request = HttpRequest::new(url, HttpMethod::GET);
         cx.http_request(request_id, request);
