@@ -33,6 +33,7 @@ live_design! {
     import crate::shared::staggered_grid::*;
 
     CALENDAR_ICON = dep("crate://self/resources/icons/calendar.svg")
+    SEARCH_ICON = dep("crate://self/resources/icons/search.svg")
 
     GridImage = <Image> {
         width: Fill,
@@ -157,6 +158,7 @@ live_design! {
         width: Fill, height: Fill
         flow: Down,
         align: {x: 0.5, y: 0.0},
+        spacing: 10.0,
 
         header = <Label> {
             draw_text:{
@@ -172,26 +174,52 @@ live_design! {
             }
             text: "THE GREAT WALL"
         }
-
-        search_bar = <TextInput> {
-            margin: { top: 10.0, left: 10.0, right: 10.0}
-            width: Fill
+        
+        SearchBar = <RoundedView> {
+            width: Fit,
+            height: Fit,
+    
+            show_bg: true,
             draw_bg: {
                 color: #fff
-                // border_width: 1.0
-                // border_color: #x00000044
             }
-            draw_text: {
-                text_style: <REGULAR_TEXT>{font_size: 10},
-                fn get_color(self) -> vec4 {
-                    return vec4(0.0, 0.0, 0.0, 1.0);
+    
+            padding: {top: 3, bottom: 3, left: 20, right: 20}
+    
+            spacing: 4,
+            align: {x: 0.0, y: 0.5},
+    
+            draw_bg: {
+                radius: 4.0,
+                border_color: #D0D5DD,
+                border_width: 1.0,
+            }
+    
+            <Icon> {
+                draw_icon: {
+                    svg_file: (SEARCH_ICON),
+                    fn get_color(self) -> vec4 {
+                        return #666;
+                    }
+                }
+                icon_walk: {width: 14, height: Fit}
+            }
+    
+            input = <CustomTextInput> {
+                width: 270,
+                height: Fit,
+    
+                empty_message: "Search (ex. type or material)"
+    
+                draw_text: {
+                    text_style:<REGULAR_TEXT>{font_size: 10},
                 }
             }
             text: "Search (ex. type or material)"
         }
 
         search_results = <Label> {
-            margin: { top: 8.0, bottom: 20.0 }
+            margin: { bottom: 5.0 }
             draw_text: {
                 text_style: <SUBTITLE_CAPTION>{font_size: 9},
                 color: #e6945c,
