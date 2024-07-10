@@ -261,11 +261,14 @@ impl MatchEvent for Gallery {
             match &event.response {
                 NetworkResponse::HttpResponse(response) => {
                     if response.status_code == 200 {
+                        // TODO: we should make sure that the response corresponds to a request made by this widget.
                         if let Some(body) = response.get_body() {
                             cx.get_global::<NetworkImageCache>()
                                 .insert(event.request_id, body.clone());
                             self.redraw(cx);
                         }
+                    } else {
+                        error!("Error fetching gallery image: {:?}", response);
                     }
                 }
                 NetworkResponse::HttpRequestError(error) => {

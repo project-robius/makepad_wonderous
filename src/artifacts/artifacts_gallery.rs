@@ -1,6 +1,25 @@
 use makepad_widgets::*;
+use std::collections::HashMap;
+use crate::shared::{network_images_cache::NetworkImageCache, staggered_grid::StaggeredGridWidgetRefExt};
 
-use crate::shared::staggered_grid::StaggeredGridWidgetRefExt;
+use super::data::{great_wall_search_data::SEARCH_DATA, image_search::request_search_images};
+const INITIAL_IMAGE_SEARCH_NUMBER: usize = 20;
+
+// TODO
+//  - network images
+//      - make sure responses correspond to their widget, or at least make sure the images are only loaded once into the cache.
+//      - make sure there's always a buffer of images loaded so that scrolling is smooth.
+//  - timeline navigator 
+//      - the grid range represents the timeline of artifacts
+//  - search
+//  - artifact detail view: 
+//      - items should be clickable and a sub-page should slide-in with more information about the artifact 
+
+// Maybe
+//  - pre-allocate item sizes and then load the images into the items depending on their dimensions.
+//  - re-use a set of let's say 30 Image instances for the grid and swap the images, so we don't over-use textures.
+//  - currently we cache the raw image data, but we could also cache the textures and re-use them.
+
 
 live_design! {
     import makepad_widgets::base::*;
@@ -15,13 +34,7 @@ live_design! {
 
     CALENDAR_ICON = dep("crate://self/resources/icons/calendar.svg")
 
-    IMG_A = dep("crate://self/resources/images/artifacts/test_1.jpg")
-    IMG_B = dep("crate://self/resources/images/artifacts/test_2.jpg")
-    IMG_C = dep("crate://self/resources/images/artifacts/test_3.jpg")
-    IMG_D = dep("crate://self/resources/images/artifacts/test_4.jpg")
-
     GridImage = <Image> {
-        source: (IMG_A)
         width: Fill,
         height: Fill
         min_width: 100,
@@ -48,45 +61,23 @@ live_design! {
         }
     }
 
-    Short = <View> {
-        height: 100
-        show_bg: true
-        draw_bg: {
-            color: #38ada9
-        }
+    ImageView = <View> {
+        image = <GridImage> {}
+        align: {x: 0.5, y: 0.5}
+    }
 
-        <GridImage> { source: (IMG_A) }
-        align: {x: 0.5, y: 0.5}
+    FlexibleImageContainer = <ImageView> {
+        height: Fit
     }
-    Medium = <View> {
-        height: 200
-        show_bg: true
-        draw_bg: {
-            color: #4a69bd
-        }
-        align: {x: 0.5, y: 0.5}
-
-        <GridImage> { source: (IMG_B) }
-    }
-    Medium_2 = <View> {
-        height: 250
-        show_bg: true
-        draw_bg: {
-            color: #0c2461
-        }
-        align: {x: 0.5, y: 0.5}
-
-        <GridImage> { source: (IMG_D) }
-    }
-    Long = <View> {
-        height: 300
-        show_bg: true
-        draw_bg: {
-            color: #0a3d62
-        }
-        align: {x: 0.5, y: 0.5}
-        <GridImage> { source: (IMG_C) }
-    }
+    // Medium = <ImageView> {
+    //     height: 200
+    // }
+    // Medium_2 = <ImageView> {
+    //     height: 250
+    // }
+    // Long = <ImageView> {
+    //     height: 300
+    // }
 
     // Debugging
     // Short = <View> {
@@ -153,11 +144,12 @@ live_design! {
     ResultsGrid = {{ResultsGrid}} {
         list = <StaggeredGrid>{
             columns_number: 2
-            column_spacing: 4.0
-            ShortElement = <Short> {}
-            MediumElement = <Medium> {}
-            MediumElement_2 = <Medium_2> {} 
-            LongElement = <Long> {}
+            column_spacing: 3.0
+            ImageContainer = <FlexibleImageContainer> {}
+            // ShortElement = <Short> {}
+            // MediumElement = <Medium> {}
+            // MediumElement_2 = <Medium_2> {} 
+            // LongElement = <Long> {}
         }
     }
 
@@ -208,52 +200,6 @@ live_design! {
         }
 
         results_grid = <ResultsGrid> {}
-
-        // timeframe_selector = <View> {
-        //     flow: Right
-        //     width: Fit, height: Fit
-        //     align: {x: 0.5, y: 0.0},
-        //     margin: { top: 580.0 }
-
-        //     show_bg: true
-        //     draw_bg: {
-        //         instance border_width: 0.0
-        //         // instance border_color: #0000
-        //         instance inset: vec4(0.0, 0.0, 0.0, 0.0)
-        //         instance radius: 2.5
-
-        //         fn pixel(self) -> vec4 {
-        //             let sdf = Sdf2d::viewport(self.pos * self.rect_size)
-        //             sdf.box(
-        //                 self.inset.x + self.border_width,
-        //                 self.inset.y + self.border_width,
-        //                 self.rect_size.x - (self.inset.x + self.inset.z + self.border_width * 2.0),
-        //                 self.rect_size.y - (self.inset.y + self.inset.w + self.border_width * 2.0),
-        //                 max(1.0, self.radius)
-        //             )
-        //             sdf.fill_keep(vec4(0.0, 0.0, 0.0, 0.4))
-        //             // if self.border_width > 0.0 {
-        //                 // sdf.stroke(self.border_color, self.border_width)
-        //             // }
-        //             return sdf.result;
-        //         }
-        //     }
-        //     padding: 8.0
-
-        //     timeframe = <Label> {
-        //         draw_text:{
-        //             text_style: <SUBTITLE_CAPTION>{font_size: 10},
-        //             color: #fff
-        //         }
-        //         text: "700 BCE - 1650 CE"
-        //     }
-        //     <Icon> {
-        //         draw_icon: {
-        //             svg_file: (CALENDAR_ICON), color: #e6945c,
-        //         }
-        //         icon_walk: {width: 20, height: Fit}
-        //     }
-        // }
     }
 }
 
@@ -261,33 +207,115 @@ live_design! {
 struct ResultsGrid {
     #[deref]
     view: View,
+
+    #[rust]
+    did_initial_image_request: bool,
+    #[rust]
+    items_artifacts_ids: HashMap<usize, String>,
+    #[rust]
+    items_images_ready: HashMap<usize, bool>,
+
+    #[rust]
+    waiting_for_images: usize,
+}
+
+impl MatchEvent for ResultsGrid {
+    fn handle_network_responses(&mut self, cx: &mut Cx, responses: &NetworkResponsesEvent) {
+        for event in responses {
+            match &event.response {
+                NetworkResponse::HttpResponse(response) => {
+                    if response.status_code == 200 {
+                        // TODO: we should make sure that the response corresponds to a request made by this widget.
+                        if let Some(body) = response.get_body() {
+                            cx.get_global::<NetworkImageCache>()
+                                .insert(event.request_id, body.clone());
+                            self.redraw(cx);
+                            if self.waiting_for_images > 0 {
+                                self.waiting_for_images -= 1;
+                            }
+                        }
+                    } else {
+                        error!("Error fetching gallery image: {:?}", response);
+                    }
+                }
+                NetworkResponse::HttpRequestError(error) => {
+                    error!("Error fetching gallery image: {:?}", error);
+                }
+                _ => (),
+            }
+        }
+    }
 }
 
 impl Widget for ResultsGrid {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        if self.did_initial_image_request == false {
+            request_search_images(cx, 0, INITIAL_IMAGE_SEARCH_NUMBER);
+            self.did_initial_image_request = true;
+        }
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_staggered_grid().borrow_mut() {
-                // TODO: this creates a total of range_end x number of columns items
+                let range_end = SEARCH_DATA.len() as usize - 1;
 
                 let mut last_drawn_item = 0;
-                list.set_item_range(cx, 0, 200);
+                list.set_item_range(cx, 0, range_end);
                 while let Some(item_id) = list.next_visible_item(cx) {
                     // break early if the item_id is lower than the previous item_ids
                     if item_id < last_drawn_item {
-                        log!("SOMETHING WHACKY HAPPENED OMG");
                         // break;
                     }
 
-                    let template = match item_id {
-                    // let template = match random_number() {
-                        x if x % 4 == 0 => live_id!(ShortElement),
-                        x if x % 4 == 1 => live_id!(MediumElement),
-                        x if x % 4 == 2 => live_id!(MediumElement_2),
-                        _ => live_id!(LongElement),
-                    };
+                    // let template = match item_id {
+                    // // let template = match random_number() {
+                    //     x if x % 4 == 0 => live_id!(ShortElement),
+                    //     x if x % 4 == 1 => live_id!(MediumElement),
+                    //     x if x % 4 == 2 => live_id!(MediumElement_2),
+                    //     _ => live_id!(LongElement),
+                    // };
+
+                    let template = live_id!(ImageContainer);
                     let item = list.item(cx, item_id, template).unwrap();
-                    item.label(id!(lbl)).set_text(&format!("{}", item_id));
-                    log!("🎨 🎨 🎨 {}", item_id);
+
+                    if !self.items_artifacts_ids.contains_key(&item_id) {
+                        let artifact_id = SEARCH_DATA[item_id as usize].id.clone();
+                        self.items_artifacts_ids.insert(item_id, artifact_id.to_string());
+                    }
+                    let artifact_id = self.items_artifacts_ids.get(&item_id).unwrap();
+
+                    let blob = {
+                        cx.get_global::<NetworkImageCache>()
+                            .get(&LiveId::from_str(&artifact_id))
+                    };
+    
+                    if let Some(blob) = blob {
+                        let image_data = blob.clone();
+                        let imageref = item.image(id!(image));
+                        if self.items_images_ready.get(&item_id).is_none() {
+                            let _ = imageref.load_jpg_from_data(cx, &image_data);
+                            self.items_images_ready.insert(item_id, true);
+                            log!("updating item {item_id} with artifact image {artifact_id}");
+                        }                            
+                    } else {
+                        // No image data found, request it
+                        if item_id > 20 && self.items_images_ready.get(&item_id).is_none() && self.waiting_for_images == 0 {
+                            let images_to_request = 15;
+                            request_search_images(cx, item_id, images_to_request);
+                            self.waiting_for_images = images_to_request;
+
+                            // let texture_format = TextureFormat::VecBGRAu8_32 {
+                            //     width: 4,
+                            //     height: 4,
+                            //     data: vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+                            // };
+                    
+                            // let default_texture = Texture::new_with_format(cx, texture_format);
+                            // let imageref = item.image(id!(image));
+
+                            // imageref.set_texture(cx, Some(default_texture));
+                        }
+                    }
+
+                    // log!("🎨 🎨 🎨 {}", item_id);
                     item.draw_all(cx, scope);
                     last_drawn_item = item_id;
                 }
@@ -296,6 +324,7 @@ impl Widget for ResultsGrid {
         DrawStep::done()
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        self.match_event(cx, event);
         self.view.handle_event(cx, event, scope)
     }
 }

@@ -27,6 +27,7 @@ impl NetworkImageCache {
             }
         }
         self.map.insert(key.clone(), value);
+        println!("Inserted key: {:?}", key);
         self.order.push_front(key);
     }
 
