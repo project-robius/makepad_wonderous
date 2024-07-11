@@ -1,10 +1,10 @@
-use std::collections::{HashMap, VecDeque};
+use std::{collections::{HashMap, VecDeque}, rc::Rc};
 
 use makepad_widgets::LiveId;
 const DEFAULT_CAPACITY_BYTES: usize = 25 * 1024 * 1024; // 25 MB
 
 pub struct NetworkImageCache {
-    map: HashMap<LiveId, Vec<u8>>,
+    map: HashMap<LiveId, Rc<[u8]>>,
     order: VecDeque<LiveId>,
     capacity_bytes: usize,
     current_size_bytes: usize,
@@ -20,7 +20,8 @@ impl NetworkImageCache {
         }
     }
 
-    pub fn insert(&mut self, key: LiveId, value: Vec<u8>) {
+    pub fn insert(&mut self, key: LiveId, value: &[u8]) {
+        let rc_value = Rc::from(value);
         let value_size = value.len();
         if self.map.contains_key(&key) {
             // Move the existing key to the front (most recently used)
@@ -38,17 +39,17 @@ impl NetworkImageCache {
             }
         }
         // Insert the new item
-        self.map.insert(key.clone(), value);
+        self.map.insert(key.clone(), rc_value);
         self.order.push_front(key);
         self.current_size_bytes += value_size;
     }
 
-    pub fn get(&mut self, key: &LiveId) -> Option<&Vec<u8>> {
+    pub fn get(&mut self, key: &LiveId) -> Option<Rc<[u8]>> {
         if self.map.contains_key(key) {
             // Move the key to the front (most recently used)
             self.order.retain(|k| k != key);
             self.order.push_front(key.clone());
-            self.map.get(key)
+            self.map.get(key).cloned()
         } else {
             None
         }

@@ -1,5 +1,6 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
+use std::rc::Rc;
 
 use crate::shared::network_images_cache::NetworkImageCache;
 
@@ -225,13 +226,12 @@ impl Widget for Gallery {
             } {
                 let is_center_image = image_idu64 == (GALLERY_IMAGE_URLS.len() / 2) as u64;
 
-                let blob = {
+                let cached_image_data = {
                     cx.get_global::<NetworkImageCache>()
                         .get(&LiveId::from_str(&image_id))
                 };
 
-                if let Some(blob) = blob {
-                    let image_data = blob.clone();
+                if let Some(image_data) = cached_image_data {
                     if !gallery_image.is_image_ready() {
                         let _ = gallery_image.load_jpg_from_data(cx, &image_data);
 
@@ -264,7 +264,7 @@ impl MatchEvent for Gallery {
                         if response.status_code == 200 {
                             if let Some(body) = response.get_body() {
                                 cx.get_global::<NetworkImageCache>()
-                                    .insert(response.metadata_id, body.clone());
+                                    .insert(response.metadata_id, body);
                                 self.redraw(cx);
                             }
                         } else {

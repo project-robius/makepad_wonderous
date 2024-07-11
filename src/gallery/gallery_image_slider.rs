@@ -157,14 +157,13 @@ impl Widget for GalleryImageSlider {
                 24 => Some(GALLERY_IMAGE_URLS[0]),
                 _ => Some(GALLERY_IMAGE_URLS[image_idu64 as usize]),
             } {
-                let blob = {
+                let cached_image_data = {
                     cx.cx
                         .get_global::<NetworkImageCache>()
                         .get(&LiveId::from_str(&image_id))
                 };
 
-                if let Some(blob) = blob {
-                    let image_data = blob.clone();
+                if let Some(image_data) = cached_image_data {
                     if !gallery_image.is_image_ready() {
                         let _ = gallery_image.load_jpg_from_data(cx, &image_data);
                     }

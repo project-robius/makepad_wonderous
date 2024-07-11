@@ -1,5 +1,5 @@
 use makepad_widgets::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 use crate::shared::{network_images_cache::NetworkImageCache, staggered_grid::StaggeredGridWidgetRefExt};
 
 use super::data::{great_wall_search_data::SEARCH_DATA, image_search::request_search_images};
@@ -268,7 +268,7 @@ impl MatchEvent for ResultsGrid {
                         if response.status_code == 200 {
                             if let Some(body) = response.get_body() {
                                 cx.get_global::<NetworkImageCache>()
-                                    .insert(response.metadata_id, body.clone());
+                                    .insert(response.metadata_id, body);
                                 self.redraw(cx);
                                 if self.waiting_for_images > 0 {
                                     self.waiting_for_images -= 1;
@@ -323,13 +323,12 @@ impl Widget for ResultsGrid {
                     }
                     let artifact_id = self.items_artifacts_ids.get(&item_id).unwrap();
 
-                    let blob = {
+                    let cached_image_data = {
                         cx.get_global::<NetworkImageCache>()
                             .get(&LiveId::from_str(&artifact_id))
                     };
     
-                    if let Some(blob) = blob {
-                        let image_data = blob.clone();
+                    if let Some(image_data) = cached_image_data {
                         let imageref = item.image(id!(image));
                         if self.items_images_ready.get(&item_id).is_none() {
                             let _ = imageref.load_jpg_from_data(cx, &image_data);
