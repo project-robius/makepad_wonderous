@@ -1,5 +1,5 @@
 use makepad_widgets::{scroll_bar::ScrollBarAction, *};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 live_design!{
     import makepad_widgets::base::*;
@@ -90,6 +90,22 @@ pub struct StaggeredGrid {
 
     /// The most recent viewport dimensions, changes on resize.
     #[rust] most_recent_viewport: Rect,
+
+    #[rust] currently_visible_items: Vec<usize>,
+    
+    #[rust]
+    items_usage_order: VecDeque<(usize, LiveId)>,
+    
+    /// Whether to repurpose inactive widgets when the maximum number of active widgets is reached.
+    #[rust]
+    repurpose_inactive_widgets: bool,
+
+    /// The maximum number of active widgets to keep in memory.
+    /// 
+    /// Used when `repurpose_inactive_widgets` is true. It is based on the most recent number of items that
+    /// fit in the viewport, with a buffer to ensure smooth scrolling.
+    #[rust]
+    max_active_widgets: usize,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -163,6 +179,7 @@ impl LiveHook for StaggeredGrid {
         let id = nodes[index].id;
         match apply.from {
             ApplyFrom::NewFromDoc {file_id} | ApplyFrom::UpdateFromDoc {file_id} => {
+                self.max_active_widgets = usize::MAX;
                 if nodes[index].origin.has_prop_type(LivePropType::Instance) {
                     let live_ptr = cx.live_registry.borrow().file_id_index_to_live_ptr(file_id, index);
                     self.templates.insert(id, live_ptr);
@@ -195,10 +212,18 @@ impl LiveHook for StaggeredGrid {
     }
 }
 
+#[derive(PartialEq)]
+pub enum WidgetAllocationStatus {
+    Created,
+    Repurposed,
+    Retained
+}
+
 impl StaggeredGrid {
     fn begin(&mut self, cx: &mut Cx2d, walk: Walk) {
         cx.begin_turtle(walk, self.layout);
     
+        self.currently_visible_items.clear();
         // The columns number in the DSL has changed, recompute item ordering
         if self.columns.len() != self.columns_number {
             self.item_columns.clear();
@@ -229,6 +254,7 @@ impl StaggeredGrid {
             error!("Draw state not at end in StaggeredGrid, please review your next_visible_item loop");
         }
     
+        self.max_active_widgets = self.currently_visible_items.len() * 2;
         cx.end_turtle_with_area(&mut self.area);
     }
     
@@ -283,6 +309,8 @@ impl StaggeredGrid {
                         width: Size::Fixed(self.column_width(viewport)),
                         height: Size::Fit
                     }, self.layout_with_spacing());
+
+                    self.add_to_visibles_list(self.first_visible_item);
                     return Some(self.first_visible_item)
                 }
                 ListDrawState::Down {index, pos, viewport} | ListDrawState::DownAgain {index, pos, viewport} => {
@@ -349,6 +377,7 @@ impl StaggeredGrid {
                                 height: Size::Fit
                             }, Layout::flow_down());
 
+                            self.add_to_visibles_list(self.first_visible_item);
                             return Some(self.first_visible_item);
                         }
                         else {
@@ -390,6 +419,8 @@ impl StaggeredGrid {
                         width: Size::Fixed(self.column_width(viewport)),
                         height: Size::Fit
                     }, self.layout_with_spacing());
+
+                    self.add_to_visibles_list(valid_next_index);
                     return Some(valid_next_index)
                 }
                 ListDrawState::Up {index, pos, hit_bottom, viewport} => {
@@ -420,6 +451,8 @@ impl StaggeredGrid {
                                     width: Size::Fixed(self.column_width(viewport)),
                                     height: Size::Fit
                                 }, Layout::flow_down());
+
+                                self.add_to_visibles_list(last_index + 1);
                                 return Some(last_index + 1);
                             }
                         }
@@ -445,6 +478,7 @@ impl StaggeredGrid {
                         height: Size::Fit
                     }, Layout::flow_down());
                     
+                    self.add_to_visibles_list(index - 1);
                     return Some(index - 1);
                 }
                 _ => ()
@@ -452,17 +486,67 @@ impl StaggeredGrid {
         }
         None
     }
-    
-    pub fn item(&mut self, cx: &mut Cx, entry_id: usize, template: LiveId) -> Option<WidgetRef> {
-        if let Some(ptr) = self.templates.get(&template) {
-            let entry = self.items.get_or_insert(cx, (entry_id, template), | cx | {
-                WidgetRef::new_from_ptr(cx, Some(*ptr))
-            });
-            return Some(entry.clone())
+
+    /// Adds the item index to the visible list if it's not already there.
+    fn add_to_visibles_list(&mut self, index: usize) {
+        if self.currently_visible_items.iter().all(|&i| i != index) {
+            self.currently_visible_items.push(index);
         }
-        None
     }
     
+    /// Retrieves, creates, or repurposes a widget for the given entry ID and template.
+    ///
+    /// # Returns
+    /// * `Some((WidgetRef, WidgetAllocationStatus))` if a widget was successfully retrieved, created, or repurposed.
+    ///   The `WidgetAllocationStatus` indicates whether the widget was retained, repurposed, or newly created.
+    /// * `None` if the specified template was not found.
+    ///
+    /// # Widget Lifecycle
+    /// When `repurpose_inactive_widgets` is true:
+    /// - If a widget for the given `entry_id` and `template` already exists, it is retained and moved to the front of the usage order.
+    /// - If `repurpose_inactive_widgets` is true and the maximum number of active items is reached (see `max_active_widgets`), 
+    ///   the least recently used widget is repurposed for the new entry.
+    /// - If `repurpose_inactive_widgets` is false or the maximum hasn't been reached, a new widget is created.
+    pub fn item(&mut self, cx: &mut Cx, entry_id: usize, template: LiveId) -> Option<(WidgetRef, WidgetAllocationStatus)> {
+        if let Some(ptr) = self.templates.get(&template) {
+            let allocation_status;
+            
+            // Check if the widget already exists
+            if let Some(entry) = self.items.get(&(entry_id, template)) {
+                allocation_status = WidgetAllocationStatus::Retained;
+                // Move the entry to the front of the usage order
+                self.items_usage_order.retain(|&k| k != (entry_id, template));
+                self.items_usage_order.push_front((entry_id, template));
+                return Some((entry.clone(), allocation_status));
+            }
+            
+            // Determine whether to create a new widget or repurpose an existing one
+            let widget = if self.repurpose_inactive_widgets && self.items.len() >= self.max_active_widgets {
+                // Repurpose the least recently used widget
+                let oldest_key = self.items_usage_order.pop_back().unwrap();
+                allocation_status = WidgetAllocationStatus::Repurposed;
+                self.items.remove(&oldest_key).unwrap()
+            } else {
+                // Create a new widget
+                allocation_status = WidgetAllocationStatus::Created;
+                WidgetRef::new_from_ptr(cx, Some(*ptr))
+            };
+
+            // Insert the widget and update the usage order
+            self.items.insert((entry_id, template), widget.clone());
+            self.items_usage_order.push_front((entry_id, template));
+
+            Some((widget, allocation_status))
+        } else {
+            warning!("Template not found: {template}. Did you add it to the <StaggeredGrid> instance in `live_design!{{}}`?");
+            None
+        }
+    }
+
+    pub fn set_repurpose_inactive_widgets(&mut self, repurpose: bool) {
+        self.repurpose_inactive_widgets = repurpose;
+    }
+
     pub fn set_item_range(&mut self, cx: &mut Cx, range_start: usize, range_end: usize) {
         self.range_start = range_start;
         if self.range_end != range_end {

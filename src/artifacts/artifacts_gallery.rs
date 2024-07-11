@@ -1,25 +1,34 @@
 use makepad_widgets::*;
-use std::{collections::HashMap, rc::Rc};
-use crate::shared::{network_images_cache::NetworkImageCache, staggered_grid::StaggeredGridWidgetRefExt};
+use std::collections::HashMap;
+use crate::shared::{network_images_cache::NetworkImageCache, staggered_grid::{StaggeredGridWidgetRefExt, WidgetAllocationStatus}};
 
 use super::data::{great_wall_search_data::SEARCH_DATA, image_search::request_search_images};
 const INITIAL_IMAGE_SEARCH_NUMBER: usize = 20;
 
 // TODO
-//  - network images
-//   - ✓ make sure there's always a buffer of images loaded so that scrolling is smooth.     
-//   - make sure responses correspond to their widget, or at least make sure the images are only loaded once into the cache.
-//   
-//  - timeline navigator 
+//  - Network
+//      - ✓ make sure there's always a buffer of images loaded so that scrolling is smooth.     
+//      - ✓ make sure responses correspond to their widget, or at least make sure the images are only loaded once into the cache.  
+//
+//  - Performance
+//      - ✓ recycle widgets instances in StaggeredGrid instead of creating new ones endlessly
+//          - fix small visual issues when recycling
+//      - add a spinner images loading on slow networks
+//      - android is leaking graphics memory
+//
+//  - Platforms
+//      - random text bug in wasm and android
+//
+//  - Timeline navigator
 //      - the grid range represents the timeline of artifacts
 // 
-//  - search
-//  - artifact detail view: 
+//  - Search
+//
+//  - Artifact detail view: 
 //      - items should be clickable and a sub-page should slide-in with more information about the artifact 
 
 // Maybe
 //  - pre-allocate item sizes and then load the images into the items depending on their dimensions.
-//  - re-use a set of let's say 30 Image instances for the grid and swap the images, so we don't over-use textures.
 //  - currently we cache the raw image data, but we could also cache the textures and re-use them.
 
 
@@ -257,7 +266,14 @@ struct ResultsGrid {
 
     #[rust]
     waiting_for_images: usize,
+
+    #[rust]
+    last_drawn_items: Vec<ItemId>,
+    #[rust]
+    all_drawn_items: Vec<(WidgetRef, ItemId)>,
 }
+
+type ItemId = usize;
 
 impl MatchEvent for ResultsGrid {
     fn handle_network_responses(&mut self, cx: &mut Cx, responses: &NetworkResponsesEvent) {
@@ -294,16 +310,24 @@ impl Widget for ResultsGrid {
             request_search_images(cx, 0, INITIAL_IMAGE_SEARCH_NUMBER);
             self.did_initial_image_request = true;
         }
+
+        self.last_drawn_items = vec![];
+
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_staggered_grid().borrow_mut() {
+                list.set_repurpose_inactive_widgets(true);
                 let range_end = SEARCH_DATA.len() as usize - 1;
 
-                let mut last_drawn_item = 0;
+                let mut first_drawn_item = None;
                 list.set_item_range(cx, 0, range_end);
                 while let Some(item_id) = list.next_visible_item(cx) {
                     // break early if the item_id is lower than the previous item_ids
-                    if item_id < last_drawn_item {
+                    // if item_id < last_drawn_item {
                         // break;
+                    // }
+
+                    if first_drawn_item.is_none() {
+                        first_drawn_item = Some(item_id);
                     }
 
                     // let template = match item_id {
@@ -315,7 +339,7 @@ impl Widget for ResultsGrid {
                     // };
 
                     let template = live_id!(ImageContainer);
-                    let item = list.item(cx, item_id, template).unwrap();
+                    let (item, widget_status) = list.item(cx, item_id, template).unwrap();
 
                     if !self.items_artifacts_ids.contains_key(&item_id) {
                         let artifact_id = SEARCH_DATA[item_id as usize].id.clone();
@@ -330,13 +354,14 @@ impl Widget for ResultsGrid {
     
                     if let Some(image_data) = cached_image_data {
                         let imageref = item.image(id!(image));
-                        if self.items_images_ready.get(&item_id).is_none() {
+                        if self.items_images_ready.get(&item_id).is_none() || widget_status == WidgetAllocationStatus::Repurposed {
                             let _ = imageref.load_jpg_from_data(cx, &image_data);
                             self.items_images_ready.insert(item_id, true);
                             item.apply_over(cx,live!{ // comment this out if debugging with labels
                                 show_bg: false,
                             });
-                            // log!("updating item {item_id} with artifact image {artifact_id}");
+
+                            // log!("Loading image for item {}", item_id);
                         }                            
                     } else {
                         // No image data found, request it
@@ -350,10 +375,16 @@ impl Widget for ResultsGrid {
                     // log!("🎨 🎨 🎨 {}", item_id);
                     // item.label(id!(lbl)).set_text(&format!("{item_id}")); // debugging
                     item.draw_all(cx, scope);
-                    last_drawn_item = item_id;
+
+                    self.last_drawn_items.push(item_id);
+
+                    if self.all_drawn_items.iter().find(|(_, id)| *id == item_id).is_none() {
+                        self.all_drawn_items.push((item, item_id));
+                    }
                 }
             }
         }
+
         DrawStep::done()
     }
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
