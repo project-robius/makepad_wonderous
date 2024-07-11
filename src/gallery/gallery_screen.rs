@@ -161,7 +161,7 @@ impl LiveHook for Gallery {
         self.ready_to_swipe = true;
 
         if !cx.has_global::<NetworkImageCache>() {
-            cx.set_global(NetworkImageCache::new(30));
+            cx.set_global(NetworkImageCache::new());
         }
 
         for i in 0..self.grid_size.pow(2) {
