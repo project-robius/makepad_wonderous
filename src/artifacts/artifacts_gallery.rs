@@ -262,26 +262,27 @@ struct ResultsGrid {
 impl MatchEvent for ResultsGrid {
     fn handle_network_responses(&mut self, cx: &mut Cx, responses: &NetworkResponsesEvent) {
         for event in responses {
-            match &event.response {
-                NetworkResponse::HttpResponse(response) => {
-                    if response.status_code == 200 {
-                        // TODO: we should make sure that the response corresponds to a request made by this widget.
-                        if let Some(body) = response.get_body() {
-                            cx.get_global::<NetworkImageCache>()
-                                .insert(event.request_id, body.clone());
-                            self.redraw(cx);
-                            if self.waiting_for_images > 0 {
-                                self.waiting_for_images -= 1;
+            if event.request_id == live_id!(image_search) {
+                match &event.response {
+                    NetworkResponse::HttpResponse(response) => {
+                        if response.status_code == 200 {
+                            if let Some(body) = response.get_body() {
+                                cx.get_global::<NetworkImageCache>()
+                                    .insert(response.metadata_id, body.clone());
+                                self.redraw(cx);
+                                if self.waiting_for_images > 0 {
+                                    self.waiting_for_images -= 1;
+                                }
                             }
+                        } else {
+                            error!("Error fetching gallery image: {:?}", response);
                         }
-                    } else {
-                        error!("Error fetching gallery image: {:?}", response);
                     }
+                    NetworkResponse::HttpRequestError(error) => {
+                        error!("Error fetching gallery image: {:?}", error);
+                    }
+                    _ => (),
                 }
-                NetworkResponse::HttpRequestError(error) => {
-                    error!("Error fetching gallery image: {:?}", error);
-                }
-                _ => (),
             }
         }
     }
@@ -336,7 +337,7 @@ impl Widget for ResultsGrid {
                             item.apply_over(cx,live!{ // comment this out if debugging with labels
                                 show_bg: false,
                             });
-                            log!("updating item {item_id} with artifact image {artifact_id}");
+                            // log!("updating item {item_id} with artifact image {artifact_id}");
                         }                            
                     } else {
                         // No image data found, request it
