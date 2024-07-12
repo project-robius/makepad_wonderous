@@ -20,12 +20,15 @@ live_design!{
 /// smooth scrolling with proper handling of item visibility across columns.
 /// 
 /// Current features:
-/// - Supports N columns (configurable)
+/// - Supports multiple columns (configurable)
+///     - Currently there are some visual bugs when having more than 3 columns, some empty space is left at the end of the grid.
 /// - Efficiently renders only visible items
 /// - Handles variable item heights
 /// - Supports smooth scrolling and item reordering based on visibility
 /// 
 /// Note: This widget is still under development. Current limitations and planned improvements:
+/// - Live-reload of columns number is not fully working. 
+/// - We will introduce width settings for columns which will allow for responsive layouts (automatically adjust number of columns).
 /// - Currently only supports top-to-bottom drawing. Future versions will support both vertical
 ///   and horizontal layouts using the `vec_index` property.
 /// - The ScrollBar is not currently showign up in the UI and has some positioning limitations.

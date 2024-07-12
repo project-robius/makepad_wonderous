@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::shared::{network_images_cache::NetworkImageCache, staggered_grid::{StaggeredGridWidgetRefExt, WidgetAllocationStatus}};
 
 use super::data::{great_wall_search_data::SEARCH_DATA, image_search::request_search_images};
-const INITIAL_IMAGE_SEARCH_NUMBER: usize = 20;
+const INITIAL_IMAGE_SEARCH_REQUESTS: usize = 20;
 
 // TODO
 //  - Network
@@ -12,12 +12,12 @@ const INITIAL_IMAGE_SEARCH_NUMBER: usize = 20;
 //
 //  - Performance
 //      - ✓ recycle widgets instances in StaggeredGrid instead of creating new ones endlessly
-//          - fix small visual issues when recycling
-//      - add a spinner images loading on slow networks
+//      - ✓ add a spinner images loading on slow networks
 //      - android is leaking graphics memory
+//      - fix small visual issues when recycling
 //
 //  - Platforms
-//      - random text bug in wasm and android
+//      - ✓ random text bug in wasm and android
 //
 //  - Timeline navigator
 //      - the grid range represents the timeline of artifacts
@@ -42,44 +42,18 @@ live_design! {
     import makepad_draw::shader::std::*;
 
     import crate::shared::staggered_grid::*;
+    import crate::artifacts::grid_image::*;
 
     CALENDAR_ICON = dep("crate://self/resources/icons/calendar.svg")
     SEARCH_ICON = dep("crate://self/resources/icons/search.svg")
 
-    GridImage = <Image> {
-        width: Fill,
-        height: Fill
-        min_width: 100,
-        min_height: 200,
-        fit: Horizontal,
-        draw_bg: {
-            instance hover: 0.0
-            instance down: 0.0
-            fn pixel(self) -> vec4 {
-                let sdf = Sdf2d::viewport(self.pos * self.rect_size)
-                sdf.box(1, 1, self.rect_size.x - 2, self.rect_size.y - 2, 4.0)
-                let max_scale = vec2(0.92);
-                let scale = mix(vec2(1.0), max_scale, self.hover);
-                let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.hover);
-                let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
-                sdf.fill_keep(color);
-                sdf.stroke(
-                    mix(mix(#x0000, #x0006, self.hover), #xfff2, self.down),
-                    1.0
-                )
-                
-                return sdf.result
-            }
-        }
-    }
-
-    ImageView = <RoundedView> {
+    FlexibleImageContainer = <GridImage> {
+        height: Fit
         show_bg: true,
         draw_bg: {
-            color: #0f0e0c
+            // color: #0f0e0c
             instance radius: 4.0,
         }
-        image = <GridImage> {}
         // lbl = <Label> { // debugging
         //     draw_text:{
         //         text_style: <SUBTITLE_CAPTION>{font_size: 12},
@@ -89,90 +63,11 @@ live_design! {
         align: {x: 0.5, y: 0.5}
     }
 
-    FlexibleImageContainer = <ImageView> {
-        height: Fit
-    }
-    // Medium = <ImageView> {
-    //     height: 200
-    // }
-    // Medium_2 = <ImageView> {
-    //     height: 250
-    // }
-    // Long = <ImageView> {
-    //     height: 300
-    // }
-
-    // Debugging
-    // Short = <View> {
-    //     height: 100
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #38ada9
-    //     }
-
-    //     align: {x: 0.5, y: 0.5}
-    //     lbl = <Label> {
-    //         draw_text:{
-    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
-    //             color: #fff
-    //         }
-    //     }
-    // }
-    // Medium = <View> {
-    //     height: 200
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #4a69bd
-    //     }
-    //     align: {x: 0.5, y: 0.5}
-
-    //     lbl = <Label> {
-    //         draw_text:{
-    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
-    //             color: #fff
-    //         }
-    //     }
-    // }
-    // Medium_2 = <View> {
-    //     height: 250
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #6a89cc
-    //     }
-    //     align: {x: 0.5, y: 0.5}
-
-    //     lbl = <Label> {
-    //         draw_text:{
-    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
-    //             color: #fff
-    //         }
-    //     }
-    // }
-    // Long = <View> {
-    //     height: 300
-    //     show_bg: true
-    //     draw_bg: {
-    //         color: #0a3d62
-    //     }
-    //     align: {x: 0.5, y: 0.5}
-
-    //     lbl = <Label> {
-    //         draw_text:{
-    //             text_style: <SUBTITLE_CAPTION>{font_size: 12},
-    //             color: #fff
-    //         }
-    //     }
-    // }
-
     ResultsGrid = {{ResultsGrid}} {
         list = <StaggeredGrid>{
             columns_number: 2
-            column_spacing: 3.0
+            column_spacing: 5.0
             ImageContainer = <FlexibleImageContainer> {}
-            // ShortElement = <Short> {}
-            // MediumElement = <Medium> {}
-            // MediumElement_2 = <Medium_2> {} 
-            // LongElement = <Long> {}
         }
     }
 
@@ -285,10 +180,10 @@ impl MatchEvent for ResultsGrid {
                             if let Some(body) = response.get_body() {
                                 cx.get_global::<NetworkImageCache>()
                                     .insert(response.metadata_id, body);
-                                self.redraw(cx);
                                 if self.waiting_for_images > 0 {
                                     self.waiting_for_images -= 1;
                                 }
+                                self.redraw(cx);
                             }
                         } else {
                             error!("Error fetching gallery image: {:?}", response);
@@ -307,7 +202,7 @@ impl MatchEvent for ResultsGrid {
 impl Widget for ResultsGrid {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         if self.did_initial_image_request == false {
-            request_search_images(cx, 0, INITIAL_IMAGE_SEARCH_NUMBER);
+            request_search_images(cx, 0, INITIAL_IMAGE_SEARCH_REQUESTS);
             self.did_initial_image_request = true;
         }
 
@@ -357,19 +252,31 @@ impl Widget for ResultsGrid {
                         if self.items_images_ready.get(&item_id).is_none() || widget_status == WidgetAllocationStatus::Repurposed {
                             let _ = imageref.load_jpg_from_data(cx, &image_data);
                             self.items_images_ready.insert(item_id, true);
-                            item.apply_over(cx,live!{ // comment this out if debugging with labels
-                                show_bg: false,
-                            });
+                            // item.apply_over(cx,live!{ // comment this out if debugging with labels
+                            //     show_bg: false,
+                            // });
 
-                            // log!("Loading image for item {}", item_id);
+                            imageref.apply_over(cx, live!{
+                                draw_bg: {
+                                    texture_is_ready: 1.0
+                                }
+                            });
                         }                            
                     } else {
                         // No image data found, request it
-                        if item_id >= 20 && self.items_images_ready.get(&item_id).is_none() && self.waiting_for_images == 0 {
-                            let images_to_request = 25;
+                        if item_id >= INITIAL_IMAGE_SEARCH_REQUESTS && self.items_images_ready.get(&item_id).is_none() && self.waiting_for_images == 0 {
+                            let images_to_request = 20;
                             request_search_images(cx, item_id, images_to_request);
                             self.waiting_for_images = images_to_request;
                         }
+
+                        let imageref = item.image(id!(image));
+                        imageref.apply_over(cx, live!{
+                            draw_bg: {
+                                texture_is_ready: 0.0
+                            }
+                        });
+
                     }
 
                     // log!("🎨 🎨 🎨 {}", item_id);

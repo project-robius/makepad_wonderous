@@ -72,7 +72,7 @@ const GREAT_WALL_QUERY: (&str, &str) = (
 // }
 
 pub fn request_search_images(cx: &mut Cx, offset: usize, limit: usize) {
-    println!("Requesting at {offset}");
+    // makepad_widgets::log!("Requesting at {offset}");
     let request_id = live_id!(image_search);
     for artifact in SEARCH_DATA.iter().skip(offset).take(limit) {
         let url = format!(
