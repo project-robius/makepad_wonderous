@@ -10,10 +10,12 @@ const INITIAL_IMAGE_SEARCH_REQUESTS: usize = 20;
 //      - ✓ make sure there's always a buffer of images loaded so that scrolling is smooth.     
 //      - ✓ make sure responses correspond to their widget, or at least make sure the images are only loaded once into the cache.  
 //
+//  - Add navigation back to the artifacts screen
+//
 //  - Performance
 //      - ✓ recycle widgets instances in StaggeredGrid instead of creating new ones endlessly
 //      - ✓ add a spinner images loading on slow networks
-//      - android is leaking graphics memory
+//      - ✓ android is leaking graphics memory
 //      - fix small visual issues when recycling
 //
 //  - Platforms
