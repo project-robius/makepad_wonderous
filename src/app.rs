@@ -18,6 +18,7 @@ live_design! {
     import crate::gallery::gallery_screen::*;
     import crate::gallery::gallery_image_slider::*;
     import crate::artifacts::artifacts_screen::*;
+    import crate::artifacts::artifacts_gallery::*;
     import crate::timeline::timeline_screen::*;
     import crate::timeline::global_timeline::*;
     import crate::shared::custom_radio_button::*;
@@ -72,7 +73,7 @@ live_design! {
         ]
 
         ui: <Window> {
-            window: {position: vec2(0, 0), inner_size: vec2(375, 813)},
+            window: {position: vec2(1000, 8000), inner_size: vec2(375, 813)},
             pass: {clear_color: #2A}
 
             body = {
@@ -218,6 +219,44 @@ live_design! {
                             global_timeline = <GlobalTimelineScreen> {}
                         }
                     }
+                    artifact_gallery_view = <StackNavigationView> {
+                        show_bg: true
+                        draw_bg: {
+                            color: #1f1b18
+                        }
+                        header = {
+                            height: Fit
+                            show_bg: false,
+                            content = {
+                                align: {x: 0.5, y: 0.5}
+                                title_container = {
+                                    spacing: 5.0
+                                    flow: Down
+                                    title = {
+                                        draw_text:{
+                                            text_style: <SUBTITLE_CAPTION>{font_size: 10},
+                                            color: #fff
+                                        }
+                                        text: "BROWSE ARTIFACTS"
+                                    },
+                                    wonder_name = <Label> {
+                                        draw_text:{
+                                            text_style: <SUBTITLE_CAPTION>{font_size: 12},
+                                            color: #e6945c,
+                                        }
+                                        text: "THE GREAT WALL"
+                                    }
+                                },
+                                button_container = {
+                                    margin: {left: 10., top: 10}
+                                }
+                            }
+                        }
+                        body = {
+                            show_bg: false,
+                            image_slider = <ArtifactsGallery> {}
+                        }
+                    }
                 }
             }
         }
@@ -246,6 +285,8 @@ impl LiveRegister for App {
         crate::shared::curved_label::live_design(cx);
         crate::shared::custom_radio_button::live_design(cx);
         crate::shared::helpers::live_design(cx);
+        crate::shared::icon::live_design(cx);
+        crate::shared::staggered_grid::live_design(cx);
 
         // Wonder
         crate::wonder::rotating_title::live_design(cx);
@@ -266,6 +307,8 @@ impl LiveRegister for App {
         // Artifacts
         crate::artifacts::artifacts_screen::live_design(cx);
         crate::artifacts::artifacts_carrousel::live_design(cx);
+        crate::artifacts::artifacts_gallery::live_design(cx);
+        crate::artifacts::grid_image::live_design(cx);
 
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
@@ -318,6 +361,21 @@ impl MatchEvent for App {
             }
 
             self.ui.redraw(cx);
+        }
+
+        // FIXME: Ideally this would be within the ArtifactsScreen,
+        // however making ArtifactsScreen into a Widget instead of a simple View,
+        // breaks the stack navigation layout for some reason
+        if self
+            .ui.button(id!(browse_artifacts_button))
+            .clicked(actions)
+        {
+            let widget_uid = self.ui.widget_uid();
+            cx.widget_action(
+                widget_uid,
+                &Scope::empty().path,
+                StackNavigationAction::NavigateTo(live_id!(artifact_gallery_view)),
+            );
         }
 
         let mut navigation = self.ui.stack_navigation(id!(navigation));

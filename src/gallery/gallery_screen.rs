@@ -1,12 +1,12 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
 
+use crate::shared::network_images_cache::NetworkImageCache;
+
 use super::{
     gallery_image::{GalleryImage, GalleryImageId},
     GALLERY_IMAGE_URLS,
 };
-
-use std::collections::HashMap;
 
 pub const IMAGE_WIDTH: f64 = 270.;
 pub const IMAGE_HEIGHT: f64 = 430.;
@@ -225,14 +225,12 @@ impl Widget for Gallery {
             } {
                 let is_center_image = image_idu64 == (GALLERY_IMAGE_URLS.len() / 2) as u64;
 
-                let blob = {
+                let cached_image_data = {
                     cx.get_global::<NetworkImageCache>()
-                        .map
                         .get(&LiveId::from_str(&image_id))
                 };
 
-                if let Some(blob) = blob {
-                    let image_data = blob.clone();
+                if let Some(image_data) = cached_image_data {
                     if !gallery_image.is_image_ready() {
                         let _ = gallery_image.load_jpg_from_data(cx, &image_data);
 
@@ -259,21 +257,24 @@ impl Widget for Gallery {
 impl MatchEvent for Gallery {
     fn handle_network_responses(&mut self, cx: &mut Cx, responses: &NetworkResponsesEvent) {
         for event in responses {
-            match &event.response {
-                NetworkResponse::HttpResponse(response) => {
-                    if response.status_code == 200 {
-                        if let Some(body) = response.get_body() {
-                            cx.get_global::<NetworkImageCache>()
-                                .map
-                                .insert(event.request_id, body.clone());
-                            self.redraw(cx);
+            if event.request_id == live_id!(gallery_image) {
+                match &event.response {
+                    NetworkResponse::HttpResponse(response) => {
+                        if response.status_code == 200 {
+                            if let Some(body) = response.get_body() {
+                                cx.get_global::<NetworkImageCache>()
+                                    .insert(response.metadata_id, body);
+                                self.redraw(cx);
+                            }
+                        } else {
+                            error!("Error fetching gallery image: {:?}", response);
                         }
                     }
+                    NetworkResponse::HttpRequestError(error) => {
+                        println!("Error fetching gallery image: {:?}", error);
+                    }
+                    _ => (),
                 }
-                NetworkResponse::HttpRequestError(error) => {
-                    println!("Error fetching gallery image: {:?}", error);
-                }
-                _ => (),
             }
         }
     }
@@ -445,8 +446,9 @@ impl Gallery {
                 "{}/{}-{}.jpg",
                 ASSETS_BASE_URL, url, 800
             );
-            let request_id = LiveId::from_str(url);
-            let request = HttpRequest::new(full_url, HttpMethod::GET);
+            let request_id = live_id!(gallery_image);
+            let mut request = HttpRequest::new(full_url, HttpMethod::GET);
+            request.metadata_id = LiveId::from_str(url);
             cx.http_request(request_id, request);
         };
     
@@ -477,16 +479,4 @@ impl GalleryRef {
 pub enum GalleryGridAction {
     None,
     Selected(i64),
-}
-
-pub struct NetworkImageCache {
-    pub map: HashMap<LiveId, Vec<u8>>,
-}
-
-impl NetworkImageCache {
-    pub fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
-    }
 }

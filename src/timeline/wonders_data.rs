@@ -64,6 +64,7 @@ impl WonderType {
     }
 }
 
+#[allow(unused)]
 pub struct WonderData {
     pub wonder_type: WonderType,
     pub start_year: i32,
