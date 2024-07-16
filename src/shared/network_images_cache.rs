@@ -1,7 +1,8 @@
 use std::{collections::{HashMap, VecDeque}, rc::Rc};
 
 use makepad_widgets::LiveId;
-const DEFAULT_CAPACITY_BYTES: usize = 25 * 1024 * 1024; // 25 MB
+// TODO: reduce the default capacity once all visual bugs are fixed.
+const DEFAULT_CAPACITY_BYTES: usize = 50 * 1024 * 1024; // 50 MB
 
 pub struct NetworkImageCache {
     map: HashMap<LiveId, Rc<[u8]>>,

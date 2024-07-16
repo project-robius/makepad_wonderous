@@ -7,19 +7,12 @@ const INITIAL_IMAGE_SEARCH_REQUESTS: usize = 20;
 
 // TODO
 //  - Network
-//      - ✓ make sure there's always a buffer of images loaded so that scrolling is smooth.     
-//      - ✓ make sure responses correspond to their widget, or at least make sure the images are only loaded once into the cache.  
+//      - improve fetching and add biderectional fetching based on current position and availability (reduce cache size)
 //
 //  - Add navigation back to the artifacts screen
 //
 //  - Performance
-//      - ✓ recycle widgets instances in StaggeredGrid instead of creating new ones endlessly
-//      - ✓ add a spinner images loading on slow networks
-//      - ✓ android is leaking graphics memory
 //      - fix small visual issues when recycling
-//
-//  - Platforms
-//      - ✓ random text bug in wasm and android
 //
 //  - Timeline navigator
 //      - the grid range represents the timeline of artifacts
