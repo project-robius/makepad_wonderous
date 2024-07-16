@@ -72,31 +72,18 @@ live_design! {
         align: {x: 0.5, y: 0.0},
         spacing: 10.0,
 
-        header = <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 10},
-                color: #fff
-            }
-            text: "BROWSE ARTIFACTS"
-        }
-        wonder_name = <Label> {
-            draw_text:{
-                text_style: <SUBTITLE_CAPTION>{font_size: 12},
-                color: #e6945c,
-            }
-            text: "THE GREAT WALL"
-        }
-
         SearchBar = <RoundedView> {
-            width: Fit,
-            height: Fit,
+            // FIXME: find a better way to override the height and spacing between stack navigation header and body
+            margin: {top: 25., left: 15., right: 15.},
+            width: Fill,
+            height: 40.,
     
             show_bg: true,
             draw_bg: {
                 color: #fff
             }
     
-            padding: {top: 3, bottom: 3, left: 20, right: 20}
+            padding: {top: 3, bottom: 3, left: 8}
     
             spacing: 4,
             align: {x: 0.0, y: 0.5},
@@ -114,13 +101,15 @@ live_design! {
                         return #666;
                     }
                 }
-                icon_walk: {width: 14, height: Fit}
+                icon_walk: {width: Fit, height: 14}
             }
     
             input = <CustomTextInput> {
                 width: 270,
                 height: Fit,
-    
+                // FIXME: this is a hack to make the text properly align with the icon. 
+                // align: {x: 0.0, y: 0.5}, is not enough.
+                padding: {top: 13.}
                 empty_message: "Search (ex. type or material)"
     
                 draw_text: {

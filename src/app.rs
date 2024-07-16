@@ -88,9 +88,9 @@ live_design! {
                             margin: 0.0,
                             padding: 0.0
 
-                            tab1_frame = <WonderScreen> {visible: false}
+                            tab1_frame = <WonderScreen> {visible: true}
                             tab2_frame = <GalleryScreen> {visible: false}
-                            tab3_frame = <ArtifactsScreen> {visible: true}
+                            tab3_frame = <ArtifactsScreen> {visible: false}
                             tab4_frame = <TimelineScreen> {visible: false}
                         }
 
@@ -225,12 +225,30 @@ live_design! {
                             color: #1f1b18
                         }
                         header = {
+                            height: Fit
                             show_bg: false,
                             content = {
+                                align: {x: 0.5, y: 0.5}
                                 title_container = {
+                                    spacing: 5.0
+                                    flow: Down
                                     title = {
-                                        text: " "
+                                        draw_text:{
+                                            text_style: <SUBTITLE_CAPTION>{font_size: 10},
+                                            color: #fff
+                                        }
+                                        text: "BROWSE ARTIFACTS"
+                                    },
+                                    wonder_name = <Label> {
+                                        draw_text:{
+                                            text_style: <SUBTITLE_CAPTION>{font_size: 12},
+                                            color: #e6945c,
+                                        }
+                                        text: "THE GREAT WALL"
                                     }
+                                },
+                                button_container = {
+                                    margin: {left: 10., top: 10}
                                 }
                             }
                         }
