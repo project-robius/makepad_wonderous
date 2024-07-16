@@ -1,6 +1,5 @@
 use makepad_widgets::widget::WidgetCache;
 use makepad_widgets::*;
-use std::rc::Rc;
 
 use crate::shared::network_images_cache::NetworkImageCache;
 

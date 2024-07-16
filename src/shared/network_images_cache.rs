@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, VecDeque}, rc::Rc};
+use std::{
+    collections::{HashMap, VecDeque},
+    rc::Rc,
+};
 
 use makepad_widgets::LiveId;
 // TODO: reduce the default capacity once all visual bugs are fixed.
