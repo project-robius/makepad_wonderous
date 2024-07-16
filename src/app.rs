@@ -290,6 +290,7 @@ impl LiveRegister for App {
         crate::artifacts::artifacts_screen::live_design(cx);
         crate::artifacts::artifacts_carrousel::live_design(cx);
         crate::artifacts::artifacts_gallery::live_design(cx);
+        crate::artifacts::grid_image::live_design(cx);
 
         // Timeline
         crate::timeline::timeline_screen::live_design(cx);
