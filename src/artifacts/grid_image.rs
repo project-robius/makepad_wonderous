@@ -18,7 +18,7 @@ live_design! {
             width: Fill,
             height: Fill
             min_width: 100,
-            min_height: 300,
+            min_height: 350,
             fit: Horizontal,
             draw_bg: {
                 instance hover: 0.0
@@ -26,20 +26,21 @@ live_design! {
 
                 instance texture_is_ready: 0.0
                 instance spinner_angle: 0.0
+                instance opacity: 0.0
 
                 fn pixel(self) -> vec4 {
                     if self.texture_is_ready > 0.5 {
                         let sdf = Sdf2d::viewport(self.pos * self.rect_size)
                         sdf.box(1, 1, self.rect_size.x - 2, self.rect_size.y - 2, 4.0)
+                       
                         let max_scale = vec2(0.92);
                         let scale = mix(vec2(1.0), max_scale, self.hover);
                         let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.hover);
+                        
                         let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
-                        sdf.fill_keep(color);
-                        sdf.stroke(
-                            mix(mix(#x0000, #x0006, self.hover), #xfff2, self.down),
-                            1.0
-                        )
+                        let final_color = Pal::premul(vec4(color.xyz, color.w * self.opacity));
+                        sdf.fill_keep(final_color);
+
                         return sdf.result
                     }
 
@@ -90,6 +91,28 @@ live_design! {
                     }
                 }
             }
+
+            fade_in = {
+                default: off
+                off = {
+                    from: {
+                        ease: OutExp,
+                        all: Forward {duration: 0.4}
+                    }
+                    apply: {
+                        image = {draw_bg: {opacity: 0.0}}
+                    }
+                }
+                on = {
+                    from: {
+                        ease: OutExp,
+                        all: Forward {duration: 0.9}
+                    }
+                    apply: {
+                        image = { draw_bg: {opacity: 1.0} }
+                    }
+                }
+            }
         }
     }
 }
@@ -130,5 +153,13 @@ impl Widget for GridImage {
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         self.view.draw_walk(cx, scope, walk)
+    }
+}
+
+impl GridImageRef {
+    pub fn set_animator_play(&mut self, cx: &mut Cx, id: &[LiveId; 2]) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.animator_play(cx, id);
+        }
     }
 }
