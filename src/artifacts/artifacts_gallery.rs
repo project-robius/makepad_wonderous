@@ -2,14 +2,12 @@ use makepad_widgets::*;
 use std::collections::HashMap;
 use crate::shared::{network_images_cache::NetworkImageCache, staggered_grid::{StaggeredGridWidgetRefExt, WidgetAllocationStatus}};
 
-use super::data::{great_wall_search_data::SEARCH_DATA, image_search::request_search_images};
+use super::{data::{great_wall_search_data::SEARCH_DATA, image_search::request_search_images}, grid_image::GridImageWidgetRefExt};
 const INITIAL_IMAGE_SEARCH_REQUESTS: usize = 20;
 
 // TODO
 //  - Network
 //      - improve fetching and add biderectional fetching based on current position and availability (reduce cache size)
-//
-//  - Add navigation back to the artifacts screen
 //
 //  - Performance
 //      - fix small visual issues when recycling
@@ -240,6 +238,7 @@ impl Widget for ResultsGrid {
                             //     show_bg: false,
                             // });
 
+                            item.as_grid_image().set_animator_play(cx, id!(fade_in.on));
                             imageref.apply_over(cx, live!{
                                 draw_bg: {
                                     texture_is_ready: 1.0
@@ -254,6 +253,7 @@ impl Widget for ResultsGrid {
                             self.waiting_for_images = images_to_request;
                         }
 
+                        item.as_grid_image().set_animator_play(cx, id!(fade_in.off));
                         let imageref = item.image(id!(image));
                         imageref.apply_over(cx, live!{
                             draw_bg: {
