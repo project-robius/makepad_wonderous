@@ -270,14 +270,12 @@ impl StaggeredGrid {
                     self.most_recent_viewport = viewport;
 
                     let mut first_visible_column = 0;
-                    // FIXME: for some reason the grid starts with 0 in the right-most column,
-                    // instead of the left-most one.
                     for (i, column) in self.columns.iter_mut().enumerate() {
                         // Cleanup: maybe we can repalce this with a first_visible_item_column
                         // and update it in delta_top_scroll
                         column.height = viewport.pos.y + column.first_item_offset;
                        
-                        if column.first_visible_item == self.first_visible_item {
+                        if column.first_visible_item == self.first_visible_item && self.first_visible_item != 0 {
                             first_visible_column = i;
                         }
                     }
@@ -560,6 +558,19 @@ impl StaggeredGrid {
             }
             self.update_scroll_bar(cx);
         }
+    }
+
+    /// Resets the grid by clearing all items and columns, scrolls to the top reseting any existing scroll state.
+    pub fn reset_and_scroll_top(&mut self, cx: &mut Cx) {
+        self.currently_visible_items.clear();
+
+        self.item_columns.clear();
+        self.columns = vec![Column::default(); self.columns_number];
+
+        self.clean_up_old_items();
+        self.draw_align_list.clear();
+        self.scroll_state = ScrollState::Stopped;
+        self.delta_top_scroll(cx, 0.0, true);
     }
     
     pub fn update_scroll_bar(&mut self, cx: &mut Cx) {

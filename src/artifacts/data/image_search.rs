@@ -1,11 +1,12 @@
-use crate::artifacts::data::great_wall_search_data::SEARCH_DATA;
 use makepad_widgets::{live_id, Cx, HttpMethod, HttpRequest, LiveId};
+
+use super::great_wall_search_data::SearchData;
 
 const BASE_ARTIFACT_URI: &str = "https://www.wonderous.info/met";
 
-pub fn request_search_images(cx: &mut Cx, offset: usize, limit: usize) {
+pub fn request_search_images(cx: &mut Cx, search_data: &Vec<SearchData>, offset: usize, limit: usize) {
     let request_id = live_id!(image_search);
-    for artifact in SEARCH_DATA.iter().skip(offset).take(limit) {
+    for artifact in search_data.iter().skip(offset).take(limit) {
         let url = format!(
             "{}/{}_{}.jpg", // base_uri/id_size.jpg
             BASE_ARTIFACT_URI, artifact.id, 600
