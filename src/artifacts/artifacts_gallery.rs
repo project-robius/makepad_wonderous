@@ -2,8 +2,9 @@ use makepad_widgets::*;
 use std::collections::HashMap;
 use crate::shared::{network_images_cache::NetworkImageCache, staggered_grid::{StaggeredGridWidgetRefExt, WidgetAllocationStatus}};
 
-use super::{data::{great_wall_search_data::SEARCH_DATA, image_search::request_search_images}, grid_image::GridImageWidgetRefExt};
+use super::{data::{great_wall_search_data::{SearchData, SEARCH_DATA}, image_search::request_search_images}, grid_image::GridImageWidgetRefExt};
 const INITIAL_IMAGE_SEARCH_REQUESTS: usize = 20;
+const MAX_ITEMS_IN_TIMEFRAME: usize = 222;
 
 // TODO
 //  - Network
@@ -125,12 +126,12 @@ live_design! {
         }
 
         search_results = <Label> {
-            margin: { bottom: 5.0 }
+            margin: { bottom: 5.0, top: 1.0 }
             draw_text: {
                 text_style: <SUBTITLE_CAPTION>{font_size: 9},
                 color: #e6945c,
             }
-            text: "489 artifacts found, 277 in timeframe"
+            text: "489 artifacts found, 222 in timeframe"
         }
 
         results_grid = <ResultsGrid> {}
@@ -191,17 +192,33 @@ impl MatchEvent for ResultsGrid {
 
 impl Widget for ResultsGrid {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        self.last_drawn_items = vec![];
+
+        let search_results = scope.props.get::<ArtifactSearchResults>().unwrap();
+        let mut new_scope = Scope::empty();
+        if search_results.data.is_empty() {
+            return DrawStep::done();
+        }
+        
+        if search_results.changed {
+            self.did_initial_image_request = false;
+            self.items_artifacts_ids.clear();
+            self.items_images_ready.clear();
+            self.waiting_for_images = 0;
+        }
+
         if self.did_initial_image_request == false {
-            request_search_images(cx, 0, INITIAL_IMAGE_SEARCH_REQUESTS);
+            request_search_images(cx, &search_results.data, 0, INITIAL_IMAGE_SEARCH_REQUESTS);
             self.did_initial_image_request = true;
         }
 
-        self.last_drawn_items = vec![];
-
-        while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
+        while let Some(item) = self.view.draw_walk(cx, &mut new_scope, walk).step() {
             if let Some(mut list) = item.as_staggered_grid().borrow_mut() {
                 list.set_repurpose_inactive_widgets(true);
-                let range_end = SEARCH_DATA.len() as usize - 1;
+                let range_end = (search_results.data.len() as usize - 1).min(MAX_ITEMS_IN_TIMEFRAME);
+                if search_results.changed {
+                    list.reset_and_scroll_top(cx);
+                }
 
                 let mut first_drawn_item = None;
                 list.set_item_range(cx, 0, range_end);
@@ -219,7 +236,7 @@ impl Widget for ResultsGrid {
                     let (item, widget_status) = list.item(cx, item_id, template).unwrap();
 
                     if !self.items_artifacts_ids.contains_key(&item_id) {
-                        let artifact_id = SEARCH_DATA[item_id as usize].id.clone();
+                        let artifact_id = search_results.data[item_id as usize].id.clone();
                         self.items_artifacts_ids.insert(item_id, artifact_id.to_string());
                     }
                     let artifact_id = self.items_artifacts_ids.get(&item_id).unwrap();
@@ -231,8 +248,12 @@ impl Widget for ResultsGrid {
     
                     if let Some(image_data) = cached_image_data {
                         let imageref = item.image(id!(image));
+                        
                         // If the GridImage is uninitialized or dirty
-                        if self.items_images_ready.get(&item_id).is_none() || widget_status == WidgetAllocationStatus::Repurposed {
+                        if self.items_images_ready.get(&item_id).is_none() 
+                            || widget_status == WidgetAllocationStatus::Repurposed
+                            || search_results.changed {
+
                             let _ = imageref.load_jpg_from_data(cx, &image_data);
                             self.items_images_ready.insert(item_id, true);
                             // item.apply_over(cx,live!{ // comment this out if debugging with labels
@@ -261,7 +282,7 @@ impl Widget for ResultsGrid {
                         // No image data found, request it
                         if item_id >= INITIAL_IMAGE_SEARCH_REQUESTS && self.items_images_ready.get(&item_id).is_none() && self.waiting_for_images == 0 {
                             let images_to_request = 20;
-                            request_search_images(cx, item_id, images_to_request);
+                            request_search_images(cx, &search_results.data, item_id, images_to_request);
                             self.waiting_for_images = images_to_request;
                         }
 
@@ -276,8 +297,8 @@ impl Widget for ResultsGrid {
                     }
 
                     // log!("🎨 🎨 🎨 {}", item_id);
-                    // item.label(id!(lbl)).set_text(&format!("{item_id}")); // debugging
-                    item.draw_all(cx, scope);
+                    // item.label(id!(lbl)).set_text(&format!("{artifact_id}")); // debugging
+                    item.draw_all(cx, &mut new_scope);
 
                     self.last_drawn_items.push(item_id);
 
@@ -314,12 +335,49 @@ impl ResultsGrid {
 pub struct ArtifactsGallery {
     #[deref]
     view: View,
+
+    #[rust]
+    results: Vec<SearchData>,
+    #[rust]
+    results_changed: bool,
 }
 
-impl LiveHook for ArtifactsGallery {}
+impl LiveHook for ArtifactsGallery {
+    fn after_new_from_doc(&mut self, _cx:&mut Cx) {
+        self.results = SEARCH_DATA.to_vec();
+    }
+}
 
 impl MatchEvent for ArtifactsGallery {
     fn handle_actions(&mut self, _cx: &mut Cx, actions: &Actions) {
+        if let Some(keywords) = self.text_input(id!(input)).changed(actions) {
+            self.results = SEARCH_DATA.to_vec();
+            
+            if !keywords.is_empty() {
+                let previous_results_len = self.results.len();
+                self.results.retain(|artifact| {
+                    artifact.tags.to_lowercase().contains(&keywords)
+                        || artifact.title.to_lowercase().contains(&keywords)
+                });
+
+                if previous_results_len != self.results.len() {
+                    self.results_changed = true;
+                }
+            } else {
+                self.results_changed = true;
+            }
+
+            if self.results.is_empty() {
+                self.view.label(id!(search_results)).set_text("No artifacts found");
+            } else {
+                let results_text = &format!("{} artifacts found, {} in timeframe", 
+                    self.results.len(),
+                    self.results.len().min(MAX_ITEMS_IN_TIMEFRAME),
+                );
+                self.view.label(id!(search_results)).set_text(&results_text);
+            }
+        }
+
         let results_grid = self.view.portal_list_set(ids!(results_grid.list));
         for (item_id, item) in results_grid.items_with_actions(&actions) {
             if item.button(id!(likes)).clicked(&actions) {
@@ -335,9 +393,21 @@ impl Widget for ArtifactsGallery {
         self.view.handle_event(cx, event, scope);
     }
 
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        self.view.draw_walk(cx, scope, walk)
+    fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
+        let binding = ArtifactSearchResults {
+            data: self.results.clone(),
+            changed: self.results_changed,
+        };
+
+        let mut scope = Scope::with_props(&binding);
+        self.results_changed = false;
+        self.view.draw_walk(cx, &mut scope, walk)
     }
+}
+
+struct ArtifactSearchResults {
+    data: Vec<SearchData>,
+    changed: bool,
 }
 
 

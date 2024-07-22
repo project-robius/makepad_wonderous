@@ -1,4 +1,5 @@
 #[allow(dead_code)]
+#[derive(Clone)]
 pub struct SearchData {
     pub id: i32,
     pub accession_number: i32,
