@@ -560,6 +560,21 @@ impl StaggeredGrid {
         }
     }
 
+    pub fn set_columns_number(&mut self, cx: &mut Cx, columns_number: usize) {
+        if self.columns_number != columns_number {
+            self.columns_number = columns_number;
+            self.currently_visible_items.clear();
+    
+            self.item_columns.clear();
+            self.columns = vec![Column::default(); self.columns_number];
+    
+            self.clean_up_old_items();
+            self.draw_align_list.clear();
+            self.scroll_state = ScrollState::Stopped;
+            self.delta_top_scroll(cx, 0.0, true);
+        }
+    }
+
     /// Resets the grid by clearing all items and columns, scrolls to the top reseting any existing scroll state.
     pub fn reset_and_scroll_top(&mut self, cx: &mut Cx) {
         self.currently_visible_items.clear();
