@@ -14,12 +14,17 @@ live_design! {
     const SCALE = 1.0  // bigger scale = smaller spinner
 
     GridImage = {{GridImage}}<RoundedView> {
+        width: Fill,
+        height: Fill
+        show_bg: true
+        draw_bg: {
+            instance radius: 4.0
+        }
+
         image = <Image> {
             width: Fill,
             height: Fill
-            min_width: 100,
-            min_height: 350,
-            fit: Horizontal,
+            fit: Stretch,
             draw_bg: {
                 instance hover: 0.0
                 instance down: 0.0
@@ -27,21 +32,48 @@ live_design! {
                 instance texture_is_ready: 0.0
                 instance spinner_angle: 0.0
                 instance opacity: 0.0
+                instance scale: 0.0
+                instance radius: 4.0
+                instance image_pan: vec2(0.5, 0.5)
+                instance source_size_w: 1.0
+                instance source_size_h: 1.0
+                instance target_size_w: 1.0
+                instance target_size_h: 1.0
+
+                fn get_color_scale_pan_2(self) -> vec4 {
+                    let source_aspect_ratio = self.source_size_w / self.source_size_h;
+                    let target_aspect_ratio = self.target_size_w / self.target_size_h;
+                
+                    let scale = vec2(1.0);
+                    if source_aspect_ratio > self.target_size_w / self.target_size_h {
+                        scale = vec2(target_aspect_ratio / source_aspect_ratio, 1.0);
+                    } else {
+                        scale = vec2(1.0, source_aspect_ratio / target_aspect_ratio);
+                    }
+                
+                    let pan_range = max(vec2(0.0, 0.0), vec2(1.0, 1.0) - scale);
+                    let adjusted_pan = self.image_pan * pan_range;
+                    let adjusted_pos = (self.pos * scale) + adjusted_pan;
+                
+                    return sample2d(self.image, adjusted_pos).xyzw;
+                }
 
                 fn pixel(self) -> vec4 {
                     if self.texture_is_ready > 0.5 {
-                        let sdf = Sdf2d::viewport(self.pos * self.rect_size)
-                        sdf.box(1, 1, self.rect_size.x - 2, self.rect_size.y - 2, 4.0)
-                       
-                        let max_scale = vec2(0.92);
-                        let scale = mix(vec2(1.0), max_scale, self.hover);
-                        let pan = mix(vec2(0.0), (vec2(1.0) - max_scale) * 0.5, self.hover);
-                        
-                        let color = self.get_color_scale_pan(scale, pan) + mix(vec4(0.0), vec4(0.1), self.down);
+                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                        sdf.box(
+                            1,
+                            1,
+                            self.rect_size.x - 2.0,
+                            self.rect_size.y - 2.0,
+                            max(1.0, self.radius)
+                        );
+                    
+                        let color = self.get_color_scale_pan_2();
                         let final_color = Pal::premul(vec4(color.xyz, color.w * self.opacity));
+                    
                         sdf.fill_keep(final_color);
-
-                        return sdf.result
+                        return sdf.result;
                     }
 
                     // If the texture isn't ready, draw the spinner
@@ -152,6 +184,16 @@ impl Widget for GridImage {
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        let rect = cx.peek_walk_turtle(walk);
+
+        let w = rect.size.x;
+        let h = walk.height.fixed_or_zero();
+        self.view.image(id!(image)).apply_over(cx, live!{
+            draw_bg: {
+                target_size_w: (w),
+                target_size_h: (h), 
+            }
+        });
         self.view.draw_walk(cx, scope, walk)
     }
 }

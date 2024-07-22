@@ -363,7 +363,7 @@ impl MatchEvent for App {
             self.ui.redraw(cx);
         }
 
-        // FIXME: Ideally this would be within the ArtifactsScreen,
+        // TODO: Ideally this would be within the ArtifactsScreen,
         // however making ArtifactsScreen into a Widget instead of a simple View,
         // breaks the stack navigation layout for some reason
         if self

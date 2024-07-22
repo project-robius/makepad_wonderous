@@ -41,12 +41,8 @@ live_design! {
     SEARCH_ICON = dep("crate://self/resources/icons/search.svg")
 
     FlexibleImageContainer = <GridImage> {
-        height: Fit
+        width: Fill
         show_bg: true,
-        draw_bg: {
-            // color: #0f0e0c
-            instance radius: 4.0,
-        }
         // lbl = <Label> { // debugging
         //     draw_text:{
         //         text_style: <SUBTITLE_CAPTION>{font_size: 12},
@@ -60,7 +56,19 @@ live_design! {
         list = <StaggeredGrid>{
             columns_number: 2
             column_spacing: 5.0
-            ImageContainer = <FlexibleImageContainer> {}
+            
+            ImageContainerTall = <FlexibleImageContainer> {
+                height: 300.0  // Aspect ratio ~0.6
+            }
+            ImageContainerSquarish = <FlexibleImageContainer> {
+                height: 200.0  // Aspect ratio ~1.0
+            }
+            ImageContainerWide = <FlexibleImageContainer> {
+                height: 150.0  // Aspect ratio ~1.5
+            }
+            ImageContainerVeryWide = <FlexibleImageContainer> {
+                height: 100.0  // Aspect ratio ~2.0
+            }
         }
     }
 
@@ -71,7 +79,7 @@ live_design! {
         spacing: 10.0,
 
         SearchBar = <RoundedView> {
-            // FIXME: find a better way to override the height and spacing between stack navigation header and body
+            // TODO: find a better way to override the height and spacing between stack navigation header and body
             margin: {top: 25., left: 15., right: 15.},
             width: Fill,
             height: 40.,
@@ -207,15 +215,7 @@ impl Widget for ResultsGrid {
                         first_drawn_item = Some(item_id);
                     }
 
-                    // let template = match item_id {
-                    // // let template = match random_number() {
-                    //     x if x % 4 == 0 => live_id!(ShortElement),
-                    //     x if x % 4 == 1 => live_id!(MediumElement),
-                    //     x if x % 4 == 2 => live_id!(MediumElement_2),
-                    //     _ => live_id!(LongElement),
-                    // };
-
-                    let template = live_id!(ImageContainer);
+                    let template = self.get_template_for_item(item_id);
                     let (item, widget_status) = list.item(cx, item_id, template).unwrap();
 
                     if !self.items_artifacts_ids.contains_key(&item_id) {
@@ -231,6 +231,7 @@ impl Widget for ResultsGrid {
     
                     if let Some(image_data) = cached_image_data {
                         let imageref = item.image(id!(image));
+                        // If the GridImage is uninitialized or dirty
                         if self.items_images_ready.get(&item_id).is_none() || widget_status == WidgetAllocationStatus::Repurposed {
                             let _ = imageref.load_jpg_from_data(cx, &image_data);
                             self.items_images_ready.insert(item_id, true);
@@ -244,6 +245,17 @@ impl Widget for ResultsGrid {
                                     texture_is_ready: 1.0
                                 }
                             });
+
+                            if let Some(dimensions) = get_jpeg_dimensions(&image_data) { 
+                                let w = dimensions.0 as f32;
+                                let h = dimensions.1 as f32;
+                                imageref.apply_over(cx, live!{
+                                    draw_bg: {
+                                        source_size_w: (w)
+                                        source_size_h: (h)
+                                    }
+                                });
+                            }
                         }                            
                     } else {
                         // No image data found, request it
@@ -284,6 +296,20 @@ impl Widget for ResultsGrid {
     }
 }
 
+impl ResultsGrid {
+    fn get_template_for_item(&self, item_id: usize) -> LiveId {
+        // This mimics the Flutter version: (data.id % 10) / 15 + 0.6
+        let aspect_ratio = (item_id % 10) as f64 / 15.0 + 0.6;
+        
+        match aspect_ratio {
+            r if r < 0.8 => live_id!(ImageContainerTall),
+            r if r < 1.2 => live_id!(ImageContainerSquarish),
+            r if r < 1.7 => live_id!(ImageContainerWide),
+            _ => live_id!(ImageContainerVeryWide),
+        }
+    }
+}
+
 #[derive(Widget, Live)]
 pub struct ArtifactsGallery {
     #[deref]
@@ -312,4 +338,24 @@ impl Widget for ArtifactsGallery {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         self.view.draw_walk(cx, scope, walk)
     }
+}
+
+
+// This function is a simple way to get the dimensions of a JPEG image without decoding the whole image.
+// TODO: We should find a way to do this within the Makepad Texture system to avoid having this logic on the application side.
+fn get_jpeg_dimensions(data: &[u8]) -> Option<(u16, u16)> {
+    if data.len() < 2 || data[0] != 0xFF || data[1] != 0xD8 {
+        return None; // Not a JPEG
+    }
+    
+    let mut i = 2;
+    while i + 8 < data.len() {
+        if data[i] == 0xFF && (0xC0..=0xCF).contains(&data[i + 1]) && data[i + 1] != 0xC4 && data[i + 1] != 0xC8 {
+            let height = u16::from_be_bytes([data[i + 5], data[i + 6]]);
+            let width = u16::from_be_bytes([data[i + 7], data[i + 8]]);
+            return Some((width, height));
+        }    
+        i += 1;
+    }
+    None
 }
