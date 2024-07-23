@@ -25,7 +25,6 @@ const MAX_ITEMS_IN_TIMEFRAME: usize = 222;
 //  - pre-allocate item sizes and then load the images into the items depending on their dimensions.
 //  - currently we cache the raw image data, but we could also cache the textures and re-use them.
 
-
 live_design! {
     import makepad_widgets::base::*;
     import makepad_widgets::theme_desktop_dark::*;
@@ -220,6 +219,9 @@ impl Widget for ResultsGrid {
                     list.reset_and_scroll_top(cx);
                 }
 
+                let columns_number = get_columns_number(cx.peek_walk_turtle(walk).size.x);
+                list.set_columns_number(cx, columns_number);
+
                 let mut first_drawn_item = None;
                 list.set_item_range(cx, 0, range_end);
                 while let Some(item_id) = list.next_visible_item(cx) {
@@ -408,6 +410,17 @@ impl Widget for ArtifactsGallery {
 struct ArtifactSearchResults {
     data: Vec<SearchData>,
     changed: bool,
+}
+
+/// Calculate the number of columns to use depending on the window width.
+fn get_columns_number(container_size: f64) -> usize {
+    match container_size {
+        0.0..=250.0 => 1,
+        250.0..=500.0 => 2,
+        500.0..=800.0 => 3,
+        800.0..=1000.0 => 4,
+        _ => 5
+    }
 }
 
 
