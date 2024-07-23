@@ -126,7 +126,8 @@ struct Column {
 #[derive(Default, Clone, Debug)]
 struct ColumnItem {
     pub index: usize,
-    pub size: DVec2
+    pub size: DVec2,
+    pub is_visible: bool,
 }
 
 struct AlignItem {
@@ -353,8 +354,19 @@ impl StaggeredGrid {
                         // If the item is already in the column (is not the first time we draw it) but shouldn't be the first visible item,
                         // we need to skip it and find the next valid item, regardless of column.
                         if current_col_already_has_this_item && !current_col_first_visible_is_this_item && !current_col_fist_visible_zero {
-                            valid_next_index += 1;
-                            current_column = self.find_column_for_item(valid_next_index);
+                            // Find the next valid item
+                            while valid_next_index < self.range_end {
+                                valid_next_index += 1;
+
+                                current_column = self.find_column_for_item(valid_next_index);
+                                let item = self.columns[current_column].items.iter().find(|item| item.index == valid_next_index);
+
+                                if let Some(item) = item {
+                                    if item.is_visible {
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -613,20 +625,30 @@ impl StaggeredGrid {
             let mut acc_height = self.scrolled_offset;
             let mut acc_items_height = 0.;
             column.first_visible_item = column.items.first().map(|item| item.index).unwrap_or(self.range_start);
-            for item in &column.items {
+            let first_column_item;
+            if let Some(item) = column.items.first() {
+                first_column_item = item.index;
+            } else {
+                continue;
+            }
+
+            for item in column.items.iter_mut() {
                 let item_size = item.size.index(self.vec_index);
                 acc_height += item_size + self.column_spacing;
                 acc_items_height += item_size + self.column_spacing;
                 if acc_height >= 0. {
                     column.first_visible_item = item.index;
                     
-                    if item.index == column.items.first().unwrap().index {
+                    if item.index == first_column_item {
                         column.first_item_offset = self.scrolled_offset;
                     } else {
                         column.first_item_offset = (-(item_size - (acc_items_height + self.scrolled_offset))).min(0.0);
                     }
-                    
+
+                    item.is_visible = true;
                     break;
+                } else {
+                    item.is_visible = false;
                 }
             }
         }
@@ -666,7 +688,8 @@ impl StaggeredGrid {
         } else {
             column.items.push(ColumnItem {
                 index,
-                size: prev_item_rect.size
+                size: prev_item_rect.size,
+                is_visible: true,
             });
         }
 
