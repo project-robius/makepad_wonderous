@@ -415,7 +415,8 @@ struct ArtifactSearchResults {
 /// Calculate the number of columns to use depending on the window width.
 fn get_columns_number(container_size: f64) -> usize {
     match container_size {
-        0.0..=500.0 => 2,
+        0.0..=250.0 => 1,
+        250.0..=500.0 => 2,
         500.0..=800.0 => 3,
         800.0..=1000.0 => 4,
         _ => 5
