@@ -458,6 +458,7 @@ impl StaggeredGrid {
                                     pos: total_height,
                                     viewport
                                 });
+                                self.last_drawn_column = 0;
                                 cx.begin_turtle(Walk {
                                     abs_pos: Some(dvec2(viewport.pos.x, viewport.pos.y + total_height)),
                                     margin: Default::default(),
@@ -535,10 +536,20 @@ impl StaggeredGrid {
             
             // Determine whether to create a new widget or repurpose an existing one
             let widget = if self.repurpose_inactive_widgets && self.items.len() >= self.max_active_widgets {
-                // Repurpose the least recently used widget
-                let oldest_key = self.items_usage_order.pop_back().unwrap();
-                allocation_status = WidgetAllocationStatus::Repurposed;
-                self.items.remove(&oldest_key).unwrap()
+                // Find the least recently used widget with the same template
+                if let Some(oldest_key) = self.items_usage_order.iter()
+                    .rev()
+                    .find(|&&(_, t)| t == template)
+                    .cloned()
+                {
+                    allocation_status = WidgetAllocationStatus::Repurposed;
+                    self.items_usage_order.retain(|&k| k != oldest_key);
+                    self.items.remove(&oldest_key).unwrap()
+                } else {
+                    // If no widget with the same template is found, create a new one
+                    allocation_status = WidgetAllocationStatus::Created;
+                    WidgetRef::new_from_ptr(cx, Some(*ptr))
+                }
             } else {
                 // Create a new widget
                 allocation_status = WidgetAllocationStatus::Created;
