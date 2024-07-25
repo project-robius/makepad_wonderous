@@ -248,9 +248,9 @@ impl Widget for ResultsGrid {
                             .get(&LiveId::from_str(&artifact_id))
                     };
     
-                    if let Some(image_data) = cached_image_data {
-                        let imageref = item.image(id!(image));
-                        
+                    let imageref = item.image(id!(image));
+    
+                    if let Some(image_data) = cached_image_data {                    
                         // If the GridImage is uninitialized or dirty
                         if self.items_images_ready.get(&item_id).is_none() 
                             || widget_status == WidgetAllocationStatus::Repurposed
@@ -289,7 +289,6 @@ impl Widget for ResultsGrid {
                         }
 
                         item.as_grid_image().set_animator_play(cx, id!(fade_in.off));
-                        let imageref = item.image(id!(image));
                         imageref.apply_over(cx, live!{
                             draw_bg: {
                                 texture_is_ready: 0.0
