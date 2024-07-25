@@ -645,8 +645,8 @@ impl StaggeredGrid {
 
             for item in column.items.iter_mut() {
                 let item_size = item.size.index(self.vec_index);
-                acc_height += item_size + self.column_spacing;
-                acc_items_height += item_size + self.column_spacing;
+                acc_height += item_size;
+                acc_items_height += item_size;
                 if acc_height >= 0. {
                     column.first_visible_item = item.index;
                     
@@ -677,7 +677,7 @@ impl StaggeredGrid {
         let max_column_height = self.columns.iter()
             .map(|col| {
                 col.items.iter()
-                    .map(|item| item.size.index(self.vec_index) + self.column_spacing)
+                    .map(|item| item.size.index(self.vec_index))
                     .sum::<f64>()
             })
             .max_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
