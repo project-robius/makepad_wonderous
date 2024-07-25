@@ -295,7 +295,7 @@ impl StaggeredGrid {
                         viewport,
                     });
                 
-                    let column_width = viewport.size.x / self.columns.len() as f64;
+                    let column_width = self.column_width(viewport);
                     let abs_pos = dvec2(
                         viewport.pos.x + (first_visible_column as f64 * column_width),
                         viewport.pos.y + self.columns[first_visible_column].first_item_offset,
@@ -308,7 +308,7 @@ impl StaggeredGrid {
                     cx.begin_turtle(Walk {
                         abs_pos: Some(abs_pos),
                         margin: Default::default(),
-                        width: Size::Fixed(self.column_width(viewport)),
+                        width: Size::Fixed(column_width),
                         height: Size::Fit
                     }, self.layout_with_spacing());
 
@@ -388,7 +388,7 @@ impl StaggeredGrid {
                                 margin: Default::default(),
                                 width: Size::Fixed(self.column_width(viewport)),
                                 height: Size::Fit
-                            }, Layout::flow_down());
+                            }, self.layout_with_spacing());
 
                             self.add_to_visibles_list(self.first_visible_item);
                             return Some(self.first_visible_item);
@@ -414,7 +414,7 @@ impl StaggeredGrid {
                     }
 
                     // All columns are the same width
-                    let column_width = viewport.size.x / self.columns.len() as f64;
+                    let column_width = self.column_width(viewport);
                     let new_item_abs_pos = dvec2(
                         viewport.pos.x + (current_column as f64 * column_width), // x position based on current column
                         self.columns[current_column].height,    // y position based on accumulated height
@@ -429,7 +429,7 @@ impl StaggeredGrid {
                     cx.begin_turtle(Walk {
                         abs_pos: Some(new_item_abs_pos),
                         margin: Default::default(),
-                        width: Size::Fixed(self.column_width(viewport)),
+                        width: Size::Fixed(column_width),
                         height: Size::Fit
                     }, self.layout_with_spacing());
 
@@ -464,7 +464,7 @@ impl StaggeredGrid {
                                     margin: Default::default(),
                                     width: Size::Fixed(self.column_width(viewport)),
                                     height: Size::Fit
-                                }, Layout::flow_down());
+                                }, self.layout_with_spacing());
 
                                 self.add_to_visibles_list(last_index + 1);
                                 return Some(last_index + 1);
@@ -490,7 +490,7 @@ impl StaggeredGrid {
                         margin: Default::default(),
                         width: Size::Fixed(self.column_width(viewport)),
                         height: Size::Fit
-                    }, Layout::flow_down());
+                    }, self.layout_with_spacing());
                     
                     self.add_to_visibles_list(index - 1);
                     return Some(index - 1);

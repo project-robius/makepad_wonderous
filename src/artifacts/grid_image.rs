@@ -20,6 +20,7 @@ live_design! {
         draw_bg: {
             instance radius: 4.0
         }
+        flow: Down
 
         image = <Image> {
             width: Fill,
