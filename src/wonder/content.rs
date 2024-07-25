@@ -503,7 +503,7 @@ impl WonderContentRef {
     }
 
     pub fn hide(&mut self, cx: &mut Cx) {
-        if let Some(mut inner) = self.borrow_mut() {
+        if let Some(inner) = self.borrow_mut() {
             inner
                 .before_content_header(id!(header_before_full_content))
                 .hide(cx);
