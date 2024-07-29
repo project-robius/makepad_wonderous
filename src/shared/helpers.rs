@@ -14,14 +14,6 @@ live_design! {
         }
     }
 
-    LineH = <RoundedView> {
-        width: Fill,
-        height: 2,
-        margin: 0.0,
-        padding: 0.0, spacing: 0.0
-        draw_bg: {color: (COLOR_DIVIDER)}
-    }
-
     FillerX = <View> { width: Fill, height: Fit }
     FillerY = <View> { width: Fit, height: Fill }
 }
