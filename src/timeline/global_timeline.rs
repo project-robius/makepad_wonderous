@@ -625,6 +625,14 @@ impl WidgetNode for TimelineWonderEntries {
             item.find_widgets(path, cached, results);
         }
     }
+    
+    fn uid_to_widget(&self, uid:WidgetUid)->WidgetRef{
+        for widget in self.items.values() {
+            let x = widget.uid_to_widget(uid);
+            if !x.is_empty(){return x}
+        }
+        WidgetRef::empty()
+    }
 }
 
 impl Widget for TimelineWonderEntries {
@@ -791,6 +799,14 @@ impl WidgetNode for TimelineYears {
         for item in self.items.values() {
             item.find_widgets(path, cached, results);
         }
+    }
+
+    fn uid_to_widget(&self, uid:WidgetUid)->WidgetRef{
+        for widget in self.items.values() {
+            let x = widget.uid_to_widget(uid);
+            if !x.is_empty(){return x}
+        }
+        WidgetRef::empty()
     }
 }
 
