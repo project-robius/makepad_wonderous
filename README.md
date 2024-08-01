@@ -10,6 +10,7 @@ Makepad version of the [Wonderous](https://flutter.gskinner.com/wonderous/) appl
 ### Clone the Makepad repository
 
 ```bash
+cd ~
 git clone git@github.com:makepad/makepad.git
 ```
 
@@ -22,8 +23,7 @@ git branch rik
 ### Install makepad subcommand for cargo
 
 ```bash
-cd ~/makepad
-cargo install --path ./tools/cargo_makepad
+cargo install --path ~/makepad/tools/cargo_makepad
 ```
 
 ## 2. Get Project
@@ -39,15 +39,15 @@ git clone https://github.com/project-robius/makepad_wonderous
 Running on Desktop is the quickest way to try out an example app.
 
 ```bash
-cd ~/projects/makepad_wonderous
+cd ~/makepad_wonderous
 cargo run
 ```
 
 or
 
 ```bash
-cd ~/projects/makepad_wonderous
-cargo run -p makepad_wonderous
+cd ~/makepad_wonderous
+cargo run -p makepad_wonderous --release
 ```
 
 And there should be a desktop application window now running (may need to click on the icon on MacOS's Dock to show it)
@@ -67,10 +67,9 @@ Open either the Android emulator or connect to a real Android device
 use `adb` command to make sure there's a device connected properly
 
 ```bash
-cd ~/projects/makepad_wonderous
+cd ~/makepad_wonderous
 cargo makepad android run -p makepad_wonderous --release
 ```
-
 
 ## 5. iOS Setup & Install
 
@@ -128,27 +127,32 @@ cargo makepad apple ios \
 First run the following command:
 
 ```bash
-cd ~/projects/makepad
 cargo makepad apple list
 ```
 
-This command will print out the list of all provisioning profiles, signing identities, and device identifiers on the current system. The user has to decide and choose the ones that he/she needs to use for each type.
+This command will print out the list of all provisioning profiles, signing identities, and device identifiers on the current system. The user has to decide and choose the ones that he/she needs to use for each type. (If you get an error from the command, please follow the iOS Setup instructions above first.)
 
 Once decided, run the folloiwng command and fill in the **unique starting characters** chosen from the output.
 
 ```bash
+cd ~/makepad_wonderous
 cargo makepad apple ios \
- --provisioning-profile=unique-starting-hex-string \
- --signing-identity=UNIQUE_STARTING_HEX_STRING \
- --device-identifier=UNIQUE-STARTING-HEX-STRING \
- --org=rs.robius \
- --app=makepad_wonderous \
- run-device -p makepad_wonderous –release
+  --profile=unique-starting-hex-string \
+  --cert=UNIQUE_STARTING_HEX_STRING \
+  --device=UNIQUE-STARTING-HEX-STRING \
+  --org=rs.robius \
+  --app=makepad_wonderous \
+  run-device -p makepad_wonderous –release
 ```
 
 ## 6. WASM Build
 
-Running the Makepad application as a WASM build is as simple as a single command. The sript will automatically generate the necessary index.html and other files and also start a local webserver at port 8010.
+Running the Makepad application as a WASM build is as simple as a single command. The script will automatically generate the necessary index.html and other files and also start a local webserver at port 8010.
+
+### Demo
+
+<https://wasm.robius.rs/makepad_wonderous>
+
 
 ### Install WASM toolchain (First time)
 

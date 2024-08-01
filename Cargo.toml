@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-makepad-widgets = { path = "../makepad/widgets", version = "0.6.0" }
+# makepad-widgets = { path = "../makepad/widgets", version = "0.6.0" }
+makepad-widgets = { git = "https://github.com/makepad/makepad", branch = "rik" }
 
 [package.metadata]
 osiris.application.id = "Wonderous"
@@ -24,3 +25,12 @@ macos-pkg.app-id = "TBD.rs.robius.wonderous"
 #macos-pkg.codesign-identity = "./TBD"
 #macos-pkg.pkgsign-identity = "./TBD"
 #macos-pkg.provision-file = "./TBD"
+
+[profile.small]
+inherits = "release"
+#debug = true
+opt-level = 'z'     # Optimize for size
+lto = true          # Enable link-time optimization
+codegen-units = 1   # Reduce number of codegen units to increase optimizations
+panic = 'abort'     # Abort on panic
+strip = true
